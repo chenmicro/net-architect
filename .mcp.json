@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "doc-fetcher": {
+      "command": "npx",
+      "args": ["tsx", "mcp/doc-fetcher/index.ts"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY:-}",
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY:-}"
+      }
+    }
+  }
+}
