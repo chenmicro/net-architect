@@ -1,0 +1,9 @@
+# Installed by `npm install` in mcp/doc-fetcher — reproducible from
+# package.json/package-lock.json, not meant to be version-controlled.
+node_modules/
+
+# npm's crash log from a failed install/run; local debugging noise only.
+npm-debug.log*
+
+# Finder's per-directory metadata cache on macOS; contributor-machine-specific.
+.DS_Store
