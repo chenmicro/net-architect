@@ -1,0 +1,28 @@
+{
+  "name": "doc-fetcher",
+  "version": "0.1.0",
+  "description": "MCP server for pure retrieval of external specs and docs: IETF RFCs/drafts, general web search, and vendor spec sheets/whitepapers (HTML or PDF), normalized to plain text",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "cheerio": "^1.2.0",
+    "html-to-text": "^9.0.5",
+    "pdf-parse": "^1.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^20.14.0",
+    "@types/pdf-parse": "^1.1.5",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
