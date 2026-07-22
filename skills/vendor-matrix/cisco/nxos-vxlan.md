@@ -28,3 +28,10 @@ as of this writing.
 See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the head-to-head
 comparison against ACI, including the 2026 Cisco convergence ("Nexus One")
 update relevant to new builds.
+
+For L4-7 service redirection (firewall/LB insertion, and the Multi-Site
+stretched-workload/per-site-NAT case study) see **[nxos-epbr.md](nxos-epbr.md)**
+— ePBR ships as its own Configuration Guide, confirmed separate from the VXLAN
+one this file covers, so it's documented in its own file rather than folded in
+here.
+[ref](https://www.cisco.com/c/en/us/support/switches/nexus-9000-series-switches/products-installation-and-configuration-guides-list.html)

@@ -29,7 +29,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
    | AI/GPU training cluster buildout | [skills/scenarios/ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
    | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
    | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
-   | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR anchoring — the concrete mechanism; NX-OS-native equivalent not yet documented) |
+   | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR anchoring) and nxos-epbr.md (single-service-object ePBR pattern) |
 
 2. **Identify the technique(s)** the request touches and read the matching file(s) in
    [skills/techniques/](skills/techniques/) before proposing a design. Most real
@@ -63,7 +63,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
 
    | Vendor | File | Covers |
    |---|---|---|
-   | Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI) and [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN) — two distinct, non-interoperable DC fabric solutions, each with its own release history — plus [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) for the head-to-head comparison |
+   | Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI) and [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN) — two distinct, non-interoperable DC fabric solutions, each with its own release history — plus [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) for the head-to-head comparison, and [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR L4-7 redirect — its own Cisco Configuration Guide, not part of VXLAN's) |
    | Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
    | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
    | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
@@ -131,6 +131,7 @@ net-architect/
 │       │   ├── cisco.md     # Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS
 │       │   ├── aci.md       # ACI/APIC: architecture, release history, Multi-Site PBR/NAT case
 │       │   ├── nxos-vxlan.md # NX-OS-native EVPN-VXLAN: architecture, release history
+│       │   ├── nxos-epbr.md # ePBR (own Config Guide, not a VXLAN feature): L4-7 redirect, Multi-Site NAT case
 │       │   └── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       ├── arista.md
 │       ├── juniper.md
@@ -158,14 +159,27 @@ net-architect/
   e.g. `cisco/cisco.md`) holding cross-cutting/general vendor knowledge, plus one
   file per solution that the hub links out to. Only split when a real second
   solution is confirmed (same rule as new technique/vendor files below) — don't
-  pre-create subfolders for vendors that don't need one yet.
+  pre-create subfolders for vendors that don't need one yet. When the vendor
+  publishes its own documentation index (e.g. Cisco's
+  [Nexus 9000 installation-and-configuration-guides list](https://www.cisco.com/c/en/us/support/switches/nexus-9000-series-switches/products-installation-and-configuration-guides-list.html)),
+  treat that as the objective test for "genuinely distinct": if the vendor
+  ships a feature under its own, separately-versioned Configuration/Solution
+  Guide, give it its own file here too rather than folding it into whichever
+  file happens to reference it (e.g. `nxos-epbr.md` split out of
+  `nxos-vxlan.md` once it was confirmed ePBR has its own Guide, independent of
+  the VXLAN one) — don't rely on inference or a feature merely being
+  cross-referenced from another file as the splitting signal.
 - When new knowledge is pulled from the web (via `doc-fetcher` or general web
   search) rather than derived from this repo's existing material, record the
   source: add a `[ref](<url>)` link immediately after the specific sentence or
   table cell that claim supports — not a bibliography dumped at the end of the
   file. This keeps each claim independently verifiable and lets a stale fact be
   spotted (and re-checked) at the point it's used, rather than requiring a reader
-  to cross-reference a detached source list.
+  to cross-reference a detached source list. When a table cell or paragraph
+  already carries a `[ref]` and a new claim is added to it from a *different*
+  source, never delete or overwrite the existing one — number both inline as
+  `[ref1](<url>)`, `[ref2](<url>)`, ... immediately after their respective
+  claims, so each source stays traceable to the sentence it backs.
 - `doc-fetcher` stays a thin, pure-retrieval tool (fetch and normalize to text) — design
   judgment stays in this skill's prose, not in the tool. It has no write path and should
   never grow one; this repo targets solution design, not Day-2 operations, so anything

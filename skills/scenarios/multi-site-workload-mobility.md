@@ -49,6 +49,66 @@ default routing would send the response out Site B's local edge instead and
 the flow would fail (silently, for NAT, or via inspection drop, for a plain
 stateful firewall).
 
+## Fix options
+
+Two independent ways to guarantee the return leg reaches the correct
+stateful/NAT device (steps ⑥–⑦ in the diagram above). They trade off
+differently and aren't mutually exclusive with the severity distinction below
+— pick based on whether the workload needs to see the true client IP.
+
+### Option 1: SNAT + DNAT ("hairpin NAT") — vendor-agnostic
+
+Add source translation alongside the existing destination translation. Edge
+device A rewrites the client's public IP to its own fixed inside address, not
+just the public VIP to the workload's private IP. The workload then sees
+`src = edge device A's inside IP`, not the client's address — and because that
+source is what it replies *to*, the reply's destination is now a fixed,
+non-mobile, Site-A-anchored address instead of an arbitrary internet client.
+Ordinary destination-based routing gets it back to Site A correctly, from
+either site, with no redirect policy involved at all.
+
+- **Security/visibility limitation**: the workload never sees the real client
+  IP — only edge device A's address. Anything downstream that depends on true
+  client IP (access logs, per-client rate limiting, IP allowlisting, geo-IP,
+  abuse detection) breaks unless compensated for. HTTP(S) can partially
+  mitigate this with an `X-Forwarded-For`-style header inserted by the edge
+  device; most non-HTTP protocols have no equivalent, so this is a real
+  functional loss, not just a logging inconvenience.
+- Also worth a capacity check at scale: SNAT/PAT shares a small pool of inside
+  IPs/ports across every flow, and can hit port exhaustion under high
+  concurrent-connection counts — mitigate with multiple SNAT addresses if so.
+- Still crosses the DCI hairpin when the workload isn't local to Site A — this
+  fixes *correctness* of the return path, not the extra hop's cost.
+
+### Option 2: Pin the redirect mechanism to the specific device (no SNAT) — vendor/solution-specific
+
+Keep only destination translation (true client IP stays visible to the
+workload), and instead force the return leg to the correct device with an
+explicit, platform-provided redirect mechanism. Because no SNAT is applied,
+the reply is still addressed to an arbitrary external client, so generic
+routing can't solve this on its own — the mechanism differs per platform, and
+this is genuinely unresolved for some of them:
+
+- **Cisco ACI**: Policy-Based Redirect anchored to a single, explicitly-named
+  Destination Group — not the default proximity/local-site pattern. See
+  [skills/vendor-matrix/cisco/aci.md](../vendor-matrix/cisco/aci.md#multi-site-stretched-workload-with-per-site-nat)
+  for the mechanics (redirect policy objects, provider-leaf anchoring since
+  APIC 4.0(1)) and a worked diagram.
+  [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
+- **NX-OS-native EVPN-VXLAN Multi-Site**: achievable via ePBR, but by
+  configuration discipline rather than a dedicated anchoring feature — define
+  **one** `epbr service` object (single service-end-point IP) and apply it
+  identically across every leaf/BGW at both sites, instead of the proximity-first,
+  per-site-primary pattern Cisco's own multi-site service-chain examples
+  default to. See [skills/vendor-matrix/cisco/nxos-epbr.md](../vendor-matrix/cisco/nxos-epbr.md#multi-site-stretched-workload-with-per-site-nat)
+  — flagged there as a strong structural inference, not a Cisco-confirmed
+  parallel to ACI's provider-leaf anchoring (no vendor packet-walk exists for
+  this exact shared-subnet-mobility framing, only for active/standby firewall
+  clustering).
+- **Other vendors** (Arista, Juniper, Huawei Multi-Site/DCI designs): not yet
+  researched in this repo — confirm before recommending rather than assuming
+  parity with either Cisco solution.
+
 ## Composes
 
 1. [skills/techniques/spine-leaf-clos.md](../techniques/spine-leaf-clos.md) and
@@ -60,17 +120,10 @@ stateful firewall).
    VRF/segmentation boundary between the shared-internally addressing plane and
    whatever per-site external identity (VRF, L3Out, internet edge) sits outside
    it.
-3. The relevant vendor DC-fabric file for the actual enforcement mechanism —
-   this is where the concrete solution lives, not in this file (see Maintenance
-   in [SKILL.md](../../SKILL.md) for why). Currently documented:
-   [skills/vendor-matrix/cisco/aci.md](../vendor-matrix/cisco/aci.md#multi-site-stretched-workload-with-per-site-nat)
-   — Policy-Based Redirect anchored to a specific, named device rather than a
-   proximity-based/local one.
-   [skills/vendor-matrix/cisco/nxos-vxlan.md](../vendor-matrix/cisco/nxos-vxlan.md)
-   does not yet have an equivalent documented — confirm and add before relying
-   on it for an NX-OS-native (non-ACI) Multi-Site design; don't assume ePBR
-   solves this the same way without checking, since ACI's anchoring mechanism
-   is a property of its provider-leaf PBR enforcement model specifically.
+3. The relevant vendor DC-fabric file, only needed for Option 2 above — see
+   Fix options for which platforms currently have this documented (see
+   Maintenance in [SKILL.md](../../SKILL.md) for why the concrete mechanism
+   lives in the vendor file, not here).
 
 ## Cross-cutting judgment
 
@@ -83,17 +136,12 @@ stateful firewall).
     on.
   - **NAT specifically** is stricter: the return packet must reach the *exact*
     device that created the translation entry — no independent peer device can
-    substitute, even with a shared security policy. This is what turns "keep
-    paths aligned" into "pin the flow to one specific device."
-- The general fix for the NAT case is a pattern, not a vendor feature: when a
-  stateful/NAT device's identity is tied to a fixed external resource (a public
-  IP range, in this scenario) but the workload behind it is not similarly
-  fixed, the redirect mechanism must target that *specific device* explicitly
-  — never resolve it by proximity/locality — and the resulting cross-site
-  hairpin on the return leg is the accepted cost of correctness, not a defect
-  to engineer away.
-- If the hairpin cost is unacceptable at the traffic volume in question, the
-  fix is architectural, not a redirect-policy tweak: decouple the two
+    substitute, even with a shared security policy. This is what makes both
+    fix options above necessary in the first place.
+- Neither fix option removes the cross-site DCI hairpin when workload and
+  owning-DC diverge — both just guarantee correctness of that hairpin. If the
+  hairpin cost itself is unacceptable at the traffic volume in question, the
+  fix is architectural, not a NAT/redirect-policy tweak: decouple the two
   independence assumptions causing the conflict — e.g. don't let
   internet-facing (NAT'd) tiers migrate independently of their public
   IP/DNS record, or move to a firewall platform with cross-site session-state
@@ -101,16 +149,21 @@ stateful firewall).
 
 ## Questions to ask early
 
+- Does the workload or its downstream logging/security controls need true
+  client-IP visibility? This is the primary decision between the two fix
+  options — Option 1 (SNAT) is simpler and vendor-agnostic but sacrifices
+  client-IP visibility; Option 2 preserves it but is vendor/solution-specific
+  and, for some platforms, not yet a confirmed capability.
 - Is the private/internal addressing plane genuinely stretched (same subnet,
   either site), or per-site with routed reachability? The whole problem class
   only exists in the stretched case.
 - Is cross-site workload migration a live, frequent behavior (load balancing,
   DRS-style mobility) or a rare DR failover? Frequent migration makes hairpin
-  cost and the pinning solution matter continuously; rare DR failover may
+  cost and either fix option matter continuously; rare DR failover may
   tolerate a simpler, coarser fix (e.g. full site cutover of both workload and
   public IP together).
 - Do the external-facing stateful devices (NAT firewalls, load balancers)
   support cross-site session/state synchronization? If yes, that may remove
-  the need for redirect-pinning entirely.
-- ACI or NX-OS-native EVPN-VXLAN Multi-Site? The composition above only has a
-  confirmed, documented mechanism for ACI today.
+  the need for either fix option entirely.
+- ACI or NX-OS-native EVPN-VXLAN Multi-Site? Only relevant if Option 2 is
+  chosen — Option 1 doesn't depend on this at all.
