@@ -5,12 +5,19 @@
 // URL, normalized to plain text. No write path: every tool here is a GET,
 // nothing here can push config or state anywhere.
 
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import * as cheerio from "cheerio";
+import { config as loadEnv } from "dotenv";
 import { compile as compileHtmlToText } from "html-to-text";
 import pdfParse from "pdf-parse";
 import { z } from "zod";
+
+// Load API keys from a .env file at the repo root, regardless of the cwd
+// this server is launched from.
+loadEnv({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.env") });
 
 const RFC_EDITOR_BASE = "https://www.rfc-editor.org/rfc";
 const IETF_ARCHIVE_BASE = "https://www.ietf.org/archive/id";
