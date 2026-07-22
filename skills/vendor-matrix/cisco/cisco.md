@@ -13,8 +13,8 @@
 - SD-Access (fabric-based campus, built on CVD guidance) is Cisco's routed-access/
   overlay campus architecture — relevant whenever a campus design question leans
   toward "routed access + segmentation via SGT" rather than traditional
-  three-tier (see [techniques/core-agg-access.md](../techniques/core-agg-access.md)
-  and [techniques/nac.md](../techniques/nac.md)).
+  three-tier (see [techniques/core-agg-access.md](../../techniques/core-agg-access.md)
+  and [techniques/nac.md](../../techniques/nac.md)).
 
 ## Silicon One
 
@@ -33,15 +33,15 @@
 - **Catalyst** is the campus/enterprise-access product line — IOS-XE based,
   optimized for port density, PoE, wireless integration (WLC/Mobility Express),
   and NAC/802.1X feature depth. Default choice for
-  [techniques/core-agg-access.md](../techniques/core-agg-access.md),
-  [wireless.md](../techniques/wireless.md), [nac.md](../techniques/nac.md), and
-  [poe.md](../techniques/poe.md).
+  [techniques/core-agg-access.md](../../techniques/core-agg-access.md),
+  [wireless.md](../../techniques/wireless.md), [nac.md](../../techniques/nac.md), and
+  [poe.md](../../techniques/poe.md).
 - **Nexus** is the data-center switching line — NX-OS based, optimized for
   low-latency, high-radix spine-leaf fabrics, VXLAN/EVPN, and DC-specific
   telemetry (e.g. buffer/queue visibility for AI fabric tuning). Default choice for
-  [techniques/spine-leaf-clos.md](../techniques/spine-leaf-clos.md),
-  [vxlan.md](../techniques/vxlan.md), [evpn.md](../techniques/evpn.md), and
-  [ai-gpu-fabric.md](../techniques/ai-gpu-fabric.md).
+  [techniques/spine-leaf-clos.md](../../techniques/spine-leaf-clos.md),
+  [vxlan.md](../../techniques/vxlan.md), [evpn.md](../../techniques/evpn.md), and
+  [ai-gpu-fabric.md](../../techniques/ai-gpu-fabric.md).
 - Using Catalyst gear in a DC fabric role (or vice versa) is usually a sign the
   design inherited the wrong product line rather than a deliberate choice — flag
   it if seen, since feature sets (EVPN maturity, buffer architecture, PoE) diverge
@@ -58,11 +58,25 @@
   and DC-specific automation hooks (NX-API). Not the same OS lineage as IOS-XE,
   so config syntax and automation tooling don't transfer directly between them —
   plan operational training/tooling per platform, not as one Cisco skillset.
-- **ACI** (Application Centric Infrastructure) is Cisco's SDN/policy-controller
-  overlay for Nexus DC fabrics (APIC as the controller) — an alternative to a
-  manually-configured EVPN-VXLAN fabric, trading some flexibility for centralized
-  policy management and a declarative, application-profile-based model. Relevant
-  when a DC design question is really "should the fabric be controller-managed"
-  rather than just "what topology" — ACI vs. NX-OS-native EVPN-VXLAN is a real
-  fork in the road, not a minor implementation detail, since operational model,
+
+## DC fabric: ACI vs. NX-OS-native EVPN-VXLAN
+
+Two distinct, non-interoperable solutions for the same DC fabric role, each with
+its own release cadence and architecture — this is why each gets its own file
+rather than being a paragraph here.
+
+- **[ACI](aci.md)** (Application Centric Infrastructure) is Cisco's SDN/policy-
+  controller overlay for Nexus DC fabrics (APIC as the controller) — a declarative,
+  application-profile-based policy model (EPGs/contracts) trading some flexibility
+  for centralized management.
+- **[NX-OS-native EVPN-VXLAN](nxos-vxlan.md)** is the standards-based (RFC 7432/
+  8365), box-by-box BGP EVPN control plane over VXLAN — see
+  [techniques/vxlan.md](../../techniques/vxlan.md) and
+  [techniques/evpn.md](../../techniques/evpn.md) for the vendor-neutral mechanics
+  either solution rides on.
+- Relevant whenever a DC design question is really "should the fabric be
+  controller-managed" rather than just "what topology" — this is a real fork in
+  the road, not a minor implementation detail, since operational model,
   multi-vendor interop, and lock-in profile differ substantially between them.
+  See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the full head-to-head
+  comparison, judgment call, and the 2026 Cisco convergence ("Nexus One") update.

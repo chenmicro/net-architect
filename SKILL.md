@@ -29,6 +29,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
    | AI/GPU training cluster buildout | [skills/scenarios/ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
    | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
    | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
+   | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR anchoring — the concrete mechanism; NX-OS-native equivalent not yet documented) |
 
 2. **Identify the technique(s)** the request touches and read the matching file(s) in
    [skills/techniques/](skills/techniques/) before proposing a design. Most real
@@ -62,7 +63,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
 
    | Vendor | File | Covers |
    |---|---|---|
-   | Cisco | [skills/vendor-matrix/cisco.md](skills/vendor-matrix/cisco.md) | CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS, ACI |
+   | Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI) and [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN) — two distinct, non-interoperable DC fabric solutions, each with its own release history — plus [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) for the head-to-head comparison |
    | Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
    | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
    | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
@@ -106,7 +107,8 @@ net-architect/
 │   ├── scenarios/           # Cross-technique composition (which techniques + in what order)
 │   │   ├── ai-gpu-training-cluster.md
 │   │   ├── campus-wan-edge-refresh.md
-│   │   └── sdwan-sase-rollout.md
+│   │   ├── sdwan-sase-rollout.md
+│   │   └── multi-site-workload-mobility.md
 │   ├── techniques/          # Atomic, one file per technique (flat, no domain grouping)
 │   │   ├── spine-leaf-clos.md
 │   │   ├── vxlan.md
@@ -125,7 +127,11 @@ net-architect/
 │   │   ├── segment-routing.md
 │   │   └── bgp.md
 │   └── vendor-matrix/       # Platform specs, ASICs, & capabilities
-│       ├── cisco.md
+│       ├── cisco/           # Split into a hub + per-solution files (see Maintenance)
+│       │   ├── cisco.md     # Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS
+│       │   ├── aci.md       # ACI/APIC: architecture, release history, Multi-Site PBR/NAT case
+│       │   ├── nxos-vxlan.md # NX-OS-native EVPN-VXLAN: architecture, release history
+│       │   └── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       ├── arista.md
 │       ├── juniper.md
 │       └── huawei.md
@@ -144,6 +150,22 @@ net-architect/
   doesn't fit an existing file (e.g. a new technique, or a new vendor), add a file and
   a row rather than overloading an existing one — that's what keeps per-request
   loading cheap.
+- The same splitting rule applies to vendor files when a single vendor's coverage
+  grows to span genuinely distinct, non-interoperable solutions (e.g. Cisco ACI vs.
+  NX-OS-native EVPN-VXLAN — same vendor, same problem space, but different
+  architectures, release cadences, and operational models). When that happens,
+  turn the vendor file into a subfolder: a hub file (kept at the vendor's own name,
+  e.g. `cisco/cisco.md`) holding cross-cutting/general vendor knowledge, plus one
+  file per solution that the hub links out to. Only split when a real second
+  solution is confirmed (same rule as new technique/vendor files below) — don't
+  pre-create subfolders for vendors that don't need one yet.
+- When new knowledge is pulled from the web (via `doc-fetcher` or general web
+  search) rather than derived from this repo's existing material, record the
+  source: add a `[ref](<url>)` link immediately after the specific sentence or
+  table cell that claim supports — not a bibliography dumped at the end of the
+  file. This keeps each claim independently verifiable and lets a stale fact be
+  spotted (and re-checked) at the point it's used, rather than requiring a reader
+  to cross-reference a detached source list.
 - `doc-fetcher` stays a thin, pure-retrieval tool (fetch and normalize to text) — design
   judgment stays in this skill's prose, not in the tool. It has no write path and should
   never grow one; this repo targets solution design, not Day-2 operations, so anything

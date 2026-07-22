@@ -42,7 +42,7 @@
   their respective DC fabrics, with additional variants/modules extending into
   campus (NCE-Campus) and WAN (NCE-IP) domains.
 - As with ACI vs. NX-OS-native EVPN-VXLAN (see
-  [vendor-matrix/cisco.md](cisco.md)), whether a Huawei DC design is
+  [vendor-matrix/cisco/cisco.md](cisco/cisco.md)), whether a Huawei DC design is
   NCE-controller-managed or manually-configured EVPN-VXLAN is a real
   architectural fork affecting operational model and automation capability —
   confirm which is intended rather than assuming a specific one.
