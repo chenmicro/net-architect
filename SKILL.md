@@ -29,7 +29,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
    | AI/GPU training cluster buildout | [skills/scenarios/ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
    | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
    | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
-   | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR anchoring) and nxos-epbr.md (single-service-object ePBR pattern) |
+   | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
 
 2. **Identify the technique(s)** the request touches and read the matching file(s) in
    [skills/techniques/](skills/techniques/) before proposing a design. Most real
@@ -63,7 +63,7 @@ available — see [README.md](README.md#network-access) for the specific hosts i
 
    | Vendor | File | Covers |
    |---|---|---|
-   | Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI) and [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN) — two distinct, non-interoperable DC fabric solutions, each with its own release history — plus [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) for the head-to-head comparison, and [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR L4-7 redirect — its own Cisco Configuration Guide, not part of VXLAN's) |
+   | Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI) and [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN) — two distinct, non-interoperable DC fabric solutions, each with its own release history — plus [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) for the head-to-head comparison, [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR L4-7 redirect — its own Cisco Configuration Guide, not part of VXLAN's), and [nxos-gpo.md](skills/vendor-matrix/cisco/nxos-gpo.md) (GPO tag-based microsegmentation — its own whitepaper, based on still-unratified IETF drafts) |
    | Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
    | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
    | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
@@ -132,6 +132,7 @@ net-architect/
 │       │   ├── aci.md       # ACI/APIC: architecture, release history, Multi-Site PBR/NAT case
 │       │   ├── nxos-vxlan.md # NX-OS-native EVPN-VXLAN: architecture, release history
 │       │   ├── nxos-epbr.md # ePBR (own Config Guide, not a VXLAN feature): L4-7 redirect, Multi-Site NAT case
+│       │   ├── nxos-gpo.md  # GPO (own whitepaper, unratified IETF drafts): tag-based microsegmentation
 │       │   └── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       ├── arista.md
 │       ├── juniper.md

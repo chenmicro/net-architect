@@ -89,11 +89,21 @@ the reply is still addressed to an arbitrary external client, so generic
 routing can't solve this on its own — the mechanism differs per platform, and
 this is genuinely unresolved for some of them:
 
-- **Cisco ACI**: Policy-Based Redirect anchored to a single, explicitly-named
-  Destination Group — not the default proximity/local-site pattern. See
-  [skills/vendor-matrix/cisco/aci.md](../vendor-matrix/cisco/aci.md#multi-site-stretched-workload-with-per-site-nat)
-  for the mechanics (redirect policy objects, provider-leaf anchoring since
-  APIC 4.0(1)) and a worked diagram.
+- **Cisco ACI**: **no confirmed fix on Multi-Site's documented, recommended
+  architecture.** Cisco's own Multi-Site service-node paper scopes itself
+  exclusively to "independent service nodes in each site" with connection
+  state that is **not synchronized** across sites, and every PBR mechanism it
+  describes (EPG-to-L3Out, EPG-to-EPG, vzAny variants) resolves the redirect
+  target to "the local active firewall node" — there's no documented
+  mechanism for pinning PBR to a specific, named, non-local firewall instead.
+  See [skills/vendor-matrix/cisco/aci.md](../vendor-matrix/cisco/aci.md#multi-site-stretched-workload-with-per-site-nat)
+  for the full trace (an earlier version of that file claimed a
+  single-Destination-Group pinning fix; it didn't hold up and has been
+  retracted). The one architecture in the same paper that would sidestep the
+  problem — a stretched active/standby firewall pair, one logical device
+  instead of independent per-site ones — is explicitly flagged "Limited
+  support," and Cisco's own guidance there is to use **ACI Multi-Pod**
+  instead of Multi-Site if that's a hard requirement.
   [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
 - **NX-OS-native EVPN-VXLAN Multi-Site**: achievable via ePBR, but by
   configuration discipline rather than a dedicated anchoring feature — define

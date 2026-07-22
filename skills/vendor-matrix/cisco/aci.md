@@ -42,60 +42,70 @@ implicit stateful check), the wrong firewall can't substitute even if it runs
 an identical security policy.
 [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
 
-**Why the default "local firewall" PBR pattern fails here:** ACI's usual
-Multi-Site north-south firewall design anchors PBR to whichever site the
-workload's compute leaf is on, so an independent, interchangeable firewall per
-site can serve the flow.
+**Correction: ACI Multi-Site's documented PBR architecture does not have a
+fix for this scenario.** An earlier version of this file claimed a
+single-Destination-Group pinning pattern (anchor PBR to one named firewall,
+configured identically at every leaf regardless of site) solved this —
+that claim doesn't hold up against Cisco's own Multi-Site service-node paper
+and has been retracted. Here's why, and what the real options are.
+
+**What the paper's PBR mechanism actually guarantees.** Cisco's stated scope
+for this entire document is deliberate and narrow:
+
+> "As of Cisco ACI Release 6.0(5), the recommended option for integrating
+> L4–L7 services into a Cisco ACI Multi-Site architecture calls for the
+> deployment of independent service nodes in each site... The focus in this
+> document, therefore, will be exclusively on this deployment model."
+>
+> "This model mandates that symmetric traffic flows through the service
+> nodes be maintained, because **the connection state is not synchronized
+> between independent service nodes deployed in different sites**."
+
+Every PBR use case the paper documents (EPG-to-L3Out compute-leaf
+enforcement, EPG-to-EPG provider-leaf anchoring, vzAny-to-vzAny/-to-EPG/
+-to-L3Out) is engineered around one guarantee: **flow symmetry** — the *same*
+firewall handles both directions of a *given* flow, by resolving to **"the
+local active firewall node"** relative to wherever the endpoint currently is.
+That guarantee is unconditionally correct when the two sites' firewalls are
+interchangeable (same policy, no unique state) — but nowhere in the document
+is there a mechanism for redirecting to a **specific, named, non-local**
+firewall that overrides that local resolution. "Local" is the answer PBR
+always computes; there's no override.
+
+**Why that breaks this scenario specifically.** Each site here owns a
+*distinct* public IP range with its own **independent, unsynchronized** NAT
+firewall — exactly the "connection state is not synchronized" case the paper
+flags. If the workload migrates to DC2 mid-session, its return traffic hits
+DC2's compute leaf, which — per the paper's own design, correctly and as
+intended — redirects to **DC2's own local firewall (FW2)**. FW2 never
+created the translation entry; only FW1 (DC1) did. There's no PBR knob in
+this architecture to force it to FW1 instead — the "single Destination
+Group, same target everywhere" pattern previously claimed here isn't
+something this document (or the general EPG-to-L3Out/EPG-to-EPG mechanics
+elsewhere in it) actually supports.
+
+**The one model in this same paper that would sidestep the problem** is an
+**active/standby firewall pair *stretched* across sites** — one logical
+device (not independent per-site instances), so "local" trivially resolves
+to the same thing everywhere since there's no second instance to
+mis-resolve to. But Cisco explicitly flags this **"Limited support,"** not
+the recommended architecture, and adds:
+
+> "Cisco ACI Multi-Pod remains the recommended architectural approach for
+> the deployment of active/standby service-node pairs across data
+> centers."
+
+i.e. Cisco's own guidance is to use a *different* fabric architecture
+(Multi-Pod, not Multi-Site) if a stretched active/standby pair is a hard
+requirement — not to force it onto Multi-Site's independent-node model.
 [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
-That assumption breaks under NAT: the two firewalls are not interchangeable —
-only the one that performed the original translation holds the session state.
 
-**The fix — anchor PBR to one named device, not a local one:**
-- A PBR **Redirect Policy** points at a **Destination Group** defined by an
-  explicit **IP + MAC** (L3 mode) or **leaf/port/VLAN** (L1/L2 mode) — a named
-  device interface, not a proximity-based role.
-  [ref](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/4-x/L4-L7-services/Cisco-APIC-Layer-4-to-Layer-7-Services-Deployment-Guide-42x/b-Cisco-APIC-Layer-4-to-Layer-7-Services-Deployment-Guide-42x_chapter_01001.html)
-- Since APIC 4.0(1), PBR enforcement for a contract is anchored at the
-  **provider leaf** — applied consistently, for both directions of a flow,
-  from the one configured destination group.
-  [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
-- For this scenario: configure only **one** destination group for the
-  contract — the NAT-owning firewall's inside-interface IP/MAC — with no
-  local alternative defined at the other site. Every leaf enforcing that
-  contract, regardless of site, then has exactly one legal PBR target,
-  reached by hairpinning across the ISN when the workload sits elsewhere.
-
-```mermaid
-flowchart TB
-    Client(["Internet Client"])
-
-    subgraph DC1["DC1 — owns Public IP Range 1"]
-        FW1["FW1 (stateful NAT)\nPublic ↔ Private xlate\n★ PBR-anchored destination"]
-        Fabric1["ACI Fabric 1\nborder / compute leaf"]
-    end
-
-    subgraph DC2["DC2 — owns Public IP Range 2 (unused in this flow)"]
-        Fabric2["ACI Fabric 2\ncompute leaf\nPBR dest.group = FW1 only"]
-        WL["Workload\nshared/stretched private subnet\n(currently hosted in DC2)"]
-        FW2["FW2 (stateful NAT)\n✗ not used — no session\nstate for this flow"]
-    end
-
-    Client -->|"① dst = Public-IP-1"| FW1
-    FW1 -->|"② NAT public→private\ncreate session state"| Fabric1
-    Fabric1 -->|"③ COOP: endpoint not local\n→ forward across ISN"| Fabric2
-    Fabric2 -->|"④ deliver to endpoint"| WL
-    WL -->|"⑤ response src=private IP\ndst=client public IP"| Fabric2
-    Fabric2 -.->|"⑥ PBR pinned to FW1\n(single destination group)\n→ hairpin across ISN"| Fabric1
-    Fabric1 -.->|"⑦ redirect to FW1"| FW1
-    FW1 -->|"⑧ un-NAT private→public\n(session state matched)"| Client
-```
-
-**Conclusion:** anchoring PBR to a single named device — accepting the
-resulting cross-site hairpin on the return leg — is the correct, required fix,
-not a routing defect to optimize away. It only applies to firewalls that are
-PBR-reachable service-graph nodes through the fabric; it has no effect on
-firewalls ACI has no L3 relationship with. If the hairpin cost is
-unacceptable at scale, see
-[multi-site-workload-mobility.md](../../scenarios/multi-site-workload-mobility.md#cross-cutting-judgment)
-for the architectural alternatives (decouple workload mobility from public-IP
-ownership, or use a NAT platform with cross-site state sync).
+**Net**: on ACI Multi-Site with independent per-site firewalls (the
+documented, recommended design), this scenario has **no confirmed PBR-based
+fix**. The viable paths are the ones already covered generically in
+[multi-site-workload-mobility.md](../../scenarios/multi-site-workload-mobility.md):
+Option 1 (SNAT, sacrificing client-IP visibility), the architectural fix
+(don't let NAT'd tiers migrate independently of their public IP), a NAT
+platform with cross-site state sync, or — if a stretched active/standby pair
+is genuinely required — reconsidering ACI Multi-Pod instead of Multi-Site for
+this fabric.

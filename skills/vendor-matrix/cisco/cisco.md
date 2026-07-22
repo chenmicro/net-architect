@@ -73,7 +73,10 @@ rather than being a paragraph here.
   8365), box-by-box BGP EVPN control plane over VXLAN — see
   [techniques/vxlan.md](../../techniques/vxlan.md) and
   [techniques/evpn.md](../../techniques/evpn.md) for the vendor-neutral mechanics
-  either solution rides on.
+  either solution rides on. Its microsegmentation feature,
+  **[GPO](nxos-gpo.md)** (Group Policy Option), gets its own file — it has its
+  own dedicated whitepaper, and unlike the RFC 7432/8365 baseline it rides on,
+  GPO itself is based on still-unratified IETF drafts.
 - Relevant whenever a DC design question is really "should the fabric be
   controller-managed" rather than just "what topology" — this is a real fork in
   the road, not a minor implementation detail, since operational model,

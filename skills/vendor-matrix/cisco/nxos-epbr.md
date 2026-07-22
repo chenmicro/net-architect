@@ -17,9 +17,10 @@
   [ref](https://datatracker.ietf.org/doc/html/rfc1104)
   In practice every vendor's PBR is its own non-interoperable implementation
   (Cisco route-maps, Linux policy routing tables, etc.), and ePBR's
-  redirection, health-tracking, and VXLAN/GPO-aware service-chaining layer on
-  top of that baseline is entirely Cisco's own design — same pattern as vPC,
-  CloudSec, and GPO in [aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md#proprietary-tech-inside-nx-os-evpn-vxlan).
+  redirection, health-tracking, and VXLAN/[GPO](nxos-gpo.md)-aware
+  service-chaining layer on top of that baseline is entirely Cisco's own
+  design — same pattern as vPC, CloudSec, and GPO in
+  [aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md#proprietary-tech-inside-nx-os-evpn-vxlan).
   There is no vendor-neutral technique file for PBR/service-chaining in this
   repo yet — add one under `skills/techniques/` if a second vendor's
   implementation needs documenting here.
@@ -31,7 +32,7 @@
 | 9.3(5) | First introduced, single-site only. [ref](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/93x/epbr/cisco-nexus-9000-series-nx-os-epbr-configuration-guide-93x/m-configuring-epbr.html) |
 | 10.1(1) | Platform/protocol coverage broadened — IPv4, IPv6, VXLAN, GX/FX3 hardware — still single-site. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/101x/configuration/epbr/cisco-nexus-9000-series-nx-os-epbr-configuration-guide-101x/m-configuring-epbr.html) |
 | 10.2(1) | **Multi-Site support** — service chaining/load-balancing across VXLAN EVPN Multi-Site fabrics. This is the release the Multi-Site NAT case study below depends on. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/102x/configuration/epbr/cisco-nexus-9000-series-nx-os-epbr-configuration-guide-102x/m-configuring-epbr.html) |
-| 10.5(2)F | **GPO-based multi-site service chains** — sources/destinations distributable across sites, multi-node chains across VRF contexts. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/105x/configuration/epbr/cisco-nexus-9000-series-nx-os-epbr-configuration-guide/chapter.html) |
+| 10.5(2)F | **[GPO](nxos-gpo.md)-based multi-site service chains** — sources/destinations distributable across sites, multi-node chains across VRF contexts. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/105x/configuration/epbr/cisco-nexus-9000-series-nx-os-epbr-configuration-guide/chapter.html) |
 
 ## Multi-Site: stretched workload with per-site NAT
 
@@ -75,8 +76,9 @@ configured, not by a distinct anchoring feature:
   described above to steer both the forward and return leg of an inter-site
   flow to the one active firewall without creating a BGW routing loop.
   [ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/cisco-vxlan-multi-site-and-service-node-integration.html)
-- Since 10.5(2)F, ePBR also supports GPO-based multi-site service chains
-  (`epbr failover-group` for cross-site health-tracked backup), but the
+- Since 10.5(2)F, ePBR also supports [GPO](nxos-gpo.md)-based multi-site
+  service chains (`epbr failover-group` for cross-site health-tracked backup),
+  but the
   documented default pattern there is proximity-first — each site gets its own
   local primary chain, failing over cross-site only on a health probe failure.
   That default is the *wrong* pattern for this scenario (it's exactly the
