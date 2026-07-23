@@ -43,8 +43,7 @@ multiple integrator sources (e.g. FirstPassLab, TravTeks) indicate new-build
 guidance is leaning toward NX-OS-native VXLAN EVPN going forward — worth
 factoring into this decision for 2026+ greenfield builds, and worth
 re-verifying against Cisco's current messaging since this initiative is recent
-and still evolving.
-[ref](https://blogs.cisco.com/datacenter/unifying-the-data-center-with-cisco-nexus-one-the-network-that-works-for-you)
+and still evolving [1].
 
 ### Why Cisco is making this shift
 
@@ -54,19 +53,16 @@ Four reasons recur across Cisco's own framing and independent commentary:
   VXLAN/EVPN (RFC 7432/8365) is now the industry-wide DC fabric standard —
   Arista, Juniper, and others all interop on it. ACI's proprietary,
   controller-only abstraction went from "advanced" to "isolated" as the rest of
-  the market converged on an open baseline.
-  [ref](https://blogs.cisco.com/datacenter/cisco-nexus-one-fabric-unify-data-center-operations-with-open-vxlan-evpn-standards)
+  the market converged on an open baseline [2].
 - **Operational skill transfer.** NX-OS EVPN-VXLAN troubleshooting (BGP route
   types, VTEP reachability, ARP suppression) maps to transferable networking
   knowledge; ACI's EPG/contract abstraction requires a Cisco-specific mental
-  model that doesn't carry to any other vendor or even to non-ACI Cisco gear.
-  [ref](https://firstpasslab.com/blog/2026-03-06-cisco-aci-sunset-nxos-vxlan-evpn-future-ccie-dc/)
+  model that doesn't carry to any other vendor or even to non-ACI Cisco gear [3].
 - **Unifying the management layer instead of the fabric OS.** Cisco is
   converging both onto **Nexus Dashboard** as the single automation/telemetry
   plane — decoupling "give customers a controller-managed experience" from "run
   a Cisco-only proprietary fabric OS." That undercuts ACI's core reason to
-  exist, since centralized policy can now sit on top of standards-based NX-OS.
-  [ref](https://www.travteks.com/blog/nd-moving-from-aci/)
+  exist, since centralized policy can now sit on top of standards-based NX-OS [4].
 - **Cost of maintaining two divergent stacks.** ACI runs different switch-side
   software from mainline NX-OS; converging reduces Cisco's own engineering
   overhead, not just customer-facing complexity.
@@ -80,9 +76,9 @@ pattern as ACI just less totalizing:
 
 | Feature | Status |
 |---|---|
-| **vPC** (device-level VTEP redundancy) | Cisco-proprietary — this is exactly what EVPN ESI Multi-Homing ([nxos-vxlan.md](nxos-vxlan.md), 10.6, RFC 8365) was introduced to *replace*, confirming vPC itself was never a standard. [ref](https://firstpasslab.com/blog/2026-01-18-vxlan-evpn-multi-homing-esi-nexus/) |
-| **CloudSec** (Multi-Site DCI encryption) | Cisco-proprietary protocol — uses MACsec's cryptographic primitives, but the key-exchange mechanism (a Cisco-defined BGP tunnel-encap attribute) and BGW-to-BGW session model are Cisco's own design, not an IETF standard. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-106x/m-configuring-cloudsec.html) |
-| **[GPO](nxos-gpo.md)** (Group Policy Option — ACI-style tag-based segmentation for NX-OS) | Based on three drafts, not one: `draft-smith-vxlan-group-policy` (data plane, expired 2019), `draft-wlin-bess-group-policy-id-extended-community` (control plane, expired 2024), and the umbrella `draft-lrss-bess-evpn-group-policy` (expired, last updated as recently as Dec 2025) — all **expired individual Internet-Drafts** with no working-group adoption or intended RFC status. A quasi-standard that never reached multi-vendor ratification, functionally Cisco's way of bringing ACI's segmentation model into the "open" stack without it actually being an open standard. See [nxos-gpo.md](nxos-gpo.md) for the full mechanics (SGT/SGACL constructs, release history, enforcement scenarios). [ref](https://datatracker.ietf.org/doc/draft-smith-vxlan-group-policy/) [ref2](https://datatracker.ietf.org/doc/draft-lrss-bess-evpn-group-policy/) |
+| **vPC** (device-level VTEP redundancy) | Cisco-proprietary — this is exactly what EVPN ESI Multi-Homing ([nxos-vxlan.md](nxos-vxlan.md), 10.6, RFC 8365) was introduced to *replace*, confirming vPC itself was never a standard [5]. |
+| **CloudSec** (Multi-Site DCI encryption) | Cisco-proprietary protocol — uses MACsec's cryptographic primitives, but the key-exchange mechanism (a Cisco-defined BGP tunnel-encap attribute) and BGW-to-BGW session model are Cisco's own design, not an IETF standard [6]. |
+| **[GPO](nxos-gpo.md)** (Group Policy Option — ACI-style tag-based segmentation for NX-OS) | Based on three drafts, not one: `draft-smith-vxlan-group-policy` (data plane, expired 2019), `draft-wlin-bess-group-policy-id-extended-community` (control plane, expired 2024), and the umbrella `draft-lrss-bess-evpn-group-policy` (expired, last updated as recently as Dec 2025) — all **expired individual Internet-Drafts** with no working-group adoption or intended RFC status. A quasi-standard that never reached multi-vendor ratification, functionally Cisco's way of bringing ACI's segmentation model into the "open" stack without it actually being an open standard. See [nxos-gpo.md](nxos-gpo.md) for the full mechanics (SGT/SGACL constructs, release history, enforcement scenarios) [7], [8]. |
 | OTV, FabricPath, FEX (legacy DCI/fabric tech, still present in the NX-OS portfolio) | Cisco-proprietary, predate EVPN-VXLAN |
 
 Net: NX-OS EVPN-VXLAN has a **broader open baseline** than ACI (which is
@@ -91,3 +87,21 @@ not proprietary-free. The multi-vendor interop claim in the comparison table
 above holds for the RFC-baseline feature set; several of Cisco's more advanced
 capabilities (legacy multihoming, DCI encryption, microsegmentation) are still
 Cisco-only implementations layered on top.
+
+## References
+
+[1] "Unifying the Data Center with Cisco Nexus One: The Network That Works for You," Cisco Blogs, November 2025. [Online]. Available: https://blogs.cisco.com/datacenter/unifying-the-data-center-with-cisco-nexus-one-the-network-that-works-for-you
+
+[2] "Cisco Nexus One Fabric: Unify Data Center Operations with Open VXLAN EVPN Standards," Cisco Blogs. [Online]. Available: https://blogs.cisco.com/datacenter/cisco-nexus-one-fabric-unify-data-center-operations-with-open-vxlan-evpn-standards
+
+[3] "Cisco ACI Sunset: NX-OS VXLAN EVPN Future & CCIE DC," FirstPassLab Blog, March 2026. [Online]. Available: https://firstpasslab.com/blog/2026-03-06-cisco-aci-sunset-nxos-vxlan-evpn-future-ccie-dc/
+
+[4] "ND — Moving from ACI," TravTeks Blog. [Online]. Available: https://www.travteks.com/blog/nd-moving-from-aci/
+
+[5] "VXLAN EVPN Multi-Homing ESI Nexus," FirstPassLab Blog, January 2026. [Online]. Available: https://firstpasslab.com/blog/2026-01-18-vxlan-evpn-multi-homing-esi-nexus/
+
+[6] "Configuring CloudSec," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.6(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-106x/m-configuring-cloudsec.html
+
+[7] M. Smith et al., "VXLAN Group Policy Option," IETF Internet-Draft draft-smith-vxlan-group-policy (expired). [Online]. Available: https://datatracker.ietf.org/doc/draft-smith-vxlan-group-policy/
+
+[8] J. Rabadan et al., "EVPN Group Policy," IETF Internet-Draft draft-lrss-bess-evpn-group-policy (expired). [Online]. Available: https://datatracker.ietf.org/doc/draft-lrss-bess-evpn-group-policy/

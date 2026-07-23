@@ -11,19 +11,18 @@
 
 | Version | Year | Key VXLAN/EVPN architectural changes |
 |---|---|---|
-| 7.0 | 2015 → 2017 | VXLAN BGP EVPN control plane first introduced on Nexus 9000 (early 2015). [ref](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/7-x/vxlan/configuration/guide/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_7x/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_7x_chapter_0100.html) **EVPN Multi-Site** (DCI between fabrics via Anycast/vPC Border Gateways) added later in the same train, 7.0(3)I7(1), 2017. |
-| 9.2 | 2018 | Multi-Site + vPC support formalized; VXLAN Cross Connect (point-to-point VTEP tunneling); TRM border-leaf with vPC. [ref](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/92x/vxlan-92x/configuration/guide/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-92x/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_9x_chapter_0100.html) |
-| 9.3 | 2019–21 | **CloudSec** (encrypted Multi-Site DCI), EVPN↔MPLS-SR interop, dual-RD Multi-Site — hardening/scale of the 9.2 architecture, not a new paradigm. [ref](https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/93x/vxlan/configuration/guide/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-93x/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-93x_chapter_0101.html) |
-| 10.1 | 2021 | VXLAN EVPN loop detection & mitigation, VXLAN tunnel encryption — platform/scale expansion, no major new architecture. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/101x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-101x/m-new-and-changed-information.html) |
-| 10.2 | 2021–22 | **EVPN Hybrid IRB Mode** (mixed asymmetric/symmetric IRB) and **EVPN Distributed NAT** — real architectural additions. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/102x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-102x/m-new-and-changed-information.html) |
-| 10.3 | 2022–25 | VXLAN BGP-EVPN Null Route, Q-in-VNI with L2PT, PKI support on CloudSec — incremental hardening. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/103x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-103x/m_configuring_vxlan_bgp_evpn.html) |
-| 10.4 | 2023–26 | VXLAN EVPN Multi-Site egress traffic engineering/load balancing; **GPO/SGACL microsegmentation** for VXLAN fabrics — see [nxos-gpo.md](nxos-gpo.md), its own dedicated whitepaper/file, not detailed here. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/104x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-104x/m-evpn-distributed-nat-.html) |
-| 10.5 | 2024–26 | Downstream-VNI (DSVNI) optimization; **EVPN over RFC 5549** (IPv4 VTEPs via IPv6 BGP sessions); dynamic underlay tunnel load balancing. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/105x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-105x/m_configuring_vxlan_bgp_evpn.html) |
-| 10.6 | 2025–26 | **EVPN ESI Multi-Homing** (10.6(1)F) — standards-based BGP-EVPN-native multihoming, explicitly positioned as an alternative to vPC/vPC Fabric Peering; IPv6-underlay support for BGW/Multi-Site; SR-MPLS↔VXLAN handoff. [ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-106x/m-interoperability-with-mvpn-multi-homing-using-esi.html) |
+| 7.0 | 2015 → 2017 | VXLAN BGP EVPN control plane first introduced on Nexus 9000 (early 2015) [1]. **EVPN Multi-Site** (DCI between fabrics via Anycast/vPC Border Gateways) added later in the same train, 7.0(3)I7(1), 2017. |
+| 9.2 | 2018 | Multi-Site + vPC support formalized; VXLAN Cross Connect (point-to-point VTEP tunneling); TRM border-leaf with vPC [2]. |
+| 9.3 | 2019–21 | **CloudSec** (encrypted Multi-Site DCI), EVPN↔MPLS-SR interop, dual-RD Multi-Site — hardening/scale of the 9.2 architecture, not a new paradigm [3]. |
+| 10.1 | 2021 | VXLAN EVPN loop detection & mitigation, VXLAN tunnel encryption — platform/scale expansion, no major new architecture [4]. |
+| 10.2 | 2021–22 | **EVPN Hybrid IRB Mode** (mixed asymmetric/symmetric IRB) and **EVPN Distributed NAT** — real architectural additions [5]. |
+| 10.3 | 2022–25 | VXLAN BGP-EVPN Null Route, Q-in-VNI with L2PT, PKI support on CloudSec — incremental hardening [6]. |
+| 10.4 | 2023–26 | VXLAN EVPN Multi-Site egress traffic engineering/load balancing; **GPO/SGACL microsegmentation** for VXLAN fabrics — see [nxos-gpo.md](nxos-gpo.md), its own dedicated whitepaper/file, not detailed here [7]. |
+| 10.5 | 2024–26 | Downstream-VNI (DSVNI) optimization; **EVPN over RFC 5549** (IPv4 VTEPs via IPv6 BGP sessions); dynamic underlay tunnel load balancing [8]. |
+| 10.6 | 2025–26 | **EVPN ESI Multi-Homing** (10.6(1)F) — standards-based BGP-EVPN-native multihoming, explicitly positioned as an alternative to vPC/vPC Fabric Peering; IPv6-underlay support for BGW/Multi-Site; SR-MPLS↔VXLAN handoff [9]. |
 
 Latest release: **NX-OS 10.6(3)F** (~Apr 2026). No 10.7 or 11.x train exists yet
-as of this writing.
-[ref](https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/release-notes/cisco-nexus-9000-nxos-release-notes-1063F.html)
+as of this writing [10].
 
 See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the head-to-head
 comparison against ACI, including the 2026 Cisco convergence ("Nexus One")
@@ -33,5 +32,28 @@ For L4-7 service redirection (firewall/LB insertion, and the Multi-Site
 stretched-workload/per-site-NAT case study) see **[nxos-epbr.md](nxos-epbr.md)**
 — ePBR ships as its own Configuration Guide, confirmed separate from the VXLAN
 one this file covers, so it's documented in its own file rather than folded in
-here.
-[ref](https://www.cisco.com/c/en/us/support/switches/nexus-9000-series-switches/products-installation-and-configuration-guides-list.html)
+here [11].
+
+## References
+
+[1] "Configuring VXLAN BGP EVPN," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 7.x. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/7-x/vxlan/configuration/guide/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_7x/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_7x_chapter_0100.html
+
+[2] "Configuring VXLAN BGP EVPN," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 9.2(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/92x/vxlan-92x/configuration/guide/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-92x/b_Cisco_Nexus_9000_Series_NX-OS_VXLAN_Configuration_Guide_9x_chapter_0100.html
+
+[3] "Configuring VXLAN BGP EVPN," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 9.3(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/93x/vxlan/configuration/guide/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-93x/b-cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-93x_chapter_0101.html
+
+[4] "New and Changed Information," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.1(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/101x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-101x/m-new-and-changed-information.html
+
+[5] "New and Changed Information," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.2(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/102x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-102x/m-new-and-changed-information.html
+
+[6] "Configuring VXLAN BGP EVPN," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.3(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/103x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-103x/m_configuring_vxlan_bgp_evpn.html
+
+[7] "EVPN Distributed NAT," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.4(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/104x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-104x/m-evpn-distributed-nat-.html
+
+[8] "Configuring VXLAN BGP EVPN," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.5(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/105x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-105x/m_configuring_vxlan_bgp_evpn.html
+
+[9] "Interoperability with MVPN Multi-Homing Using ESI," Cisco Nexus 9000 Series NX-OS VXLAN Configuration Guide, Release 10.6(x). [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/vxlan/cisco-nexus-9000-series-nx-os-vxlan-configuration-guide-release-106x/m-interoperability-with-mvpn-multi-homing-using-esi.html
+
+[10] "Cisco Nexus 9000 NX-OS Release Notes, Release 10.6(3)F." [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/release-notes/cisco-nexus-9000-nxos-release-notes-1063F.html
+
+[11] "Cisco Nexus 9000 Series Switches — Installation and Configuration Guides List," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/support/switches/nexus-9000-series-switches/products-installation-and-configuration-guides-list.html

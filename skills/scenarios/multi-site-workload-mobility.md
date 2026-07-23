@@ -103,18 +103,26 @@ this is genuinely unresolved for some of them:
   problem — a stretched active/standby firewall pair, one logical device
   instead of independent per-site ones — is explicitly flagged "Limited
   support," and Cisco's own guidance there is to use **ACI Multi-Pod**
-  instead of Multi-Site if that's a hard requirement.
-  [ref](https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html)
-- **NX-OS-native EVPN-VXLAN Multi-Site**: achievable via ePBR, but by
-  configuration discipline rather than a dedicated anchoring feature — define
-  **one** `epbr service` object (single service-end-point IP) and apply it
-  identically across every leaf/BGW at both sites, instead of the proximity-first,
-  per-site-primary pattern Cisco's own multi-site service-chain examples
-  default to. See [skills/vendor-matrix/cisco/nxos-epbr.md](../vendor-matrix/cisco/nxos-epbr.md#multi-site-stretched-workload-with-per-site-nat)
-  — flagged there as a strong structural inference, not a Cisco-confirmed
-  parallel to ACI's provider-leaf anchoring (no vendor packet-walk exists for
-  this exact shared-subnet-mobility framing, only for active/standby firewall
-  clustering).
+  instead of Multi-Site if that's a hard requirement [1].
+- **NX-OS-native EVPN-VXLAN Multi-Site**: **no confirmed fix on independent
+  per-site firewalls with per-site NAT.** Cisco's own
+  VXLAN Multi-Site + service-node integration whitepaper documents ePBR
+  redirection exclusively for **stretched firewall clusters** — the
+  single `service-end-point IP` pattern is correct for an active/standby
+  stretched pair (one IP shared by both devices, inherited on failover), but
+  the whitepaper never documents the same pattern for independent per-site
+  firewalls where each site owns its own IP and its own NAT session state.
+  Applying that single-IP pattern to independent devices (pin all traffic to
+  one site's firewall IP from every leaf/BGW) is a structural inference from
+  the documented stretched-A/S case that comes with problems the whitepaper
+  doesn't address: no failover if that pinned firewall dies, 100% DCI hairpin
+  for the non-local site at all times, and different failure semantics than the
+  stretched case (no standby to inherit the IP). See
+  [skills/vendor-matrix/cisco/nxos-epbr.md](../vendor-matrix/cisco/nxos-epbr.md#multi-site-stretched-workload-with-per-site-nat)
+  for the full trace. The ePBR approach *is* confirmed for stretched
+  active/standby and active/active firewall clusters — just not for the
+  independent per-site NAT deployment that creates this scenario in the first
+  place [2].
 - **Other vendors** (Arista, Juniper, Huawei Multi-Site/DCI designs): not yet
   researched in this repo — confirm before recommending rather than assuming
   parity with either Cisco solution.
@@ -177,3 +185,9 @@ this is genuinely unresolved for some of them:
   the need for either fix option entirely.
 - ACI or NX-OS-native EVPN-VXLAN Multi-Site? Only relevant if Option 2 is
   chosen — Option 1 doesn't depend on this at all.
+
+## References
+
+[1] "Cisco ACI Multi-Site and Service Node Integration White Paper," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html
+
+[2] "Cisco VXLAN Multi-Site and Service Node Integration," Cisco White Paper. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/cisco-vxlan-multi-site-and-service-node-integration.html

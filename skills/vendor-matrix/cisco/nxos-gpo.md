@@ -7,8 +7,7 @@
   VRF/ACL-based segmentation. It ships its **own dedicated whitepaper**
   ("Securing Data Centers with Microsegmentation using VXLAN GPO"), confirmed
   separate from the [VXLAN Configuration Guide](nxos-vxlan.md) — same
-  splitting test as [nxos-epbr.md](nxos-epbr.md).
-  [ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html)
+  splitting test as [nxos-epbr.md](nxos-epbr.md) [1].
 - **Standards status: not a ratified standard.** Cisco's own framing: *"VXLAN
   GPO implementation on NX-OS is based on standard as per IETF RFC draft EVPN
   Group Policy (draft-lrss-bess-evpn-group-policy-00)... a combination of two
@@ -42,8 +41,7 @@
 
 Scale (per device, per Verified Scalability Guide): 8,000 ESG selectors on all
 supported platforms; 64,000 SGACLs on N9300-FX/FX3/GX/GX2B/HX, 32,000 on
-N9300-FX2/GX2A and Nexus 9408.
-[ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html)
+N9300-FX2/GX2A and Nexus 9408 [1].
 
 ## Constructs
 
@@ -82,8 +80,7 @@ N9300-FX2/GX2A and Nexus 9408.
 - **Policy lookup is always IP-based**, even for bridged (MAC-forwarded)
   flows — an SGT bound to a MAC address is never used for enforcement, only
   the IP-bound SGT is. Direct consequence: **non-IP traffic (STP/LLDP/CDP,
-  etc.) cannot currently be governed by GPO at all.**
-  [ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html)
+  etc.) cannot currently be governed by GPO at all** [1].
 - **Control plane**: Group Policy ID rides as a new transitive Opaque BGP
   Extended Community (Type 0x03) on EVPN Type-2 (MAC-IP) and Type-5 (external
   prefix) routes — this is what makes **ingress-VTEP enforcement** possible;
@@ -126,8 +123,7 @@ N9300-FX2/GX2A and Nexus 9408.
     L2VNIs on **all** Multi-Site BGWs regardless of whether L2 is actually
     stretched — an outright requirement (not just an optimization) whenever
     cross-site service redirection/chaining is in play. See
-    [nxos-epbr.md](nxos-epbr.md) for the ePBR side of that interaction.
-  - [ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html)
+    [nxos-epbr.md](nxos-epbr.md) for the ePBR side of that interaction [1].
 - **North-South**: works over IP VRF-Lite or MPLS/MPLS-SR handoff. Since SGT
   exchange is confined to the VXLAN EVPN plane, it can't be exchanged with the
   external network — the Border Leaf must classify and assign an SGT to each
@@ -155,6 +151,8 @@ N9300-FX2/GX2A and Nexus 9408.
 - **Application as a Security Zone** — one SG per application for lateral-
   movement containment, with shared infra (DNS/backup/syslog) in a common SG
   reachable by all; also supports user-group-based access restriction to
-  specific application SGs.
+  specific application SGs [1].
 
-[ref](https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html)
+## References
+
+[1] "Securing Data Centers with Microsegmentation using VXLAN GPO," Cisco White Paper. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html
