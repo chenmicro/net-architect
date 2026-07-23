@@ -3,6 +3,10 @@
     "doc-fetcher": {
       "command": "npx",
       "args": ["tsx", "mcp/doc-fetcher/index.ts"]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
     }
   }
 }

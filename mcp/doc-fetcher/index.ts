@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import * as cheerio from "cheerio";
 import { config as loadEnv } from "dotenv";
 import { compile as compileHtmlToText } from "html-to-text";
 import pdfParse from "pdf-parse";
@@ -23,8 +22,6 @@ const RFC_EDITOR_BASE = "https://www.rfc-editor.org/rfc";
 const IETF_ARCHIVE_BASE = "https://www.ietf.org/archive/id";
 const DATATRACKER_API_BASE = "https://datatracker.ietf.org/api/v1";
 const BRAVE_SEARCH_API = "https://api.search.brave.com/res/v1/web/search";
-const DUCKDUCKGO_HTML = "https://html.duckduckgo.com/html/";
-const FIRECRAWL_SCRAPE_API = "https://api.firecrawl.dev/v1/scrape";
 const DEFAULT_MAX_CHARS = 20_000;
 const DEFAULT_SEARCH_COUNT = 8;
 const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024; // guard against accidentally fetching huge files
@@ -46,6 +43,52 @@ function truncationNote(url: string, max: number): string {
   return `\n\n[... truncated at ${max} characters — fetch ${url} directly for the full text, or raise max_chars ...]`;
 }
 
+// ---- HTTP helpers (timeout + retry) ----
+
+const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_RETRIES = 2;
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit & { timeoutMs?: number; retries?: number } = {},
+): Promise<Response> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, retries = DEFAULT_RETRIES, ...fetchOptions } = options;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...fetchOptions, signal: controller.signal });
+      clearTimeout(timer);
+      // Retry on server errors (5xx) and rate limits (429)
+      if ((res.status >= 500 || res.status === 429) && attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        console.error(
+          `doc-fetcher: ${url} returned ${res.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+      if (attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error(
+          `doc-fetcher: ${url} failed (${reason}), retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ---- MCP server ----
+
 const server = new McpServer({ name: "doc-fetcher", version: "0.1.0" });
 
 server.tool(
@@ -65,7 +108,20 @@ server.tool(
   },
   async ({ number, max_chars }) => {
     const url = `${RFC_EDITOR_BASE}/rfc${number}.txt`;
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetchWithRetry(url);
+    } catch (err) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Failed to fetch RFC ${number}: ${err instanceof Error ? err.message : String(err)} (timeout: ${DEFAULT_TIMEOUT_MS}ms)`,
+          },
+        ],
+      };
+    }
     if (!res.ok) {
       return {
         isError: true,
@@ -94,7 +150,20 @@ server.tool(
   async ({ name, max_chars }) => {
     const draftName = name.endsWith(".txt") ? name.slice(0, -4) : name;
     const url = `${IETF_ARCHIVE_BASE}/${draftName}.txt`;
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetchWithRetry(url);
+    } catch (err) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Failed to fetch draft "${name}": ${err instanceof Error ? err.message : String(err)} (timeout: ${DEFAULT_TIMEOUT_MS}ms).`,
+          },
+        ],
+      };
+    }
     if (!res.ok) {
       const base = draftName.replace(/-\d+$/, "");
       return {
@@ -136,7 +205,20 @@ server.tool(
       limit: String(limit ?? 10),
     });
     const url = `${DATATRACKER_API_BASE}/doc/document/?${params.toString()}`;
-    const res = await fetch(url);
+    let res: Response;
+    try {
+      res = await fetchWithRetry(url);
+    } catch (err) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Datatracker search failed: ${err instanceof Error ? err.message : String(err)} (timeout: ${DEFAULT_TIMEOUT_MS}ms)`,
+          },
+        ],
+      };
+    }
     if (!res.ok) {
       return {
         isError: true,
@@ -166,7 +248,7 @@ interface SearchResult {
 
 async function searchBrave(query: string, count: number): Promise<SearchResult[]> {
   const params = new URLSearchParams({ q: query, count: String(count) });
-  const res = await fetch(`${BRAVE_SEARCH_API}?${params.toString()}`, {
+  const res = await fetchWithRetry(`${BRAVE_SEARCH_API}?${params.toString()}`, {
     headers: {
       Accept: "application/json",
       "X-Subscription-Token": process.env.BRAVE_API_KEY as string,
@@ -185,72 +267,36 @@ async function searchBrave(query: string, count: number): Promise<SearchResult[]
   }));
 }
 
-function decodeDuckDuckGoUrl(href: string): string {
-  // DDG's HTML results wrap targets as /l/?uddg=<encoded-url>&rut=...
-  try {
-    const parsed = new URL(href, "https://duckduckgo.com");
-    const uddg = parsed.searchParams.get("uddg");
-    return uddg ? decodeURIComponent(uddg) : href;
-  } catch {
-    return href;
-  }
-}
-
-async function searchDuckDuckGo(query: string, count: number): Promise<SearchResult[]> {
-  const params = new URLSearchParams({ q: query });
-  const res = await fetch(`${DUCKDUCKGO_HTML}?${params.toString()}`, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; doc-fetcher/0.1; +https://github.com)" },
-  });
-  if (!res.ok) {
-    throw new Error(`DuckDuckGo search failed: HTTP ${res.status}`);
-  }
-  const html = await res.text();
-  // DDG serves an HTTP 202 "anomaly" challenge page instead of real results when
-  // it flags the request (common from datacenter/cloud egress IPs) — treat that
-  // as a failure rather than silently reporting "no results".
-  if (res.status === 202 || html.toLowerCase().includes("anomaly")) {
-    throw new Error(
-      "DuckDuckGo returned an anti-bot challenge instead of results (common from " +
-        "datacenter/cloud IPs). Set BRAVE_API_KEY in the environment to use the " +
-        "Brave Search API instead, which doesn't have this problem.",
-    );
-  }
-  const $ = cheerio.load(html);
-  const results: SearchResult[] = [];
-  $(".result").each((_, el) => {
-    if (results.length >= count) return;
-    const titleEl = $(el).find(".result__a").first();
-    const title = titleEl.text().trim();
-    const href = titleEl.attr("href");
-    const snippet = $(el).find(".result__snippet").first().text().trim();
-    if (title && href) {
-      results.push({ title, url: decodeDuckDuckGoUrl(href), snippet });
-    }
-  });
-  return results;
-}
-
 server.tool(
   "search_web",
-  "General-purpose web search — use this to locate a vendor's own documentation, " +
-    "datasheet, or spec sheet when the exact URL isn't already known (e.g. 'Cisco " +
-    "Nexus 9364C-GX datasheet', or 'site:arista.com 7800R4 buffer architecture'). " +
-    "Returns title, URL, and snippet per result; feed a result's URL into fetch_doc " +
-    "to retrieve and read the actual page or PDF content — this tool only searches, " +
-    "it doesn't return full document text. Uses the Brave Search API if BRAVE_API_KEY " +
-    "is set in the environment — set it; the no-key DuckDuckGo HTML fallback this " +
-    "tool otherwise uses is frequently blocked by an anti-bot challenge from " +
-    "server/cloud IPs and will fail outright rather than degrade gracefully when that " +
-    "happens.",
+  "General-purpose web search via the Brave Search API. Use this to locate a " +
+    "vendor's own documentation, datasheet, or spec sheet when the exact URL isn't " +
+    "already known (e.g. 'Cisco Nexus 9364C-GX datasheet', or 'site:arista.com " +
+    "7800R4 buffer architecture'). Returns title, URL, and snippet per result; feed " +
+    "a result's URL into fetch_doc (or mcp-server-fetch for HTML pages) to retrieve " +
+    "and read the actual page content — this tool only searches, it doesn't return " +
+    "full document text. Requires BRAVE_API_KEY in the environment; fails with a " +
+    "clear error if it isn't set.",
   {
     query: z.string().min(1).describe("Search query, e.g. 'Arista 7800R4 datasheet' or 'site:cisco.com Silicon One'"),
     count: z.number().int().positive().max(20).optional().describe("Max results to return (default 8)"),
   },
   async ({ query, count }) => {
     const n = count ?? DEFAULT_SEARCH_COUNT;
+    if (!process.env.BRAVE_API_KEY) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Web search requires BRAVE_API_KEY to be set in .env. Get a free key at https://brave.com/search/api/ — the DuckDuckGo HTML scraping fallback was removed because it is consistently blocked from cloud/server IPs.",
+          },
+        ],
+      };
+    }
     let results: SearchResult[];
     try {
-      results = process.env.BRAVE_API_KEY ? await searchBrave(query, n) : await searchDuckDuckGo(query, n);
+      results = await searchBrave(query, n);
     } catch (err) {
       return {
         isError: true,
@@ -265,38 +311,15 @@ server.tool(
   },
 );
 
-async function scrapeFirecrawl(url: string): Promise<string> {
-  const res = await fetch(FIRECRAWL_SCRAPE_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
-    },
-    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
-  });
-  if (!res.ok) {
-    throw new Error(`Firecrawl scrape failed: HTTP ${res.status}`);
-  }
-  const data = (await res.json()) as { success?: boolean; data?: { markdown?: string }; error?: string };
-  if (!data.success || !data.data?.markdown) {
-    throw new Error(`Firecrawl scrape failed: ${data.error ?? "no markdown content returned"}`);
-  }
-  return data.data.markdown;
-}
-
 server.tool(
   "fetch_doc",
-  "Fetch an arbitrary document by URL and return its readable plain text — the " +
-    "general-purpose retrieval tool for vendor spec sheets, datasheets, whitepapers, " +
-    "and other external documentation that (unlike RFCs/drafts) has no standard " +
-    "numbered addressing. Handles HTML (converted to readable text, markup stripped) " +
-    "and PDF (text-extracted) transparently based on the response's content type; " +
-    "any other content type is rejected with the detected type so a different tool " +
-    "or approach can be used. This is a plain GET — it cannot authenticate against " +
-    "a paywall or portal, so URLs behind a login won't resolve. If FIRECRAWL_API_KEY " +
-    "is set in the environment, fetches go through Firecrawl instead of a raw HTTP " +
-    "GET — that renders JavaScript first, so it also works on JS-rendered vendor " +
-    "pages (common on modern vendor sites) that a raw fetch would return empty.",
+  "Legacy fetch for PDF and plain-text documents. For HTML pages (vendor docs, " +
+    "datasheets, spec sheets), prefer the `fetch` tool from the `mcp-server-fetch` " +
+    "MCP server (also configured in .mcp.json) — it handles HTML→markdown conversion " +
+    "and has better robots.txt/redirect handling. Use this tool only when you need " +
+    "PDF text extraction or when fetching a non-HTML resource (JSON, plain text). " +
+    "Handles HTML (converted to readable text) and PDF (text-extracted) based on " +
+    "the response's content type; any other content type is rejected.",
   {
     url: z.string().url().describe("Full URL of the document to fetch, e.g. a vendor datasheet PDF or HTML page"),
     max_chars: z
@@ -310,28 +333,18 @@ server.tool(
   async ({ url, max_chars }) => {
     const max = max_chars ?? DEFAULT_MAX_CHARS;
 
-    if (process.env.FIRECRAWL_API_KEY) {
-      try {
-        const markdown = await scrapeFirecrawl(url);
-        const { text, truncated } = truncate(markdown.trim(), max);
-        return {
-          content: [{ type: "text", text: truncated ? text + truncationNote(url, max) : text }],
-        };
-      } catch (err) {
-        return {
-          isError: true,
-          content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }],
-        };
-      }
-    }
-
     let res: Response;
     try {
-      res = await fetch(url);
+      res = await fetchWithRetry(url);
     } catch (err) {
       return {
         isError: true,
-        content: [{ type: "text", text: `Failed to fetch ${url}: ${err instanceof Error ? err.message : String(err)}` }],
+        content: [
+          {
+            type: "text",
+            text: `Failed to fetch ${url}: ${err instanceof Error ? err.message : String(err)} (timeout: ${DEFAULT_TIMEOUT_MS}ms)`,
+          },
+        ],
       };
     }
     if (!res.ok) {
@@ -382,6 +395,12 @@ server.tool(
     };
   },
 );
+
+// ---- Startup diagnostics ----
+
+if (!process.env.BRAVE_API_KEY) {
+  console.error("doc-fetcher: WARNING — BRAVE_API_KEY not set; search_web will refuse all requests (get a free key at https://brave.com/search/api/)");
+}
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
