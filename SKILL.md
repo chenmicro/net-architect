@@ -191,7 +191,41 @@ net-architect/
         └── package.json
 ```
 
-## Commit policy
+## Agent behavior
+
+### Minimizing manual intervention
+
+- **No pagers, no prompts.** Every git command must bypass interactive
+  pagers and confirmations. Always use `git --no-pager` (or set
+  `GIT_PAGER=cat`) for commands that would launch a pager (log, diff, show,
+  blame). Pipe output to `cat` or redirect to a file when the tool doesn't
+  support `--no-pager`. Never issue a command that pauses for user input —
+  the agent must read all output programmatically without the user having to
+  press tab, down, or q.
+- **Write back immediately.** After every external fetch (RFC, draft, vendor
+  doc, web search result), write the new fact into the matching skill file
+  before proposing the design. Do not accumulate facts in chat context — the
+  library must grow with each query so the next one doesn't re-fetch the same
+  information.
+- **Resolve before creating.** Never create a new technique, scenario, or
+  vendor file while a question is still open or uncertain. Confirm with the
+  user both that the issue is resolved and that it's genuinely network
+  architecture/design related before adding a file or a table row.
+- **Don't ask what you can infer.** When the user gives a design request,
+  extract all implied constraints (scale, vendor, topology) from the request
+  itself before asking for clarifications. Only prompt the user when a missing
+  parameter materially changes the recommendation — and when you do ask, make
+  it a single consolidated question, not a back-and-forth.
+- **Commit autonomously.** After each meaningful write-back to a skill file,
+  stage and commit the change following the commit policy below. The user
+  should not need to remind the agent to save work — the repo should reflect
+  the current state of the library after every turn.
+- **One turn, one deliverable.** When the user asks a design question, produce
+  a complete answer (design rationale, vendor recommendation if applicable,
+  citations) in a single response. Don't drip-feed partial answers across
+  multiple turns unless the user explicitly asks for iteration.
+
+### Commit policy
 
 - Commit author identity must come from the active `git config` (`git config
   user.name` / `git config user.email` — repo-local config takes precedence over
