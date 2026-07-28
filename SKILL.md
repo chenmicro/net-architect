@@ -184,6 +184,7 @@ net-architect/
 │       │   ├── nxos-gpo.md  # GPO (own whitepaper, unratified IETF drafts): tag-based microsegmentation
 │       │   └── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       ├── arista.md
+│       ├── extreme-networks.md
 │       ├── juniper.md
 │       └── huawei.md
 └── mcp/
