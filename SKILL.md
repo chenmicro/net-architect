@@ -97,6 +97,7 @@ naming and constraints vary.
 | Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
 | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
 | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
+| Extreme Networks | [skills/vendor-matrix/extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Universal Hardware, Switch Engine / Fabric Engine (VOSS/SPBm), SLX data center, ExtremeCloud IQ, Extreme Fabric |
 
 **Writing back to vendors:**
 - **Splitting**: when a vendor's coverage spans genuinely distinct, non-interoperable
