@@ -29,6 +29,27 @@ point of use — e.g., `[1]`, `[2]` — with a corresponding `## References` sec
 the end of the file listing the full source details in order of first appearance. Never
 delete or renumber an existing citation; new sources get the next available number.
 
+Sources fall into two categories with different handling:
+
+- **Non-changeable** (RFCs, IEEE standards, published journal/conference papers):
+  the fact is permanently fixed. Write the relevant detail inline in the technique
+  file — a normative requirement, a protocol field definition, a well-known
+  constant — so future readers don't need to re-fetch the source. The References
+  entry should include the full bibliographic citation plus a URL when available.
+  Example: an RFC's normative timer default goes inline; the reference cites the
+  RFC number, title, and rfc-editor.org link.
+
+- **Changeable / time-sensitive** (vendor datasheets, product documentation,
+  third-party blog/review, vendor compatibility matrix): the fact can go stale
+  — a port count, a buffer size, a supported software version, a pricing tier.
+  The References entry must record **how to verify** the fact: which vendor
+  document, section or chapter name, URL pattern (or search terms), and a
+  date/version stamp of when the fact was last confirmed. Prefer the most stable
+  URL path available (product-family doc hub over a per-release PDF). Do not
+  embed a changeable fact inline as permanent truth without the verification
+  path — a stale fact is worse than no fact because it looks authoritative but
+  misleads.
+
 ### 1. Scenarios (optional shortcut)
 
 Check whether the request matches a known deployment scenario before reading

@@ -107,8 +107,17 @@ congestion management on the same flow direction.
 
 [1] Cisco, "QoS Trust Behavior on Catalyst Switches," Cisco IOS-XE QoS
     Configuration Guide.
+    *Changeable* — verify at Cisco IOS-XE Configuration Guides:
+    https://www.cisco.com/c/en/us/support/ios-nx-os-software/ios-xe-17/products-installation-and-configuration-guides-list.html
+    Search current guide for "QoS trust" or "mls qos trust."
+    Last confirmed: not fetched — written from architecture knowledge.
+
 [2] Cisco, "Configuring QoS on Nexus 9000 Series Switches," Cisco NX-OS QoS
     Configuration Guide.
+    *Changeable* — verify at Cisco Nexus 9000 Configuration Guides:
+    https://www.cisco.com/c/en/us/support/switches/nexus-9000-series-switches/products-installation-and-configuration-guides-list.html
+    Select current NX-OS release, search guide for "QoS" or "trust DSCP."
+    Last confirmed: not fetched — written from architecture knowledge.
 
 [3] K. Nichols, S. Blake, F. Baker, D. Black, "Definition of the
     Differentiated Services Field (DS Field) in the IPv4 and IPv6 Headers,"

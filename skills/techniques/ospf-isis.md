@@ -85,4 +85,9 @@
 ## References
 
 [1] Extreme Networks, "Fabric Engine (VOSS) — SPBm IS-IS Control Plane."
-    See [skills/vendor-matrix/extreme-networks.md](../vendor-matrix/extreme-networks.md) for full Extreme Fabric details.
+    *Changeable* — verify at Extreme Networks documentation:
+    https://documentation.extremenetworks.com/
+    Search for "Fabric Engine" or "SPBm" in current release documentation.
+    See [skills/vendor-matrix/extreme-networks.md](../vendor-matrix/extreme-networks.md)
+    for full Extreme Fabric details.
+    Last confirmed: not fetched — written from architecture knowledge.
