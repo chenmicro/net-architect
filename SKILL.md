@@ -74,15 +74,43 @@ apply. Each file is a single atomic technique.
 | MPLS | [skills/techniques/mpls.md](skills/techniques/mpls.md) | LDP/RSVP-TE, L3VPN (RFC 4364), L2VPN (VPWS/VPLS) |
 | Segment Routing | [skills/techniques/segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
 | BGP | [skills/techniques/bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene — shared by any technique above that rides on BGP |
-
+| IGP — OSPF & IS-IS | [skills/techniques/ospf-isis.md](skills/techniques/ospf-isis.md) | OSPF vs. IS-IS selection, area/level design, timer tuning, cross-vendor alignment |
+| STP | [skills/techniques/stp.md](skills/techniques/stp.md) | PVST+ vs. MSTP vs. RSTP, root bridge placement, cross-vendor STP interop |
+| FHRP | [skills/techniques/fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway as alternative |
+| QoS | [skills/techniques/qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP alignment, DC vs. campus/WAN QoS |
+| Management Plane | [skills/techniques/management-plane.md](skills/techniques/management-plane.md) | Discovery (LLDP/CDP), AAA (RADIUS/TACACS+), SNMP/telemetry, port mirroring, NTP/syslog — cross-vendor interop |
 **Writing back to techniques:**
 - Fetched knowledge goes into the matching technique file, not left in chat context.
-- **One file per technique.** If a file grows to cover a second distinct technique,
-  split it. If new material doesn't fit any existing file, add one + a row above —
-  but only after the question is resolved and you've confirmed with the user it's
-  genuinely network architecture/design related.
+- **One file per technique** — protocol architecture, vendor-specific implementation
+  differences, interop constraints, and cross-vendor defaults mismatches all live in
+  the same technique file. Splitting per-protocol vendor behavior across technique
+  and vendor files is the wrong cut: a solution architect researching a multi-vendor
+  interconnection consults the technique file first and expects the complete answer
+  there, not a cross-reference trail to multiple vendor files.
+- If a file grows to cover a second distinct technique, split it. If new material
+  doesn't fit any existing file, add one + a row above — but only after the question
+  is resolved and you've confirmed with the user it's genuinely network
+  architecture/design related.
 - A technique used across many scenarios (e.g. BGP) stays written once, in its own
   file, with everything else linking to it.
+- **Standard chapter layout** — every technique file should follow a consistent
+  section structure so the content is navigable and grep-friendly. Not every file
+  needs every section (a protocol with no vendor variants skips Cross-vendor), but
+  heading names must match exactly across files for searchability:
+
+  ```
+  # [Technique Name]
+  [Overview — what it does, why it matters in design conversations]
+  ## [Concept section(s)] — as needed per technique
+  ## Cross-vendor / variants
+  [Vendor implementation comparison table or prose, proprietary vs. open, interop constraints]
+  ## Design considerations
+  [Decision points, common pitfalls, default behaviors]
+  ## Relationship to other techniques
+  [Cross-links to related technique files with one-line notes on how they interact]
+  ## References
+  [Numbered citations, IEEE-style, ordered by first appearance]
+  ```
 
 ### 3. Vendors
 
@@ -174,7 +202,12 @@ net-architect/
 │   │   ├── sase.md
 │   │   ├── mpls.md
 │   │   ├── segment-routing.md
-│   │   └── bgp.md
+│   │   ├── bgp.md
+│   │   ├── ospf-isis.md
+│   │   ├── stp.md
+│   │   ├── fhrp.md
+│   │   ├── qos.md
+│   │   └── management-plane.md
 │   └── vendor-matrix/       # Platform specs, ASICs, & capabilities
 │       ├── cisco/           # Hub + per-solution files for distinct products
 │       │   ├── cisco.md     # Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS
