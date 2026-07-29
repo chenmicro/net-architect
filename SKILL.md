@@ -227,6 +227,21 @@ net-architect/
   citations) in a single response. Don't drip-feed partial answers across
   multiple turns unless the user explicitly asks for iteration.
 
+### Branch policy
+
+- **Never commit to `main`.** The `main` branch is protected — only the repo
+  maintainer merges into it (via PR or locally), never an agent.
+- Each deployment writes to its own branch. The branch name comes from the
+  `BRANCH_NAME` variable in `.env` (gitignored).
+- **If `BRANCH_NAME` is unset or empty**, the agent must generate a UUID, write
+  the first 8 hex characters to `.env` as `BRANCH_NAME=agents/<short-uuid>`,
+  and reload the env before proceeding. The generated branch is then stable
+  across restarts.
+- The agent must ensure its branch exists locally before the first commit on a
+  deployment: `git checkout -b "$BRANCH_NAME"` if it doesn't already exist.
+- Before each session, sync from main: `git fetch origin && git merge origin/main`
+  (or rebase) to stay current.
+
 ### Commit policy
 
 - Commit author identity must come from the active `git config` (`git config
