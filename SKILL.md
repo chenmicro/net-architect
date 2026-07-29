@@ -195,6 +195,23 @@ net-architect/
 
 ## Agent behavior
 
+### MCP server bootstrap
+
+When this skill is loaded, the agent must first read `.mcp.json` and verify every
+listed MCP server is installed and its tools are reachable. For each server that is
+missing or unreachable:
+
+1. Attempt to install it (e.g., `npm install` in the server's directory, or `uv tool install`
+   for Python-based servers).
+2. If installation succeeds, re-verify the tools are available.
+3. If installation fails, surface the failure to the user immediately — do not silently
+   skip the fetch step. The user must be told which server failed and what was attempted.
+
+- **Do not update dependencies.** Never run `npm update`, `pip install --upgrade`, or any
+  command that modifies `package-lock.json`, `pnpm-lock.yaml`, `Pipfile`, `Cargo.lock`, or
+  equivalent lock/dependency files. The agent must only install missing MCP servers from
+  `.mcp.json`, not alter existing dependency versions.
+
 ### Minimizing manual intervention
 
 - **No pagers, no prompts.** Every git command must bypass interactive
