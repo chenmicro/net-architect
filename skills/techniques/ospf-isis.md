@@ -55,7 +55,7 @@
 | Cross-vendor (Cisco ↔ Huawei) | Either | Both vendors implement both protocols; no interop gap specific to either |
 | Extreme Networks (Fabric Engine) | IS-IS | Fabric Engine (VOSS/SPBm) uses IS-IS as its native control plane [1] |
 
-## Cross-vendor alignment
+## Cross-vendor / variants
 
 - **Timers must match**: hello/dead intervals, LSA/LSP refresh timers,
   SPF-throttle timers — a mismatch doesn't prevent adjacency, but it can cause
@@ -72,6 +72,22 @@
   neighbors (unless `mtu-ignore` is set) — this is a common first-connect
   failure in cross-vendor links. IS-IS doesn't have this problem since it
   rides on L2.
+
+## Design considerations
+
+- **OSPF vs. IS-IS selection**: see the decision table under [OSPF vs. IS-IS:
+  when each wins](#ospf-vs-is-is-when-each-wins). The choice is typically driven
+  by operator familiarity for small-to-medium fabrics; IS-IS wins at scale and
+  for Segment Routing deployments due to TLV extensibility.
+- **Area/level planning**: single-area OSPF or single-level IS-IS is the
+  default and correct choice for spine-leaf Clos fabrics — multi-area/level
+  design only adds value when the topology maps to real geographic or
+  administrative boundaries (campus distribution, WAN aggregation).
+- **Point-to-point link type**: always use point-to-point (not broadcast) on
+  spine-to-leaf links — eliminates DR/BDR election overhead and speeds up
+  adjacency bring-up. Configure explicitly on both sides.
+- **BFD**: sub-100ms failure detection via BFD on all fabric links; both Cisco
+  and Huawei support BFD on OSPF and IS-IS.
 
 ## Relationship to other techniques
 

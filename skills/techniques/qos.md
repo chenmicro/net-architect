@@ -18,7 +18,7 @@
    bandwidth guarantees, priority (strict/low-latency), and congestion
    avoidance (WRED/ECN).
 
-## QoS and cross-vendor interconnection
+## Cross-vendor / variants
 
 QoS is not a single protocol — it's a set of behaviors built on IP/Ethernet
 fields that are standard, but **the trust model and default behavior differ
@@ -60,7 +60,9 @@ global synchronization during congestion. The WRED profile (min/max
 thresholds, drop probability) must be aligned if both sides enforce
 congestion management on the same flow direction.
 
-## QoS design checklist for cross-vendor links
+## Design considerations
+
+### Cross-vendor checklist
 
 1. **Trust model**: explicitly configure `trust dscp` on inter-switch
    physical links — don't rely on platform defaults.
@@ -81,7 +83,7 @@ congestion management on the same flow direction.
    with guaranteed bandwidth — these mappings must match or one side drops
    what the other considers critical.
 
-## QoS in the data center vs. the campus/WAN edge
+### DC vs. campus/WAN edge
 
 - **DC fabric**: most east-west traffic is trusted by default (marked by the
   server/hypervisor). QoS is typically simplified to a small number of

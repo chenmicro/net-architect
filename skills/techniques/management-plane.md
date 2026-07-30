@@ -6,7 +6,9 @@ time synchronization. They're not architectural techniques in the same weight cl
 as BGP or EVPN, but they surface as cross-vendor mismatches in every multi-vendor
 design and need explicit alignment.
 
-## Discovery: CDP vs. LLDP
+## Cross-vendor / variants
+
+### Discovery: CDP vs. LLDP
 
 | | Cisco | Huawei | Standard? |
 |---|---|---|---|
@@ -16,7 +18,7 @@ design and need explicit alignment.
 Both sides must run **LLDP** on inter-switch links for neighbor discovery. CDP is
 Cisco-only and won't be understood by the Huawei/Arista/Juniper side.
 
-## AAA: TACACS+ vs. RADIUS
+### AAA: TACACS+ vs. RADIUS
 
 | | Cisco | Huawei |
 |---|---|---|
@@ -30,7 +32,7 @@ auth infrastructure is Cisco TACACS+, the non-Cisco side will need RADIUS or a
 separate AAA path. For a greenfield multi-vendor deployment, pick RADIUS from the
 start and avoid the TACACS+ migration problem.
 
-## SNMP / telemetry
+### SNMP / telemetry
 
 | Area | Cisco | Huawei |
 |---|---|---|
@@ -45,7 +47,7 @@ default polling intervals vary. A monitoring system (SolarWinds, PRTG,
 Observium, Zabbix) needs **separate device profiles per vendor** — the protocol
 plumbing (SNMPv3, syslog, gNMI) is standard but the data models are not.
 
-## Port mirroring (SPAN vs. port-mirror)
+### Port mirroring (SPAN vs. port-mirror)
 
 Cisco calls it **SPAN/RSPAN/ERSPAN**; Huawei calls it **port mirroring /
 remote mirroring**. The function (copy packets from one port to another for
@@ -58,7 +60,7 @@ analysis) is the same, but:
 - Decapsulation at the collector/tool side requires matching the source
   vendor's ERSPAN format
 
-## NTP / time synchronization
+### NTP / time synchronization
 
 NTP is standard (RFC 5905) [2] and works across both vendors without interop issues.
 Alignment checklist for cross-vendor designs:
@@ -71,7 +73,7 @@ Alignment checklist for cross-vendor designs:
 - **Source interface**: use loopback as the NTP source on both sides for
   consistent source IP reachability
 
-## Syslog
+### Syslog
 
 Syslog is standard (RFC 5424) [3] and works across both vendors. Alignment:
 
@@ -82,6 +84,28 @@ Syslog is standard (RFC 5424) [3] and works across both vendors. Alignment:
   vendors default to a different local format — configure explicitly)
 - **Source interface**: use loopback as the source for consistent source IP in
   syslog messages
+
+## Design considerations
+
+- **Discovery**: always enable LLDP on inter-switch links in multi-vendor
+  environments — CDP is Cisco-only and won't be understood by non-Cisco
+  neighbors.
+- **AAA**: choose RADIUS for multi-vendor deployments. TACACS+ is
+  Cisco-proprietary and has limited support on Huawei platforms. Use the
+  same AAA server(s) for both management login and 802.1X NAC.
+- **SNMP/telemetry**: monitoring systems need separate device profiles per
+  vendor — MIB trees, trap OIDs, and polling defaults differ. For model-driven
+  telemetry, align on a common transport (gNMI or NETCONF/YANG) and confirm
+  YANG model support on both sides before committing.
+- **Port mirroring**: CLI syntax differs completely between vendors; ERSPAN
+  interop is not guaranteed — test before depending on it for production
+  packet capture.
+- **NTP**: standard protocol (RFC 5905), no interop issues. Align version
+  (v3/v4), use the same upstream source(s), configure loopback as source
+  interface, and match authentication keys if enabled.
+- **Syslog**: standard protocol (RFC 5424), no interop issues. Align facility,
+  severity threshold, timestamp format (prefer ISO 8601), and use loopback as
+  source interface.
 
 ## Relationship to other techniques
 

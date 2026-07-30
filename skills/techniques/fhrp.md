@@ -12,7 +12,7 @@
 | **HSRP** | Cisco proprietary | Cisco only | Cisco's pre-standard answer to VRRP. Same master/standby model but different MAC address range and different group-numbering scheme. |
 | **GLBP** | Cisco proprietary | Cisco only | Adds load balancing — multiple active forwarders share one virtual IP, each answering ARP with a different virtual MAC. No open equivalent. |
 
-## The cross-vendor problem
+## Cross-vendor / variants
 
 VRRP is the **only** FHRP that works across vendors. HSRP and GLBP are
 Cisco-specific — a Huawei, Arista, or Juniper switch does not implement them.
@@ -25,7 +25,7 @@ both sides.
   its own HSRP/GLBP — but many Cisco shops default to HSRP out of habit, not
   because VRRP is inferior.
 
-## VRRP design considerations
+## Design considerations
 
 - **Version**: VRRPv2 is IPv4-only; VRRPv3 (RFC 5798) adds IPv6 support and
   sub-second timers. If IPv6 is in scope, pick v3 from the start — migrating
@@ -43,7 +43,7 @@ both sides.
   and risk false failovers during transient congestion — only tune down when
   sub-second failover is a hard requirement.
 
-## When FHRPs don't apply
+### When FHRPs don't apply
 
 - **Anycast gateway** (EVPN, spine-leaf Clos): the same gateway IP/MAC is
   active on every leaf — no master election, no standby, no failover delay.
