@@ -78,6 +78,13 @@ to step 2.
 > (double-check with the user). Keep scenario files thin — composition + cross-cutting
 > judgment, never a copy of technique content.
 
+> **POC records** ([skills/pocs/](skills/pocs/)) are standalone operational knowledge —
+> real issues from lab testing, not architectural reference. They cover specific
+> integration patterns (e.g. BGP over M-LAG to an external firewall) that may appear
+> as sub-components of a larger scenario but are documented separately. Check the
+> [POC index](skills/pocs/README.md) to see if a record covers a pattern relevant to
+> your current question.
+
 ### 2. Techniques
 
 Identify the technique(s) the request touches and read the matching file(s) before
@@ -209,6 +216,8 @@ the recommendation.
 net-architect/
 ├── SKILL.md                 # Root entry point & design decision logic
 ├── skills/
+│   ├── pocs/               # POC test findings, config traps, and operational lessons
+│   │   └── README.md       # Index — what each POC record covers
 │   ├── scenarios/           # Cross-technique composition (which techniques + in what order)
 │   │   ├── ai-gpu-training-cluster.md
 │   │   ├── campus-wan-edge-refresh.md
