@@ -107,6 +107,80 @@ platform with cross-site state sync, or — if a stretched active/standby pair
 is genuinely required — reconsidering ACI Multi-Pod instead of Multi-Site for
 this fabric.
 
+## ACI Border Gateway (Heterogeneous Fabric Interconnect)
+
+ACI 6.1(x) introduced the **ACI Border Gateway (BGW)** — dedicated Nexus 9000
+FX2/FX2P/GX/GX2+ leaf nodes that bridge ACI's internal COOP control plane to
+external MP-BGP EVPN [8]. This is the mechanism for connecting an ACI fabric to
+any standards-compliant VXLAN EVPN fabric, including NX-OS EVPN-VXLAN Multi-Site,
+Arista, Juniper, and **Huawei CloudFabric** (see
+[huawei.md](../../vendor-matrix/huawei.md#cross-vendor-interconnect-huawei-cloudfabric-%E2%86%94-cisco-aci)).
+
+This is part of Cisco's broader **Nexus ONE Fabric Experience** convergence
+initiative (see [aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md) §2026 convergence
+note) — decoupling "controller-managed experience" from "Cisco-only fabric" by
+letting ACI interoperate with external EVPN fabrics via standards-based BGP.
+
+### BGW architecture summary
+
+- **Hardware**: Dedicated Nexus 9000 leaf nodes (FX2/FX2P/GX/GX2+) configured
+as BGWs, connected to the Inter-Site Network (ISN) via downlinks in an Infra
+L3Out (not fabric links like Multi-Pod) [8].
+- **Addressing**:
+  - **MS-Int-VIP** — anycast IP shared by all ACI BGWs in a fabric; source IP
+    for traffic received from the ISN and re-encapsulated into the ACI fabric.
+  - **MS-Ext-VIP** — anycast IP (per-pod) advertised as EVPN next-hop for
+    Type-2/Type-5 routes toward the external fabric.
+  - **PIP** — unique physical IP per BGW node; source IP for traffic sent
+    toward the external fabric.
+- **Underlay**: eBGP between ACI BGW PIPs and external BGW interfaces, routed
+through the ISN. `disable-peer-as-check` required on ISN routers when ACI BGWs
+in the same AS peer across it [8].
+- **Overlay**: Full-mesh MP-BGP EVPN sessions between each ACI BGW and each
+external BGW. ACI BGWs also run local iBGP EVPN among themselves for DF
+election on BUM forwarding.
+
+### Supported topologies (by release)
+
+| Release | ACI side | External side |
+|---|---|---|
+| 6.1(1) | Single ACI fabric (or Multi-Pod) | VXLAN EVPN site(s) |
+| 6.1(4) (planned) | Independent ACI fabrics (no Multi-Site) | VXLAN EVPN Multi-Site domain |
+| Future | ACI Multi-Site (via NDO) | VXLAN EVPN Multi-Site domain |
+
+### Limitations for ACI BGW
+
+- **VNI namespace**: Symmetric only until 6.1(4)+ (external VNIs must match
+APIC-assigned VNIDs). 6.1(4) adds centralized normalization (ACI BGW
+translates); distributed normalization is future [8].
+- **ACI Multi-Site**: Not supported for BGW interconnect yet.
+- **Multicast**: L2 multicast forwarded as BUM; L3 multicast **not supported**
+across domains.
+- **IGMP snooping**: Not supported across domains.
+- **One management plane per fabric**: Nexus Dashboard management of the
+external fabric is not yet GA — APIC manages the ACI fabric, the external
+vendor's controller manages its own.
+
+### Policy enforcement across fabrics
+
+- **6.1(1)**: VRF unenforced — L2/L3 forwarding only, no ACI contract
+to external traffic [8].
+- **6.1(2)**: VRF "Policy Enforced" mode — ACI BGW classifies incoming
+traffic to ESGs based on MAC, L2 VNI, or IP subnet [8].
+- **6.1(4)** (planned): End-to-end SG-Tag in EVPN routes — ACI maps
+external endpoints to ESGs via tag; external fabric maps ACI endpoints
+via tag. Cross-fabric microsegmentation becomes possible [8].
+
+### External fabric references
+
+- **Huawei CloudFabric**: See [huawei.md](../../vendor-matrix/huawei.md#dci-and-cross-vendor-interconnect)
+  for the Huawei-side DCI architecture (Segment VXLAN on CloudEngine gateways).
+- **Any standards-based VXLAN EVPN fabric** (NX-OS EVPN-VXLAN Multi-Site,
+  Arista, Juniper): the same ACI BGW architecture above applies unchanged —
+  the ACI BGW peers via MP-BGP EVPN with the external fabric's border
+  gateways. Only the external-side BGW configuration and VNI namespace
+  coordination differ per vendor.
+
 ## References
 
 [1] "Cisco APIC Release Notes, Release 1.0(1e)," Cisco, August 2014. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/1-x/release/notes/apic_rn_101.html
@@ -122,3 +196,5 @@ this fabric.
 [6] "Cisco APIC Release Notes, Release 6.2(2)," Cisco, July 2026. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/release-notes/cisco-apic-release-notes-622.html
 
 [7] "Cisco ACI Multi-Site and Service Node Integration White Paper," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-743107.html
+
+[8] T. Kishida, "Deployment of VXLAN EVPN Gateways with Cisco ACI for the Interconnection of Heterogeneous Data Center Fabrics," Cisco Live EMEA 2025, BRKDCN-2634.

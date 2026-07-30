@@ -17,6 +17,13 @@ available — see [README.md](README.md#network-access) for the specific hosts i
 
 ## How to use this skill
 
+**POC records** ([pocs/](skills/pocs/)): Operational knowledge captured from real POC
+tests — not architectural theory, but what actually broke and how it was fixed.
+Consult these when planning a POC for a scenario you've designed, especially for
+cross-vendor integrations where config traps are the main risk. Each POC record
+ties to the scenario it validates. See
+[pocs/README.md](skills/pocs/README.md) for the filing convention.
+
 **Workflow**: Start with the static library ([scenarios/](skills/scenarios/) →
 [techniques/](skills/techniques/) → [vendor-matrix/](skills/vendor-matrix/)). When the
 library doesn't cover a claim, fetch live (steps 4–5). **Write every new fact back into
@@ -64,6 +71,7 @@ to step 2.
 | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
 | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
 | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
+| Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [skills/scenarios/cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | Variant A: vendor-matrix/cisco/aci.md §ACI Border Gateway + vendor-matrix/huawei.md §DCI. Variant B: vendor-matrix/cisco/nxos-vxlan.md §Multi-Site + vendor-matrix/huawei.md. Both: evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 > **Don't pre-create scenario files.** Add a scenario only after a real
 > cross-technique request has been confirmed solved and confirmed network-related

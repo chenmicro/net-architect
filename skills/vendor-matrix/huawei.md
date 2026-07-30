@@ -14,6 +14,24 @@
   a previously Cisco/Juniper/Arista-only environment, it's a real but often
   underestimated cost.
 
+### Version line: V300 (current), V200 (legacy)
+
+- Current-generation CloudEngine switches (CE16800, CE8800, CE6800 series)
+  ship on **V300** (latest: **V300R025C10**, ~2025; also V300R024C00, 2024;
+  V300R023C00, 2023; V300R022C00, 2022 — see version-mapping page [3] for
+  the full compatibility matrix). The version format is
+  `V<major>R<year>C<build>` — e.g. R025 = release for 2025 [4].
+  The V300 line is still VRP-based — Huawei's own Common Criteria cert
+  describes it as "CE16800&CE8800&CE6800 Series Switches running VRP software
+  V300R02" [2]. Earlier CloudEngine releases used V200 (V200R020C10 / V200R019C10).
+- The VRP software version bundled with V300 host software is **VRP V800**
+  (e.g. V300R022C00 ships VRP V800R022C05; V300R021C10 ships VRP V800R021C04) [3].
+- V300 is functionally similar in CLI structure to V200 but adds newer hardware
+  support, deeper EVPN-VXLAN scale, and AI-fabric-specific capabilities
+  (enhanced RoCEv2 tuning, larger forwarding tables). Overall config model and
+  operator knowledge transfer from V200 to V300 are straightforward — the same
+  VRP skills apply.
+
 ## CloudEngine vs. NetEngine
 
 - **CloudEngine (CE series)**: Huawei's data-center switching line —
@@ -52,3 +70,48 @@
   (government, critical infrastructure, telecom in several countries) —
   worth flagging early in a vendor-selection conversation rather than
   discovering it after a design is otherwise finalized.
+
+## DCI and cross-vendor interconnect
+
+Huawei CloudFabric's recommended DCI model for interconnecting independent
+fabrics is **Segment VXLAN** (as opposed to E2E VXLAN, which assumes a single
+iMaster NCE-Fabric domain across all sites) [1]:
+
+- Each CloudFabric is an **independent VXLAN/EVPN domain** with its own
+iMaster NCE-Fabric instance
+- **CloudEngine DCI gateways** (CE8800 / CE16800 / CE6860 series, any CE
+switch with EVPN VXLAN capability at the fabric border) establish MP-BGP
+EVPN peering across an Inter-Site Network to the remote fabric's border
+gateways
+- DCI VXLAN tunnels exist only between the gateways — the internal fabric
+VXLAN stays within each DC
+- The gateway function is configured on CloudEngine leaf/spine nodes at
+the fabric edge; iMaster NCE provisions the DCI VNI stitching
+
+To interconnect Segment VXLAN on CloudFabric with **Cisco ACI**, the ACI
+fabric must present an **ACI Border Gateway** (BGW). See
+[cisco/aci.md](cisco/aci.md#aci-border-gateway-heterogeneous-fabric-interconnect)
+for the full architecture — ACI BGW addressing (MS-Ext-VIP/MS-Int-VIP/PIP),
+control plane flow, data plane tunnel stitching, namespace normalization
+(ACI 6.1(4)+), and multi-fabric policy enforcement. The CloudFabric side
+connects by presenting standard EVPN VXLAN border gateways (above) that
+peer with the ACI BGWs via MP-BGP EVPN over an L3 Inter-Site Network. All
+ACI-side constraints (VNI namespace, multicast, Multi-Site support) apply
+from the Cisco side.
+
+For connecting CloudFabric to other non-Huawei EVPN VXLAN fabrics that
+speak MP-BGP EVPN at the border (e.g. Arista, Juniper, NX-OS EVPN-VXLAN),
+the same Segment VXLAN model applies with the foreign fabric presenting an
+EVPN Multi-Site border gateway.
+
+## References
+
+[1] "What DCI Solutions Are Available? — E2E VXLAN and Segment VXLAN," Huawei Support Encyclopedia. [Online]. Available: https://info.support.huawei.com/info-finder/encyclopedia/en/DCI.html
+
+[2] "Huawei CE16800&CE8800&CE6800 Series Switches running VRP software V300R02," Common Criteria Portal, certification document. [Online]. Available: https://www.commoncriteriaportal.org/files/epfiles/huawei-ce16800ce8800ce6800-series-switches-running-vrp-software-v300r02.pdf
+
+[3] "CloudEngine Switches Software Versions," Huawei Support. [Online]. Available: https://info.support.huawei.com/network/ptmngsys/Web/DC/en/version-mapping.html
+
+[4] "CloudEngine 16800 V300R025C10 Log Reference," Huawei Support, updated April 2026. [Online]. Available: https://support.huawei.com/enterprise/en/doc/EDOC1100561851/bbf994b3
+
+[5] "CloudEngine 16800, 9800, 8800, and 6800 V300R024C00 Command, Trap, MIB, YANG, and Telemetry Delta Information," Huawei Support, 2024. [Online]. Available: https://support.huawei.com/enterprise/en/switches/cloudengine-58-68-78-88-98-pid-252837181
