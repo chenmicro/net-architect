@@ -289,6 +289,14 @@ missing or unreachable:
   itself before asking for clarifications. Only prompt the user when a missing
   parameter materially changes the recommendation — and when you do ask, make
   it a single consolidated question, not a back-and-forth.
+- **Verify heading conformance.** Before staging any file under
+  `skills/techniques/`, confirm the file contains the four mandatory `## `
+  headings from the [standard chapter layout](#2-techniques) above. The
+  heading names must match exactly — no synonyms, no rewording. A file may
+  have additional `## ` concept sections above these four, but all four must
+  be present and named exactly as in the template. If any is missing or
+  renamed, fix it before committing — this applies to both new files and
+  edits to existing ones.
 - **Commit autonomously.** After each meaningful write-back to a skill file,
   stage and commit the change following the commit policy below. The user
   should not need to remind the agent to save work — the repo should reflect
@@ -326,3 +334,11 @@ missing or unreachable:
   identity resolved from the active `git config`.
 - Commit messages must conform to the [Conventional Commits](https://www.conventionalcommits.org/)
   specification.
+- **Use `.git/COMMIT_MSG` for multi-line messages.** Never pass a multi-line
+  commit message with `git commit -m` — shell quoting fails on mixed quotes and
+  special characters. Heredocs also don't work (the execute_command tool runs
+  commands programmatically, not through an interactive shell parser). Instead,
+  write the message to `.git/COMMIT_MSG` using `write_to_file` (VS Code excludes
+  `.git/` from file watchers, so no save prompt) and commit with
+  `git commit -F .git/COMMIT_MSG`. Single-line messages are safe with `-m`.
+  Do not use `/tmp/` paths — they trigger VS Code save prompts.
