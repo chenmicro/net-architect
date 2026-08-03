@@ -292,6 +292,13 @@ missing or unreachable:
   support `--no-pager`. Never issue a command that pauses for user input —
   the agent must read all output programmatically without the user having to
   press tab, down, or q.
+- **No heredocs, herestrings, or interactive shell constructs.** The
+  `execute_command` tool runs commands programmatically — heredocs
+  (`<<EOF` / `<<-EOF`), herestrings (`<<<`), and any construct that causes
+  the shell to prompt for continuation input (`dquote>`, `heredoc>`,
+  `quote>`) will freeze the terminal. Use `write_to_file` to write content
+  to a file and then reference the file path in the command. For short
+  inline content, pipe via `printf` or `echo` instead.
 - **Write back immediately.** After every external fetch (RFC, draft, vendor
   doc, web search result), write the new fact into the matching skill file
   before proposing the design. Do not accumulate facts in chat context — the
@@ -353,9 +360,9 @@ missing or unreachable:
   specification.
 - **Use `.git/COMMIT_MSG` for multi-line messages.** Never pass a multi-line
   commit message with `git commit -m` — shell quoting fails on mixed quotes and
-  special characters. Heredocs also don't work (the execute_command tool runs
-  commands programmatically, not through an interactive shell parser). Instead,
-  write the message to `.git/COMMIT_MSG` using `write_to_file` (VS Code excludes
-  `.git/` from file watchers, so no save prompt) and commit with
-  `git commit -F .git/COMMIT_MSG`. Single-line messages are safe with `-m`.
-  Do not use `/tmp/` paths — they trigger VS Code save prompts.
+  special characters. Heredocs are also prohibited (see [No heredocs](#minimizing-manual-intervention)
+  above). Instead, write the message to `.git/COMMIT_MSG` using
+  `write_to_file` (VS Code excludes `.git/` from file watchers, so no save
+  prompt) and commit with `git commit -F .git/COMMIT_MSG`. Single-line messages
+  are safe with `-m`. Do not use `/tmp/` paths — they trigger VS Code save
+  prompts.
