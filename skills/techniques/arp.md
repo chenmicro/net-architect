@@ -57,8 +57,38 @@ packet over the VRF-GIPo multicast tree. The leaf that owns the BD SVI generates
 an ARP Request on the fabric's behalf, flooding it to all local BD ports. The
 silent host replies and is learned.
 
-This is the only fabric-side ARP generation mechanism — standard EVPN has no
+This is one of two fabric-side ARP generation mechanisms — standard EVPN has no
 equivalent. See [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
+
+### ARP active detection (Huawei smart-discover)
+
+Huawei CloudEngine V300 provides `arp smart-discover enable` in **VLANIF
+interface view** — proactive periodic ARP probing for silent hosts [5].
+After enabling, the device sends ARP probe messages to each host on the
+gateway's network segment at the configured interval (default 1s, max 128
+probes per interval). Existing ARP entries, device IPs, and VRRP VIPs are
+excluded from probing [5].
+
+Key characteristics:
+- **Proactive, not reactive** — polls all hosts on the segment periodically,
+  not triggered by a traffic miss. Contrast with ACI gleaning which is
+  reactive (COOP miss).
+- **Leaf-local, no spine involvement** — no fabric-wide endpoint database or
+  multicast tree; the VLANIF on each leaf probes its own segment independently.
+- **Disabled by default** — must be explicitly enabled.
+- **Not for proactive-host environments** — the doc warns that if hosts send
+  ARP proactively, enabling this may slow ARP learning [5].
+- **Companion command**: `arp smart-discover interval <interval> count <count>`
+  to tune the probe rate [5].
+
+The reactive counterpart is the default **ARP Miss** mechanism on VBDIF/VLANIF:
+when traffic arrives for an unknown destination, the interface generates an ARP
+Request automatically (`undo arp miss disable` — enabled by default) [5].
+
+Note: `arp smart-discover` is documented under VLANIF interface view [5]; for
+VXLAN/EVPN fabrics where the L3 gateway is a VBDIF interface, verify whether
+the command is also available under VBDIF, or whether the BD must be accessed
+via a VLANIF binding.
 
 
 ### ARP / MAC timer mismatch
@@ -88,7 +118,7 @@ occurs before the MAC entry is evicted [3].
 | **Cisco NX-OS EVPN** | Yes (`suppress-arp` under VNI) | No | Standards-based. Disabled by default. |
 | **Arista EOS** | Yes (enabled by default on SVIs) | No (router-level ARP only) | Standards-based. VARP MAC for anycast gateway consistency. See [evpn.md](../evpn.md) [3]. |
 | **Juniper Junos** | Yes (enabled by default on VLANs) | Partial (23.4R1+ `static-mac-ip` probing) | `arp-nd-probe-disable` to suppress probing. See [evpn.md](../evpn.md) [2]. |
-| **Huawei CloudEngine** | Yes (ARP broadcast suppression) | No (`arp broadcast-detect` is for tunnel-down convergence, not discovery) | Standards-based. V200R024C00 (also covers V300R025C10). See [evpn.md](../evpn.md) [4], [5]. |
+| **Huawei CloudEngine** | Yes (ARP broadcast suppression) | Yes (`arp smart-discover enable`, proactive) | ARP Miss reactive by default, smart-discover for periodic probing. See §ARP active detection. V300R024C00 [5]. |
 
 **NDP (IPv6 Neighbor Discovery Protocol)** is the IPv6 equivalent of ARP (RFC
 4861). The same suppression, proxy, and gleaning concepts apply — ACI and EVPN
@@ -154,4 +184,9 @@ support/docs/cloud-systems-management/application-policy-infrastructure-controll
 apic/218013-troubleshoot-aci-intra-fabric-forwarding.html — COOP database lookup,
 glean packet to 239.255.255.240, pervasive static route for ARP glean trigger.
 Last confirmed Aug 2026.
-for the full pipeline [2], [4].
+
+[5] \"ARP Configuration Commands — CloudEngine 9800, 8800, and 6800
+V300R024C00 Command Reference,\" Huawei, EDOC1100439391. [Online]. Available:
+https://support.huawei.com/enterprise/en/doc/EDOC1100439391/1c40b472/arp-configuration-commands
+— `arp smart-discover enable` in VLANIF interface view, ARP active detection
+for proactive silent-host learning. Last confirmed Aug 2026.
