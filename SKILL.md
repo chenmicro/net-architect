@@ -171,6 +171,12 @@ naming and constraints vary.
   second solution is confirmed — don't pre-create subfolders. The objective test: if
   the vendor ships a feature under its own separately-versioned Configuration/Solution
   Guide, it gets its own file here.
+- **Version scope**: always reference the current/latest-version documentation and
+  CLI for the product line in question. Older versions may differ in features, command
+  names, or defaults. A fact confirmed only against a legacy-version doc is
+  **unverified** until confirmed against the current version's documentation or a
+  live CLI. Per-product-line version details (which version is current, which is EOL)
+  live in the vendor file's version section, never duplicated here.
 
 ### 4. Fetch RFCs and IETF drafts
 
@@ -304,7 +310,10 @@ missing or unreachable:
   doc, web search result), write the new fact into the matching skill file
   before proposing the design. Do not accumulate facts in chat context — the
   library must grow with each query so the next one doesn't re-fetch the same
-  information.
+  information. **Keep changes uncommitted** — the user reviews and commits.
+- **List changes on startup.** At the beginning of each session, run
+  `git diff --stat` and `git diff` to show all uncommitted changes from prior
+  sessions so the user knows what's pending review.
 - **Resolve before creating.** Never create a new technique, scenario, or
   vendor file while a question is still open or uncertain. Confirm with the
   user both that the issue is resolved and that it's genuinely network
@@ -314,18 +323,13 @@ missing or unreachable:
   itself before asking for clarifications. Only prompt the user when a missing
   parameter materially changes the recommendation — and when you do ask, make
   it a single consolidated question, not a back-and-forth.
-- **Verify heading conformance.** Before staging any file under
+- **Verify heading conformance.** Before editing any file under
   `skills/techniques/`, confirm the file contains the four mandatory `## `
   headings from the [standard chapter layout](#2-techniques) above. The
   heading names must match exactly — no synonyms, no rewording. A file may
   have additional `## ` concept sections above these four, but all four must
   be present and named exactly as in the template. If any is missing or
-  renamed, fix it before committing — this applies to both new files and
-  edits to existing ones.
-- **Commit autonomously.** After each meaningful write-back to a skill file,
-  stage and commit the change following the commit policy below. The user
-  should not need to remind the agent to save work — the repo should reflect
-  the current state of the library after every turn.
+  renamed, fix it.
 - **One turn, one deliverable.** When the user asks a design question, produce
   a complete answer (design rationale, vendor recommendation if applicable,
   citations) in a single response. Don't drip-feed partial answers across
@@ -334,19 +338,20 @@ missing or unreachable:
 ### Branch policy
 
 - **Never commit to `main`.** The `main` branch is protected — only the repo
-  maintainer merges into it (via PR or locally), never an agent.
-- Each deployment writes to its own branch. The branch name comes from the
-  `BRANCH_NAME` variable in `.env` (gitignored).
+  maintainer merges into it (via PR or locally), never the agent.
+- The agent works on a branch named by the `BRANCH_NAME` variable in `.env`.
 - **If `BRANCH_NAME` is unset or empty**, the agent must generate a UUID, write
   the first 8 hex characters to `.env` as `BRANCH_NAME=agents/<short-uuid>`,
-  and reload the env before proceeding. The generated branch is then stable
-  across restarts.
-- The agent must ensure its branch exists locally before the first commit on a
-  deployment: `git checkout -b "$BRANCH_NAME"` if it doesn't already exist.
+  and reload the env before proceeding.
+- The agent must ensure its branch exists locally: `git checkout -b "$BRANCH_NAME"`
+  if it doesn't already exist.
 - Before each session, sync from main: `git fetch origin && git merge origin/main`
   (or rebase) to stay current.
 
 ### Commit policy
+
+The agent does not commit autonomously — all file edits are left uncommitted
+unless the user explicitly asks. When asked to commit, the agent follows:
 
 - Commit author identity must come from the active `git config` (`git config
   user.name` / `git config user.email` — repo-local config takes precedence over

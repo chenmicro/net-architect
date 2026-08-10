@@ -32,6 +32,17 @@
   operator knowledge transfer from V200 to V300 are straightforward — the same
   VRP skills apply.
 
+Current versions per product line (see [SKILL.md](../../SKILL.md#3-vendors) version-scope rule):
+
+| Product line | Current version | Legacy (do not reference) |
+|---|---|---|
+| CloudEngine (CE series) — data center | V300 (V300R025C10) | V200 |
+| S-series — campus | V600 (V600R025C10) | V200 |
+
+Campus and data center product lines run different OS trains — do not conflate
+them. V600 on campus S-series is not the same CLI or feature set as V300 on
+CloudEngine.
+
 ## CloudEngine vs. NetEngine
 
 - **CloudEngine (CE series)**: Huawei's data-center switching line —
