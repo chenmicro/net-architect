@@ -110,6 +110,51 @@ in the VNI [3].
 The guiding rule: **MAC aging must exceed ARP aging** so a fresh ARP always
 occurs before the MAC entry is evicted [3].
 
+## Aging-policy standardization (what the specs actually say)
+
+The aging values above sit at three very different levels of standardization:
+
+- **MAC (FDB) aging — IEEE default, not mandate.** IEEE 802.1D/802.1Q define
+  aging of dynamically learned filtering-database entries: a configurable
+  range (typically 10 s to 1,000,000 s) with a **default of 300 s** — the
+  origin of the 300 s seen on most platforms [6]. **Refresh condition is
+  standardized too**: dynamic entries are "created and updated by the
+  Learning Process" and "shall be automatically removed after a specified
+  time, the Ageing Time, has elapsed since the entry was created or *last
+  updated*" — i.e., the timer resets on every frame the bridge receives
+  with that source MAC (from the host's viewpoint, every outbound frame)
+  [6]. Static (management-configured) entries "shall not be automatically
+  removed by any ageing mechanism" [6]. **Creation is conditional too**:
+  Clause 8.7 creates/updates a Dynamic Filtering Entry "if and only if"
+  the source address is an Individual Address (group/multicast sources are
+  never learned) and the frame passed ingress rules on a port in the
+  Learning/Forwarding state [6]. On a topology change (TCN),
+  bridges shorten aging to the Forward Delay (~15 s) to accelerate
+  convergence [6]. The standard fixes the mechanism and the default, not
+  the value — every vendor exposes it as a tunable.
+- **IPv4 ARP aging — no standard value.** RFC 826 suggests but does not
+  require a timeout mechanism [7]. RFC 1122 §2.3.2.1 is normative that
+  implementations MUST provide a mechanism to flush out-of-date ARP cache
+  entries, and that if it is a timeout it SHOULD be configurable — but no
+  value is mandated; for proxy-ARP environments RFC 1122 suggests timeouts
+  "on the order of a minute" [7]. RFC 1122 also mandates ARP request
+  rate-limiting to ≤1 request/second per destination (flood protection,
+  distinct from aging) [7]. The absence of a numeric standard is exactly
+  why Linux (~30 s randomized), NX-OS (1500 s), and IOS/EOS/Junos (14400 s)
+  diverge so wildly.
+- **IPv6 NDP aging — genuinely standardized.** RFC 4861 §10 defines explicit
+  protocol constants: REACHABLE_TIME 30,000 ms, RETRANS_TIMER 1,000 ms,
+  DELAY_FIRST_PROBE_TIME 5 s, MAX_MULTICAST_SOLICIT / MAX_UNICAST_SOLICIT 3,
+  with ReachableTime randomized by 0.5–1.5× BaseReachableTime [8]. The
+  Neighbor Unreachability Detection state machine (REACHABLE → STALE →
+  DELAY → PROBE) is normative, so IPv6 is the one address-resolution
+  protocol with a real standard aging policy [8].
+- **EVPN/overlay fabrics — aging is local policy.** RFC 7432 standardizes MAC
+  *mobility* (sequence-numbered Type 2 updates on host moves) but not aging
+  timers; aging of learned entries remains ordinary bridge policy per IEEE
+  802.1Q [6]. The "MAC aging must exceed ARP aging" rule is engineering
+  practice (ipSpace analysis [3]), not a normative requirement.
+
 ## Cross-vendor / variants
 
 | Vendor | ARP suppression | Fabric-side ARP generation | Notes |
@@ -135,6 +180,15 @@ but still non-zero without suppression.
 - **Silent hosts break the model.** ARP suppression helps known hosts; ARP
   gleaning (ACI) or static MAC-IP entries (Juniper) are needed for hosts that
   never announce themselves.
+- **Pure-L2 overlays have no ARP table and no probe path.** If a VNI has no
+  SVI/anycast gateway (pure L2 extension), the leaf has no L3 presence — no
+  ARP table, no proxy, no fabric-side probe. Re-discovering an aged MAC is
+  limited to unknown-unicast flooding plus static entries. ARP *snooping*
+  still records IP↔MAC bindings without an L3 stack (this is what powers
+  DAI and the IP field of EVPN Type 2 routes), but vendors gate proactive
+  probing (Huawei smart-discover, ACI gleaning) on a gateway interface
+  (VLANIF/VBDIF/SVI) — so the L2-only case is where silent hosts are
+  hardest to reach.
 - **Tune ARP timers below MAC aging.** On most switch platforms, the default ARP
   timeout (1500s–14400s) vastly exceeds MAC aging (300s), guaranteeing periodic
   unknown-unicast flooding for silent or low-traffic hosts. Lower the ARP timeout
@@ -190,3 +244,30 @@ V300R024C00 Command Reference,\" Huawei, EDOC1100439391. [Online]. Available:
 https://support.huawei.com/enterprise/en/doc/EDOC1100439391/1c40b472/arp-configuration-commands
 — `arp smart-discover enable` in VLANIF interface view, ARP active detection
 for proactive silent-host learning. Last confirmed Aug 2026.
+
+[6] \"IEEE Standard for Local and Metropolitan Area Networks — Bridges and
+Bridged Networks,\" IEEE Std 802.1Q-2018 (incorporates 802.1D bridging,
+Clause 8.8 filtering database). [Online]. Available: https://ieeexplore.ieee.org/document/8403927;
+also IEEE Std 802.1Q-2005, Clause 8.8.3/8.8.4 (text verified from a copy
+of the 2005 edition, Aug 2026): dynamic entries are "created and updated by
+the Learning Process (8.7)" and "shall be automatically removed after a
+specified time, the Ageing Time, has elapsed since the entry was created
+or last updated"; static entries "shall not be automatically removed by
+any ageing mechanism"; Table 8-3: Ageing time recommended default 300.0 s,
+range 10.0–1,000,000.0 s. Non-changeable standard.
+
+[7] R. Braden, Ed., \"Requirements for Internet Hosts — Communication
+Layers,\" IETF RFC 1122, October 1989, §2.3.2.1. [Online]. Available:
+https://www.rfc-editor.org/rfc/rfc1122.txt — ARP cache validation: MUST
+flush out-of-date entries; timeout SHOULD be configurable; RFC 826
+\"suggests but does not require\" a timeout; ARP request rate limit 1/s per
+destination (MUST); proxy-ARP timeout \"on the order of a minute.\"
+Verified Aug 2026.
+
+[8] T. Narten, E. Nordmark, W. Simpson, H. Soliman, \"Neighbor Discovery
+for IP version 6 (IPv6),\" IETF RFC 4861, September 2007, §6.3.2 and §10.
+[Online]. Available: https://www.rfc-editor.org/rfc/rfc4861.txt —
+REACHABLE_TIME 30,000 ms; RETRANS_TIMER 1,000 ms; DELAY_FIRST_PROBE_TIME
+5 s; MAX_MULTICAST_SOLICIT / MAX_UNICAST_SOLICIT 3; ReachableTime
+randomized 0.5–1.5× BaseReachableTime; normative NUD state machine.
+Verified Aug 2026.

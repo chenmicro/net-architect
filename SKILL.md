@@ -71,6 +71,7 @@ to step 2.
 | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
 | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
 | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
+| Silent-host reachability in overlay fabrics | [skills/scenarios/silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, vendor-matrix/cisco/aci.md (COOP gleaning / L2 unknown-unicast) — L2-vs-L3 gateway presence is the master switch; timer discipline applies everywhere |
 | Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [skills/scenarios/cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | Variant A: vendor-matrix/cisco/aci.md §ACI Border Gateway + vendor-matrix/huawei.md §DCI. Variant B: vendor-matrix/cisco/nxos-vxlan.md §Multi-Site + vendor-matrix/huawei.md. Both: evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 > **Don't pre-create scenario files.** Add a scenario only after a real
@@ -229,7 +230,8 @@ net-architect/
 │   │   ├── ai-gpu-training-cluster.md
 │   │   ├── campus-wan-edge-refresh.md
 │   │   ├── sdwan-sase-rollout.md
-│   │   └── multi-site-workload-mobility.md
+│   │   ├── multi-site-workload-mobility.md
+│   │   └── silent-host-in-overlays.md
 │   ├── techniques/          # Atomic, one file per technique (flat, no domain grouping)
 │   │   ├── spine-leaf-clos.md
 │   │   ├── vxlan.md
