@@ -111,6 +111,7 @@ apply. Each file is a single atomic technique.
 | Segment Routing | [skills/techniques/segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
 | BGP | [skills/techniques/bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene — shared by any technique above that rides on BGP |
 | IGP — OSPF & IS-IS | [skills/techniques/ospf-isis.md](skills/techniques/ospf-isis.md) | OSPF vs. IS-IS selection, area/level design, timer tuning, cross-vendor alignment |
+| ARP | [skills/techniques/arp.md](skills/techniques/arp.md) | RFC 826 basics, ARP flooding vs. suppression in EVPN/VXLAN fabrics, ARP gleaning (ACI), ARP/MAC timer mismatch, cross-vendor behavior |
 | STP | [skills/techniques/stp.md](skills/techniques/stp.md) | PVST+ vs. MSTP vs. RSTP, root bridge placement, cross-vendor STP interop |
 | FHRP | [skills/techniques/fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway as alternative |
 | QoS | [skills/techniques/qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP alignment, DC vs. campus/WAN QoS |
