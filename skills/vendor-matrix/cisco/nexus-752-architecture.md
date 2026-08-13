@@ -39,11 +39,17 @@ in [nexus-hardware.md](nexus-hardware.md).
 
 ## Limitations
 
-- **Availability — the parent is the single point of failure.** A FEX has no
-  control plane; if its parent (or both uplinks/peer-link) fails, the whole rack's
-  servers go dark at once. In a 2-parent pod, one parent down takes out every FEX
-  pinned to it. Leaf + EVPN multihoming shrinks the failure domain to one rack
-  (and dual-homed servers survive even that).
+- **Availability — a FEX can have at most two parents, so the parent pair is its
+  whole redundancy domain.** A FEX has no control plane; if its parent (or both
+  uplinks/peer-link) fails, the whole rack's servers go dark at once. Parent count
+  is hard-capped: one switch (straight-through) or a vPC pair (dual-homed/AA) —
+  "each FEX is dual-homed with two Cisco Nexus ... switches" [9]; there is no 3- or
+  4-parent FEX mode. Running more aggregation/core switches in the fabric (multiple
+  agg vPC pairs, or a 4-switch L3 core above the agg pair) adds resilience above
+  the parent pair only — each FEX still gets at most two paths, and one parent down
+  still takes out every FEX pinned to it. N-way path diversity is a leaf property
+  (ECMP to N spines) the FEX model cannot deliver; leaf + EVPN multihoming shrinks
+  the failure domain to one rack (and dual-homed servers survive even that).
 - **Bandwidth — fixed FEX uplink oversubscription.** The bottleneck is the FEX NIF
   uplinks, not the chassis fabric. N2K-C2348UPQ: 48×10G down = 480G vs 6×40G up =
   240G → **2:1** at 10G downlinks [1]. **No N2K FEX serves 25G server downlinks**
@@ -55,11 +61,18 @@ in [nexus-hardware.md](nexus-hardware.md).
   "Multicast Source/Receiver behind FEX is not supported" [6]. If you don't use
   VXLAN/multicast this specific limit is moot, but it caps any future use of the
   same access tier.
-- **Table concentration — shared forwarding-table budget.** The parent holds MACs
-  for all its FEXes *and* its routes from one forwarding-table budget (flexible
+- **Table concentration — all forwarding state lives on the parent.** A FEX does
+  not perform any local switching: "all traffic is sent to the parent switch that
+  provides central forwarding and policy enforcement" [8]. The parent (N5K or N7K)
+  carries the whole fabric's state from one forwarding-table budget (flexible
   templates; e.g. up to 2M shared entries on 9300-FX3 [7] — carve MAC vs LPM per
-  template). Scale-out (leaf per rack) partitions that budget per switch instead
-  of concentrating it on the parent.
+  template): the **MAC table** for every host behind every FEX, the **LPM routing
+  table** (the parent pair is the L2/L3 boundary — N5K in the standard 7-5-2, N7K
+  in the collapsed variant), and the **ACL/TCAM entries** for FEX host ports —
+  "the Fabric Extender supports the full range of ingress access control lists
+  (ACLs) that are available on its parent" [8]. Every added rack deepens the
+  concentration on the parent pair; leaf-per-rack scale-out partitions the budget
+  per switch instead.
 - **No new FEX hardware.** The Nexus 2300 "successor" FEX is also EOL [10]; the
   only current product that can act as a FEX is a Nexus 9300-FX2/FX3 in FEX mode
   (Essentials license in ACI [5]; AA-as-device capability unverified — see the
