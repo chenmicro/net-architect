@@ -159,7 +159,7 @@ naming and constraints vary.
 
 | Vendor | File | Covers |
 |---|---|---|
-| Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI), [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN), [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) (head-to-head), [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR), [nxos-gpo.md](skills/vendor-matrix/cisco/nxos-gpo.md) (GPO) |
+| Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI), [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN), [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) (head-to-head), [nexus-752-architecture.md](skills/vendor-matrix/cisco/nexus-752-architecture.md) (7-5-2 design/limitations/upgrade), [nexus-hardware.md](skills/vendor-matrix/cisco/nexus-hardware.md) (Nexus hardware/EOL), [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR), [nxos-gpo.md](skills/vendor-matrix/cisco/nxos-gpo.md) (GPO) |
 | Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
 | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
 | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
@@ -262,6 +262,8 @@ net-architect/
 │       │   ├── nxos-vxlan.md # NX-OS-native EVPN-VXLAN: architecture, release history
 │       │   ├── nxos-epbr.md # ePBR (own Config Guide, not a VXLAN feature): L4-7 redirect
 │       │   ├── nxos-gpo.md  # GPO (own whitepaper, unratified IETF drafts): tag-based microsegmentation
+│       │   ├── nexus-752-architecture.md # 7-5-2 design, limitations, upgrade path
+│       │   ├── nexus-hardware.md # Nexus hardware, models & EOL/lifecycle
 │       │   └── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       ├── arista.md
 │       ├── extreme-networks.md

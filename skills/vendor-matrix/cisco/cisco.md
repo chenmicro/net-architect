@@ -83,3 +83,25 @@ rather than being a paragraph here.
   multi-vendor interop, and lock-in profile differ substantially between them.
   See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the full head-to-head
   comparison, judgment call, and the 2026 Cisco convergence ("Nexus One") update.
+
+## Nexus hardware (platform models, specs & lifecycle)
+
+Nexus switch hardware across the portfolio — models, port counts, NX-OS trains,
+and lifecycle/EOL data, including the current Nexus 9500 entry and the 7-5-2-era
+platforms (N7K/N5K/N2K): [nexus-hardware.md](nexus-hardware.md).
+
+## Classic DC three-tier — Nexus "7-5-2" (N7K / N5K / N2K)
+
+The pre-VXLAN/EVPN data center stack (N7K core + N5K aggregation + N2K FEX
+access). **Obsolete for new builds** — the successor is Nexus 9000 spine-leaf
+with EVPN-VXLAN (ACI or NX-OS-native; see the DC fabric section above). Still
+widely deployed, but retired piece-by-piece by official signals: N2K FEX EOL
+(official replacement = 9300 leaf), N2K FEX dropped from NX-OS 10.6(3)F, N7700
+EOL (replacement = Nexus 9500/9800). The FEX access model cannot be continued on
+any current platform.
+
+- **Design, limitations, upgrade path** (options A/B, operating premise):
+  [nexus-752-architecture.md](nexus-752-architecture.md)
+  (platform hardware and EOL data for these platforms: see the Nexus hardware
+  section above)
+
