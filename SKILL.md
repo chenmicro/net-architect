@@ -208,6 +208,12 @@ budget/licensing constraints. The `skills/` files describe the design space, not
 specific customer's constraints — ask if they're not given and materially change
 the recommendation.
 
+When a design needs to be captured as a topology diagram in the draw.io format
+(read, edit, or create), follow the workflow in
+[plugins/drawio-mcp.md](plugins/drawio-mcp.md) — it maps each task to the pinned
+`drawio-mcp` submodule's reference files (XML guide, style syntax, schema,
+shape index).
+
 ## Boundaries
 
 - `doc-fetcher` is pure retrieval (fetch and normalize to text). Design judgment
@@ -269,10 +275,13 @@ net-architect/
 │       ├── extreme-networks.md
 │       ├── juniper.md
 │       └── huawei.md
-└── mcp/
-    └── doc-fetcher/         # Pure retrieval tool (IETF RFCs, web search, vendor spec sheets)
-        ├── index.ts
-        └── package.json
+├── mcp/
+│   └── doc-fetcher/         # Pure retrieval tool (IETF RFCs, web search, vendor spec sheets)
+│       ├── index.ts
+│       └── package.json
+└── plugins/                # Tooling submodules + per-plugin workflow docs
+    ├── drawio-mcp/         # Submodule: jgraph/drawio-mcp (draw.io XML reference library)
+    └── drawio-mcp.md       # Workflow: read/edit/create network topologies in draw.io format
 ```
 
 ## Agent behavior
