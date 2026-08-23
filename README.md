@@ -12,6 +12,9 @@ RFC/draft or a current vendor spec sheet into context.
 
 - **[SKILL.md](SKILL.md)** — entry point and routing table: when to load which
   scenario/technique/vendor file and when to reach for `doc-fetcher`. Load this first.
+- **[docs/network-topology-figures.md](docs/network-topology-figures.md)** —
+  plugin-agnostic conventions for topology viewpoints, device cards, role colors,
+  physical links, logical relationships, and traffic paths.
 - **[skills/scenarios/](skills/scenarios/)** — cross-technique composition guidance for
   specific end-to-end asks (e.g. an AI/GPU training cluster buildout, or a campus
   refresh that also touches the WAN edge): which technique/vendor files to read, in

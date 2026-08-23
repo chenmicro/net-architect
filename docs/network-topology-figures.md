@@ -1,0 +1,177 @@
+# Network Topology Figures
+
+Plugin-agnostic content and visual conventions for network topology figures.
+Every maintained figure needs an editable canonical source; its implementation
+adapter defines the format, validation, export, and publication workflow.
+
+## Purpose, scope, and viewpoint
+
+State the figure's purpose, abstraction level, and one primary viewpoint:
+
+| Viewpoint | Shows |
+|---|---|
+| Physical | Devices, ports, cables, bundles, sites, and failure domains |
+| Logical or control plane | Adjacencies, overlays, tunnels, VRFs, and logical boundaries |
+| Service or traffic flow | Service traversal, direction, policy, and ingress/egress paths |
+| POC or test | Tested topology, exercised links, failure actions, and relevant configuration context |
+
+Use `atomic schematic`, `reference architecture`, or `implementation-specific`
+as the abstraction level. A hybrid viewpoint must distinguish its layers with
+boundaries or a legend. The caption may carry this context to avoid figure clutter.
+
+## Figure anatomy
+
+Every figure needs:
+
+1. A short title.
+2. A label on every device or functional node.
+3. Boundaries for sites, fabrics, pods, zones, or failure domains when relevant.
+4. A legend when color, line style, or shape is not self-explanatory.
+5. A numbered caption in the consuming document stating the figure's purpose.
+
+Use layer labels such as `SPINE`, `LEAF`, `WAN`, or `SECURITY SERVICES` when
+placement encodes architecture. Omit decoration that adds no topology, role, or
+traffic-flow meaning.
+
+## Canonical visual encoding
+
+Represent a network device with a labeled rectangular **device card**. It is
+compact, vendor-neutral, and can hold relevant interfaces, VRFs, or routing
+domains. Always write the device role; shape and color are secondary cues.
+
+```text
+┌────────────────────────┐
+│ Spine 1                │  Role or logical name
+│ DC1-SP01               │  Hostname, when relevant
+│ ASN 65001 · VRF PROD   │  Relevant context, when needed
+└────────────────────────┘
+```
+
+Card detail is **minimal** (role), **identified** (role plus hostname), or
+**detailed** (only the interfaces, VRFs, ASNs, addresses, or platform facts the
+figure needs). Put interface names beside their link endpoints and use card
+compartments for multiple VRFs or interface groups; never paste configuration.
+
+Classify a node as `device class → fabric membership (switches only) →
+architectural role → functional qualifier`.
+
+| Device class | Domain | Architectural role | Functional qualifier / label | Preferred representation | Fill / stroke |
+|---|---|---|---|---|---|
+| Switch | Fabric | Spine | `Spine 1` | Rectangular device card | Blue `#DAE8FC` / `#6C8EBF` |
+| Switch | Fabric | Leaf | `Server Leaf 1`, `Service Leaf 1`, `Border Leaf 1`, `DCI Leaf 1` | Rectangular device card | Green `#D5E8D4` / `#82B366` |
+| Switch | Non-fabric | Core | `Core 1`, `Collapsed Core 1` | Rectangular device card | Blue `#DAE8FC` / `#6C8EBF` |
+| Switch | Non-fabric | Aggregation or distribution | `Aggregation 1`, `Distribution 1`, `External Border Switch 1`, `External DCI GW 1` | Rectangular device card | Purple `#E1D5E7` / `#9673A6` |
+| Switch | Non-fabric | Access | `Access 1` | Rectangular device card | Green `#D5E8D4` / `#82B366` |
+| Router | External routed domain | Router | `Router 1`, `WAN Edge 1`, `External Border Router 1`, `External DCI GW 1` | Rectangular device card | Orange `#FFE6CC` / `#D79B00` |
+| DWDM | Optical transport | Optical system | `DWDM 1`, `Transponder 1`, `Muxponder 1`, `ROADM 1` | Rectangular device card | Yellow `#FFF2CC` / `#D6B656` |
+| Firewall | Security or service layer | Firewall | `Firewall 1`, `Virtual FW 1` | Rectangular device card | Red `#F8CECC` / `#B85450` |
+| Load balancer | Service layer | Load balancer or ADC | `LB 1`, `Virtual LB 1`, `GSLB 1` | Rectangular device card | Pink `#E6D0DE` / `#996185` |
+| AP | Wireless access | Access point | `AP 1` | Compact rectangular device card | Turquoise `#D5E8D4` / `#67AB9F` |
+| AC | Wireless control | Access controller | `AC 1`, `Virtual AC 1` | Rectangular device card | Turquoise `#D5E8D4` / `#67AB9F` |
+| Host, server, or endpoint | Attached workload | Endpoint | Hostname or workload role | Rounded endpoint card | Gray `#F5F5F5` / `#666666` |
+| Network or provider domain | Abstract external domain | WAN, Internet, or provider network | Provider or service name | Cloud or bounded domain | Gray `#F5F5F5` / `#666666` |
+
+This Mermaid preview makes the taxonomy and palette visible in Markdown. It is
+not the canonical source format for maintained figures.
+
+```mermaid
+flowchart LR
+    device_class["Device class"]:::category
+    switch["Switch"]:::category
+    fabric["Fabric"]:::category
+    non_fabric["Non-fabric"]:::category
+    services["Services"]:::category
+    wireless["Wireless"]:::category
+
+    device_class --> switch
+    switch --> fabric
+    fabric --> fabric_spine["Spine"]:::blueRole
+    fabric --> fabric_leaf["Leaf<br/>Server · Service · Border · DCI"]:::greenRole
+    switch --> non_fabric
+    non_fabric --> campus_core["Core"]:::blueRole
+    non_fabric --> campus_aggregation["Aggregation / Distribution<br/>External Border / DCI Switch"]:::purpleRole
+    non_fabric --> campus_access["Access"]:::greenRole
+
+    device_class --> router["Router<br/>WAN Edge · External Border / DCI"]:::orangeRole
+    device_class --> dwdm["DWDM<br/>Transponder · Muxponder · ROADM"]:::yellowRole
+    device_class --> services
+    services --> firewall["Firewall"]:::redRole
+    services --> load_balancer["Load Balancer / ADC"]:::pinkRole
+    device_class --> wireless
+    wireless --> ap["AP"]:::turquoiseRole
+    wireless --> ac["AC"]:::turquoiseRole
+    device_class --> endpoint["Host / Server / Endpoint"]:::grayRole
+
+    classDef category fill:#FFFFFF,stroke:#666666,color:#1F2937,stroke-width:1px;
+    classDef blueRole fill:#DAE8FC,stroke:#6C8EBF,color:#1F2937,stroke-width:2px;
+    classDef greenRole fill:#D5E8D4,stroke:#82B366,color:#1F2937,stroke-width:2px;
+    classDef purpleRole fill:#E1D5E7,stroke:#9673A6,color:#1F2937,stroke-width:2px;
+    classDef orangeRole fill:#FFE6CC,stroke:#D79B00,color:#1F2937,stroke-width:2px;
+    classDef yellowRole fill:#FFF2CC,stroke:#D6B656,color:#1F2937,stroke-width:2px;
+    classDef redRole fill:#F8CECC,stroke:#B85450,color:#1F2937,stroke-width:2px;
+    classDef pinkRole fill:#E6D0DE,stroke:#996185,color:#1F2937,stroke-width:2px;
+    classDef turquoiseRole fill:#D5E8D4,stroke:#67AB9F,color:#1F2937,stroke-width:2px;
+    classDef grayRole fill:#F5F5F5,stroke:#666666,color:#1F2937,stroke-width:2px;
+```
+
+Classification notes:
+
+- Color reinforces labels and may be overridden only with a legend. Preserve
+  readable text and borders in light and dark themes.
+- Blue represents the upper tier (spine/core), purple the intermediate tier
+  (aggregation/distribution), and green the attachment tier (leaf/access).
+- A leaf qualifier identifies function: `Server`, `Service`, `Border`, or `DCI`.
+  A controller-managed DCI leaf stays green.
+- Outside the fabric, classify a border or DCI gateway by device: purple for an
+  aggregation switch, orange for a router. Never label either as a `DCI Leaf`.
+- DWDM is yellow optical transport. Keep it separate from the connected packet
+  switch or router.
+- Firewalls, load balancers, APs, and ACs retain their classes regardless of
+  attachment or physical/virtual deployment.
+- A cloud represents an abstract domain, not a router. Put vendor/platform
+  identity in text; vendor icons may decorate but never replace the role label.
+
+## Link and traffic semantics
+
+| Style | Meaning |
+|---|---|
+| Solid, no arrowhead | Physical link; bidirectional unless labeled otherwise |
+| Dashed with arrowhead | Traffic path and direction; two paths when forward and return differ |
+| Dotted | Logical adjacency, tunnel, control-plane session, or controller relationship |
+| Original style plus red and a break/cross | Failed, blocked, or rejected connection/path |
+
+Reserve dashed lines for traffic. Express standby, optional, preferred, inferred,
+or out-of-scope status with text or a legend. Use arrows only when direction
+matters; double-ended arrows mean bidirectional traffic.
+
+Place interface names at their physical-link endpoints, shared speed/media/bundle
+properties near the solid-line center, and VRF/tenant/application/policy labels
+on the dashed path.
+
+## Rules by document type
+
+| Document | Figure requirements |
+|---|---|
+| POC record | Actual tested topology; relevant names, interfaces, addresses, VLANs, exercised links, and failure paths. Never publish an inferred or unlabeled POC figure. |
+| Scenario | Abstract reference architecture with functional roles and boundaries; omit customer-specific details. |
+| Technique | Atomic schematic teaching one structure or mechanism; use generic roles unless the implementation is inherently vendor-specific. |
+
+## File placement, naming, and references
+
+- Preserve the editable canonical source beside its consuming document unless
+  the implementation adapter requires another layout.
+- Name it `<topic>-figN.<native-source-extension>` in lowercase.
+- Give it a numbered caption and publish previews/exports according to the
+  adapter's policy.
+
+## Authoring and validation lifecycle
+
+1. State purpose, viewpoint, and abstraction level.
+2. Read the active implementation adapter and edit its canonical source.
+3. Inspect topology and labels; run format and figure-specific validation.
+4. Verify adjacencies, redundancy, failure domains, traffic direction, and text
+   correspondence.
+5. Publish the reference/caption and revalidate after every topology change.
+
+Mechanical checks cannot prove architectural correctness; the author remains
+responsible for the figure's meaning.
