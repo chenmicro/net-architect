@@ -164,6 +164,37 @@ on the dashed path.
 - Give it a numbered caption and publish previews/exports according to the
   adapter's policy.
 
+### Markdown figure-reference contract
+
+Reference each maintained figure from its consuming Markdown document with one
+standalone link to the editable canonical source:
+
+```markdown
+[Figure 1 — Two-spine, four-leaf Clos fabric](spine-leaf-clos-fig1.drawio)
+```
+
+The reference is both the source link and the publication marker. Apply these
+rules so local reading and automated publication remain deterministic:
+
+- Put exactly one figure reference on a line, with a blank line before and after
+  it. Do not place the reference inside prose, a list, a table, or another link.
+- Treat fenced code blocks and inline code as examples, never as figure
+  references. Publication tooling must leave their contents unchanged.
+- Write the link text as `Figure N — <short caption>`, using the figure number
+  assigned by the consuming document.
+- Use a relative path to the editable canonical source. Never reference a
+  generated preview or export from source Markdown.
+- One reference identifies one published figure. Prefer a single diagram page
+  for that source; when a multi-page source is necessary, the implementation
+  adapter must define how its pages are rendered and labeled.
+- Keep explanatory prose outside the reference line. The short caption states
+  the figure's purpose; surrounding text carries design interpretation.
+
+An implementation adapter may replace this marker in a generated publication
+tree with a rendered image and a separate editable-source link. It must not
+rewrite the canonical Markdown document or commit generated presentation assets
+beside it.
+
 ## Authoring and validation lifecycle
 
 1. State purpose, viewpoint, and abstraction level.

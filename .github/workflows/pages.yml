@@ -1,0 +1,107 @@
+name: Publish documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "skills/**"
+      - "docs/**"
+      - "SKILL.md"
+      - "README.md"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - "tools/build_pages.py"
+      - "tools/test_build_pages.py"
+      - "tools/drawio_parse.py"
+      - "tools/drawio_validate.py"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "docs/**"
+      - "SKILL.md"
+      - "README.md"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+      - "tools/build_pages.py"
+      - "tools/test_build_pages.py"
+      - "tools/drawio_parse.py"
+      - "tools/drawio_validate.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install documentation dependencies
+        run: python -m pip install --requirement requirements-docs.txt
+
+      - name: Test publication assembly
+        run: python -m unittest tools/test_build_pages.py
+
+      - name: Validate draw.io sources
+        run: find skills docs -type f -name '*.drawio' -exec python tools/drawio_validate.py '{}' \;
+
+      - name: Export draw.io sources to SVG
+        uses: rlespinasse/drawio-export-action@ff6ef40f4483301661619822f3aa1f74e3779faf # v2.x
+        with:
+          path: .
+          format: svg
+          output: _figures
+          remove-page-suffix: true
+          embed-diagram: false
+          embed-svg-images: true
+          embed-svg-fonts: true
+          svg-theme: light
+          action-mode: all
+
+      - name: Assemble Markdown sources
+        run: python tools/build_pages.py --repository-url "https://github.com/${GITHUB_REPOSITORY}"
+
+      - name: Build static documentation
+        run: mkdocs build --clean
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: .pages-site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

@@ -190,6 +190,24 @@ Exports are local viewing or delivery artifacts only. Do not add `.drawio.svg`
 files to git or reference them from repository Markdown; link to the canonical
 `.drawio` source instead.
 
+### 4.1 CI publication exports
+
+The repository's [Pages workflow](../.github/workflows/pages.yml) is the automated
+presentation-export path. It validates every diagram under `skills/` and `docs/`,
+then runs `rlespinasse/drawio-export-action` recursively in full-export mode to
+produce ordinary SVG files beside their sources in ignored `_figures/` directories
+[14]. The action is pinned to a full commit SHA; its pinned Dockerfile currently
+uses `rlespinasse/drawio-export:v4.56.0`. Last confirmed August 23, 2026 — verify
+the action's `action.yml`, `Dockerfile`, and current `v2.x` commit before changing
+the workflow pin.
+
+`tools/build_pages.py` copies the complete `skills/` and `docs/` trees into an
+ignored staging directory, makes `SKILL.md` the generated site index, replaces
+draw.io figure links with SVG previews plus editable-source links, and creates
+directory indexes automatically. MkDocs converts that staging tree to static HTML;
+GitHub Pages receives it as a workflow artifact. Neither the SVGs, staging tree,
+HTML site, nor a publication branch is tracked on `main`.
+
 ---
 
 ## 5. Keeping the submodule updated
@@ -219,3 +237,5 @@ new SHA in this file's header.
 [11] draw.io docs, "Supported URL parameters" — no parameter triggers a file export — https://www.drawio.com/doc/faq/supported-url-parameters
 [12] jgraph/drawio source: `src/main/webapp/js/diagramly/EditorUi.js` `EditorUi.prototype.exportSvg` (~line 7858; embeds XML via `svgRoot.setAttribute('content', …)` at ~line 7967) and `src/main/webapp/js/grapheditor/Graph.js` `Graph.prototype.getSvg` (~line 21712) — https://github.com/jgraph/drawio/blob/d3140c3105c7fe8fb47259f6283e7ef566c647c6/src/main/webapp/js/diagramly/EditorUi.js
 [13] jgraph/mxgraph source: `javascript/src/js/view/mxGraphView.js` — `mxGraphView.prototype.getFixedTerminalPoint` (stored `geo.getTerminalPoint()` read only when `terminal == null`), `getFloatingTerminalPoint` / `getPerimeterPoint` (perimeter projection for connected edges), `updateEdgeState` (edge kept when source/target states exist); and `javascript/src/js/view/mxGraph.js` — `mxGraph.prototype.getConnectionConstraint` (reads `exitX/exitY` / `entryX/entryY` into an `mxConnectionConstraint`) — https://github.com/jgraph/mxgraph/blob/master/javascript/src/js/view/mxGraphView.js
+
+[14] R. Lespinasse, "Drawio Export Action," `rlespinasse/drawio-export-action`, `v2.x`. [Online]. Available: https://github.com/rlespinasse/drawio-export-action. Verify `action.yml` for supported inputs and `Dockerfile` for the underlying `drawio-export` image version; last confirmed at commit `ff6ef40f4483301661619822f3aa1f74e3779faf`, August 23, 2026.

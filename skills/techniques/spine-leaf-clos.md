@@ -6,7 +6,7 @@ complete bipartite structure gives any leaf-to-leaf path one spine transit and
 makes capacity growth a matter of adding spine paths within the available leaf
 and spine radix.
 
-[Figure 1 — Two-spine, four-leaf Clos fabric (editable draw.io source)](spine-leaf-clos-fig1.drawio)
+[Figure 1 — Two-spine, four-leaf Clos fabric](spine-leaf-clos-fig1.drawio)
 
 The figure is an atomic schematic rather than a deployment bill of materials.
 Its eight links represent complete K(2,4) leaf-to-spine coverage.

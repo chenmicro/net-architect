@@ -1,0 +1,25 @@
+site_name: Net Architect
+site_description: Network architecture scenarios, techniques, POC records, and vendor guidance
+
+docs_dir: .pages-build/docs
+site_dir: .pages-site
+
+theme:
+  name: readthedocs
+
+plugins:
+  - search
+
+markdown_extensions:
+  - fenced_code
+  - tables
+  - toc:
+      permalink: true
+
+# Deliberately omit `nav`. MkDocs discovers every Markdown file copied from
+# skills/ and docs/, including files added in future subdirectories.
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
