@@ -64,7 +64,7 @@ on the ingress leaf has aged out, traffic is consumed by unknown-unicast floodin
 hitting the multicast/BUM queue on every leaf-to-spine uplink, replicated to every
 VTEP in the VNI.
 
-COOP + gleaning (see [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree))
+COOP + gleaning (see [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree))
 is a Cisco ACI proprietary mechanism layered on top of the standards-based VXLAN
 data plane. It has no equivalent in RFC 7432/8365.
 
@@ -85,13 +85,13 @@ flooded and reaches the silent host. In practice, many operators run a periodic
 ARP scan (nmap, arping) from a host in each subnet to keep EVPN Type 2 routes
 populated.
 
-See [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
+See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
 for the ACI-specific mechanism that fills this gap.
 
 ## Cross-vendor / variants
 
 - **ACI (Cisco)**: Proprietary COOP + gleaning — the only fabric that proactively
-  probes for silent hosts without pre-configuration. See [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree).
+  probes for silent hosts without pre-configuration. See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree).
 - **Juniper Junos** (23.4R1+): **Static MAC-IP binding with ARP/ND probing** [2].
   You manually configure `static-mac-ip` entries per silent host on the attaching
   PE. The PE probes the host with exponential backoff using an all-zero sender IP

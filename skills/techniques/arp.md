@@ -58,7 +58,7 @@ an ARP Request on the fabric's behalf, flooding it to all local BD ports. The
 silent host replies and is learned.
 
 This is one of two fabric-side ARP generation mechanisms — standard EVPN has no
-equivalent. See [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
+equivalent. See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
 
 ### ARP active detection (Huawei smart-discover)
 
@@ -159,10 +159,10 @@ The aging values above sit at three very different levels of standardization:
 
 | Vendor | ARP suppression | Fabric-side ARP generation | Notes |
 |---|---|---|---|
-| **Cisco ACI** | Yes (COOP-based proxy) | Yes (gleaning) | Proprietary. ARP Flooding BD option controls whether ARP Requests from hosts are flooded or unicast-routed. See [cisco/aci.md](../../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree). |
+| **Cisco ACI** | Yes (COOP-based proxy) | Yes (gleaning) | Proprietary. ARP Flooding BD option controls whether ARP Requests from hosts are flooded or unicast-routed. See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree). |
 | **Cisco NX-OS EVPN** | Yes (`suppress-arp` under VNI) | No | Standards-based. Disabled by default. |
-| **Arista EOS** | Yes (enabled by default on SVIs) | No (router-level ARP only) | Standards-based. VARP MAC for anycast gateway consistency. See [evpn.md](../evpn.md) [3]. |
-| **Juniper Junos** | Yes (enabled by default on VLANs) | Partial (23.4R1+ `static-mac-ip` probing) | `arp-nd-probe-disable` to suppress probing. See [evpn.md](../evpn.md) [2]. |
+| **Arista EOS** | Yes (enabled by default on SVIs) | No (router-level ARP only) | Standards-based. VARP MAC for anycast gateway consistency. See [evpn.md](evpn.md) [3]. |
+| **Juniper Junos** | Yes (enabled by default on VLANs) | Partial (23.4R1+ `static-mac-ip` probing) | `arp-nd-probe-disable` to suppress probing. See [evpn.md](evpn.md) [2]. |
 | **Huawei CloudEngine** | Yes (ARP broadcast suppression) | Yes (`arp smart-discover enable`, proactive) | ARP Miss reactive by default, smart-discover for periodic probing. See §ARP active detection. V300R024C00 [5]. |
 
 **NDP (IPv6 Neighbor Discovery Protocol)** is the IPv6 equivalent of ARP (RFC
