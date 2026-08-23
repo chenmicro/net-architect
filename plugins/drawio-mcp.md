@@ -5,6 +5,12 @@ the draw.io format, using the pinned `drawio-mcp` submodule in this directory.
 No MCP server and no draw.io Desktop required — the submodule is the static
 reference library; the net-architect agent does the authoring.
 
+This file is the draw.io implementation adapter for the plugin-agnostic content
+contract in [`docs/network-topology-figures.md`](../docs/network-topology-figures.md). Device
+taxonomy, viewpoints, labels, and semantic color choices belong in that shared
+contract. File format, XML mechanics, commands, validation, exports, and
+repository handling for draw.io belong here.
+
 > Convention: one `<plugin-name>.md` per plugin lives directly in `plugins/`
 > (this file documents the `plugins/drawio-mcp` submodule). Future plugins get
 > their own `<plugin-name>.md`; do not add another `README.md` here.
@@ -26,6 +32,8 @@ This file is an index — the authoritative content lives in the submodule and i
 | `#create=` browser URL generation | `plugins/claude-code/skills/drawio/SKILL.md` — "Browser URL output" [5] |
 | Vendor/industry icon styles | `shape-search/search-index.json` (10,446 shapes) [6] |
 | Validation schema | `shared/mxfile.xsd` [7] |
+| Network-figure content conventions | [`../docs/network-topology-figures.md`](../docs/network-topology-figures.md) |
+| Parse and topology validation commands | [`../tools/drawio_parse.py`](../tools/drawio_parse.py), [`../tools/drawio_validate.py`](../tools/drawio_validate.py) |
 
 ## 1. Reading a topology diagram
 
@@ -76,17 +84,58 @@ for round-tripping) [9]. VSDX import is available only in the web editor
 (app.diagrams.net), so imported files also carry `host="app.diagrams.net"` [10].
 The key is not part of the documented XML format; ignore it when reading.
 
+**Where a line actually attaches is decided at load time, not by stored XML
+`mxPoint`s.** For an edge with `source`/`target` cell references (a *connected*
+edge), draw.io recomputes both endpoints from the terminal cells' perimeters:
+`mxGraph.getConnectionConstraint` reads the edge's `exitX/exitY` (source) and
+`entryX/entryY` (target) style keys into an `mxConnectionConstraint`, then
+`mxGraphView.getFixedTerminalPoint` / `getFloatingTerminalPoint` project onto
+the cell perimeter [13]. Stored `<mxPoint as="sourcePoint">` /
+`<mxPoint as="targetPoint">` inside the edge geometry are consulted **only when
+the corresponding terminal cell is missing** (`terminal == null`, a floating
+edge) [13]. Reading consequences: (1) trust `source`/`target` plus the
+`exitX/exitY`/`entryX/entryY` style keys for where a line really connects;
+(2) stale `sourcePoint`/`targetPoint` leftovers from an earlier editing pass
+are inert and can be deleted with zero rendering change — draw.io itself strips
+them on the next save.
+
 ---
 
 ## 2. Editing
 
 Apply the rules in `xml-reference.md` "CRITICAL: XML well-formedness" and
 "Containers and groups" [2]; style changes follow `style-reference.md` §2 [3].
-Validate after every edit:
+For network figures, also apply the labeling, role encoding, link semantics, and
+document-type rules in [`docs/network-topology-figures.md`](../docs/network-topology-figures.md).
+
+Inspect the decoded topology before editing and validate after every edit:
+
+```bash
+python3 tools/drawio_parse.py file.drawio
+python3 tools/drawio_validate.py file.drawio
+```
+
+The validator checks every page for unique cell IDs, required structural cells,
+valid parent and edge-terminal references, required edge geometry, and stale
+terminal points on connected edges. Use its complete-bipartite option when a
+figure asserts a Clos-style full mesh; this turns architectural coverage into a
+repeatable check rather than a visual guess:
+
+```bash
+python3 tools/drawio_validate.py fabric.drawio \
+  --complete-bipartite 2,3 9-12
+```
+
+The two arguments are comma-separated cell-ID sets; numeric ranges are accepted.
+Run the schema directly when diagnosing XSD-specific failures:
 
 ```bash
 xmllint --noout --schema plugins/drawio-mcp/shared/mxfile.xsd file.drawio
 ```
+
+Validation is necessary but not sufficient: a human or agent must still confirm
+that device roles, expected links, redundancy, boundaries, and captions match the
+architecture described by the consuming document.
 
 ---
 
@@ -114,8 +163,9 @@ xmllint --noout --schema plugins/drawio-mcp/shared/mxfile.xsd file.drawio
 **Repo convention**: track the uncompressed `.drawio` file as the canonical
 diagram artifact — it is plain XML, so every edit diffs cleanly in git. Keep
 the diagram body uncompressed (compressed bodies are base64 blobs whose diffs
-are useless). Treat `.drawio.svg` as an on-demand presentation export (§4),
-not a tracked file.
+are useless). Link to the `.drawio` source from Markdown with ordinary link
+syntax. Never track `.drawio.svg`; it is an on-demand local presentation export
+(§4), even when the source figure is referenced by Markdown.
 
 ---
 
@@ -135,6 +185,10 @@ That export runs client-side in the editor (`EditorUi.exportSvg` →
 `Graph.getSvg`) and requires the full editor runtime — it cannot be invoked
 standalone from a script [12]. Hand-approximating it produces wrong edge
 endpoints, since draw.io computes them from the live graph view.
+
+Exports are local viewing or delivery artifacts only. Do not add `.drawio.svg`
+files to git or reference them from repository Markdown; link to the canonical
+`.drawio` source instead.
 
 ---
 
@@ -164,4 +218,4 @@ new SHA in this file's header.
 [10] draw.io manual, "No .vsd file import in the Desktop app" — VSDX import only via the free web application at app.diagrams.net — https://www.drawio.com/docs/manual/import/vsd-import-desktop/
 [11] draw.io docs, "Supported URL parameters" — no parameter triggers a file export — https://www.drawio.com/doc/faq/supported-url-parameters
 [12] jgraph/drawio source: `src/main/webapp/js/diagramly/EditorUi.js` `EditorUi.prototype.exportSvg` (~line 7858; embeds XML via `svgRoot.setAttribute('content', …)` at ~line 7967) and `src/main/webapp/js/grapheditor/Graph.js` `Graph.prototype.getSvg` (~line 21712) — https://github.com/jgraph/drawio/blob/d3140c3105c7fe8fb47259f6283e7ef566c647c6/src/main/webapp/js/diagramly/EditorUi.js
-
+[13] jgraph/mxgraph source: `javascript/src/js/view/mxGraphView.js` — `mxGraphView.prototype.getFixedTerminalPoint` (stored `geo.getTerminalPoint()` read only when `terminal == null`), `getFloatingTerminalPoint` / `getPerimeterPoint` (perimeter projection for connected edges), `updateEdgeState` (edge kept when source/target states exist); and `javascript/src/js/view/mxGraph.js` — `mxGraph.prototype.getConnectionConstraint` (reads `exitX/exitY` / `entryX/entryY` into an `mxConnectionConstraint`) — https://github.com/jgraph/mxgraph/blob/master/javascript/src/js/view/mxGraphView.js

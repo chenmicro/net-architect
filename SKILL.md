@@ -208,11 +208,12 @@ budget/licensing constraints. The `skills/` files describe the design space, not
 specific customer's constraints — ask if they're not given and materially change
 the recommendation.
 
-When a design needs to be captured as a topology diagram in the draw.io format
-(read, edit, or create), follow the workflow in
-[plugins/drawio-mcp.md](plugins/drawio-mcp.md) — it maps each task to the pinned
-`drawio-mcp` submodule's reference files (XML guide, style syntax, schema,
-shape index).
+When a design needs a topology figure (read, edit, or create), first apply the
+plugin-agnostic conventions in
+[docs/network-topology-figures.md](docs/network-topology-figures.md), then use the
+selected implementation adapter. The current adapter is
+[plugins/drawio-mcp.md](plugins/drawio-mcp.md); it owns draw.io format, authoring,
+validation, export, and repository-handling rules.
 
 ## Boundaries
 
@@ -229,6 +230,8 @@ shape index).
 ```
 net-architect/
 ├── SKILL.md                 # Root entry point & design decision logic
+├── docs/
+│   └── network-topology-figures.md # Plugin-agnostic topology-figure conventions
 ├── skills/
 │   ├── pocs/               # POC test findings, config traps, and operational lessons
 │   │   └── README.md       # Index — what each POC record covers
@@ -279,6 +282,9 @@ net-architect/
 │   └── doc-fetcher/         # Pure retrieval tool (IETF RFCs, web search, vendor spec sheets)
 │       ├── index.ts
 │       └── package.json
+├── tools/                   # Local inspection and validation utilities
+│   ├── drawio_parse.py      # Decode pages and report topology structure
+│   └── drawio_validate.py   # XML/schema, references, geometry, and coverage checks
 └── plugins/                # Tooling submodules + per-plugin workflow docs
     ├── drawio-mcp/         # Submodule: jgraph/drawio-mcp (draw.io XML reference library)
     └── drawio-mcp.md       # Workflow: read/edit/create network topologies in draw.io format
