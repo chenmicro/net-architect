@@ -1,6 +1,6 @@
 ---
 name: net-architect
-description: Use this skill for network architecture and design questions — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus networking (wired/wireless, NAC), SD-WAN/SASE, or WAN/MPLS/segment-routing design — and whenever a specific vendor's platform, OS, or product line (Cisco, Arista, Juniper, Huawei) needs to be evaluated or compared, or current information needs to be pulled from the web: an IETF RFC/draft, a vendor's own spec sheet/datasheet, or a general web search to locate one. Triggers on requests to design, review, size, or compare enterprise/service-provider network topologies, or to pick a vendor/platform for one.
+description: Use this skill for network architecture and design questions — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus networking (wired/wireless, NAC), SD-WAN/SASE, or WAN/MPLS/segment-routing design — and whenever a specific vendor's platform, OS, or product line (Cisco, Arista, Juniper, Huawei, Extreme Networks, IBM, Netis, Dynatrace, NETSCOUT) needs to be evaluated or compared, or current information needs to be pulled from the web: an IETF RFC/draft, a vendor's own spec sheet/datasheet, or a general web search to locate one. Triggers on requests to design, review, size, or compare enterprise/service-provider network topologies, or to pick a vendor/platform for one.
 ---
 
 # net-architect
@@ -117,6 +117,9 @@ apply. Each file is a single atomic technique.
 | FHRP | [skills/techniques/fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway as alternative |
 | QoS | [skills/techniques/qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP alignment, DC vs. campus/WAN QoS |
 | Management Plane | [skills/techniques/management-plane.md](skills/techniques/management-plane.md) | Discovery (LLDP/CDP), AAA (RADIUS/TACACS+), SNMP/telemetry, port mirroring, NTP/syslog — cross-vendor interop |
+| Network Performance Monitoring (NPM) | [skills/techniques/npm.md](skills/techniques/npm.md) | Device, flow, packet, active-probe, path, and conventional NPM evidence |
+| Application Performance Monitoring (APM) | [skills/techniques/apm.md](skills/techniques/apm.md) | APM taxonomy, host-agent/instrumentation versus network-derived collection, and solution selection |
+| NPM/APM Correlation | [skills/techniques/npm-apm.md](skills/techniques/npm-apm.md) | Shared identity, clocks, topology, and multi-point cross-layer correlation |
 **Writing back to techniques:**
 - Fetched knowledge goes into the matching technique file, not left in chat context.
 - **One file per technique** — protocol architecture, vendor-specific implementation
@@ -164,6 +167,10 @@ naming and constraints vary.
 | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
 | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
 | Extreme Networks | [skills/vendor-matrix/extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Universal Hardware, Switch Engine / Fabric Engine (VOSS/SPBm), SLX data center, ExtremeCloud IQ, Extreme Fabric |
+| IBM | [skills/vendor-matrix/ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation, and capacity boundaries |
+| Netis | [skills/vendor-matrix/netis.md](skills/vendor-matrix/netis.md) | NPM, packet/service observability, BPC/wire-data APM, and Netis 42 |
+| Dynatrace | [skills/vendor-matrix/dynatrace.md](skills/vendor-matrix/dynatrace.md) | Host-agent and application-instrumented APM baseline, OpenTelemetry paths, RUM correlation |
+| NETSCOUT | [skills/vendor-matrix/netscout.md](skills/vendor-matrix/netscout.md) | nGeniusONE network-derived APM/service-assurance baseline and packet-collection architecture |
 
 **Writing back to vendors:**
 - **Splitting**: when a vendor's coverage spans genuinely distinct, non-interoperable
@@ -263,7 +270,10 @@ net-architect/
 │   │   ├── stp.md
 │   │   ├── fhrp.md
 │   │   ├── qos.md
-│   │   └── management-plane.md
+│   │   ├── management-plane.md
+│   │   ├── npm.md
+│   │   ├── apm.md
+│   │   └── npm-apm.md
 │   └── vendor-matrix/       # Platform specs, ASICs, & capabilities
 │       ├── cisco/           # Hub + per-solution files for distinct products
 │       │   ├── cisco.md     # Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS
@@ -277,7 +287,11 @@ net-architect/
 │       ├── arista.md
 │       ├── extreme-networks.md
 │       ├── juniper.md
-│       └── huawei.md
+│       ├── huawei.md
+│       ├── ibm.md
+│       ├── netis.md
+│       ├── dynatrace.md
+│       └── netscout.md
 ├── mcp/
 │   └── doc-fetcher/         # Pure retrieval tool (IETF RFCs, web search, vendor spec sheets)
 │       ├── index.ts

@@ -2,7 +2,7 @@
 
 A Claude skill package for network **solution design and architecture** work (not
 Day-2 operations): data center fabrics, campus networks, SD-WAN/SASE, and WAN/MPLS —
-plus a vendor matrix (Cisco, Arista, Juniper, Huawei) so recommendations stay grounded
+plus a vendor matrix (Cisco, Arista, Juniper, Huawei, Extreme Networks, IBM, Netis, Dynatrace, and NETSCOUT) so recommendations stay grounded
 in real product lines instead of generic claims, and a pure-retrieval MCP tool
 (Node/TypeScript throughout, matching the web-heavy nature of the retrieval work) for
 the part static knowledge can't cover: general web search, and pulling an actual IETF
@@ -20,11 +20,12 @@ RFC/draft or a current vendor spec sheet into context.
   refresh that also touches the WAN edge): which technique/vendor files to read, in
   what order, and the judgment that only exists at the intersection between them.
 - **[skills/techniques/](skills/techniques/)** — flat, atomic technique library, one
-  file per technique (VXLAN, EVPN, BGP, NAC, SASE, ...) with no domain grouping in
-  between; a technique used by more than one scenario, or by another technique file,
-  is still written exactly once.
+  file per technique (VXLAN, EVPN, BGP, NAC, SASE, NPM, APM, NPM/APM correlation,
+  ...) with no domain grouping in between; a technique used by more than one
+  scenario, or by another technique file, is still written exactly once.
 - **[skills/vendor-matrix/](skills/vendor-matrix/)** — vendor-specific platform, OS,
-  and silicon notes (Cisco, Arista, Juniper, Huawei).
+  and capability notes (Cisco, Arista, Juniper, Huawei, Extreme Networks, IBM, Netis,
+  Dynatrace, and NETSCOUT).
 - **[mcp/doc-fetcher/](mcp/doc-fetcher/)** — pure-retrieval MCP server (Node/
   TypeScript) for IETF RFCs/drafts, general web search, and vendor spec
   sheets/whitepapers.
