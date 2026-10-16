@@ -31,6 +31,10 @@
   (enhanced RoCEv2 tuning, larger forwarding tables). Overall config model and
   operator knowledge transfer from V200 to V300 are straightforward — the same
   VRP skills apply.
+- Delta documentation accompanies the release line: the V300R024C00 set covers
+  commands, traps, MIBs, YANG models, and telemetry [5]. A CLI fact — whether a
+  command exists, and what it defaults to — is therefore only valid for the
+  release it was read from; record that release next to the fact.
 
 Current versions per product line (see [SKILL.md](../../SKILL.md#3-vendors) version-scope rule):
 
@@ -42,37 +46,6 @@ Current versions per product line (see [SKILL.md](../../SKILL.md#3-vendors) vers
 Campus and data center product lines run different OS trains — do not conflate
 them. V600 on campus S-series is not the same CLI or feature set as V300 on
 CloudEngine.
-
-## ARP and silent host handling
-
-Huawei CloudEngine V300 has two complementary mechanisms for learning ARP
-entries from silent hosts (hosts that never initiate traffic or send ARP) [6]:
-
-### Reactive: ARP Miss (default, no config)
-
-When routed traffic arrives at a VBDIF/VLANIF for a destination with no ARP
-entry, the interface generates an ARP Request automatically. Controlled by
-`arp miss disable` / `undo arp miss disable` on the interface — enabled by
-default. This is the leaf-local reactive equivalent of ACI's COOP-triggered
-gleaning, but without spine involvement or a fabric-wide endpoint database.
-
-### Proactive: ARP smart-discover (disabled by default)
-
-`arp smart-discover enable` in **VLANIF interface view** [6]. The device
-sends ARP probe messages to each host on the gateway's network segment at the
-configured interval (default 1s, max 128 probes per interval). Existing ARP
-entries, device IPs, and VRRP VIPs are excluded. Companion command:
-`arp smart-discover interval <interval> count <count>`.
-
-| Feature | Trigger | Default | Notes |
-|---|---|---|---|
-| ARP Miss | Traffic miss (reactive) | Enabled | Works on VBDIF/VLANIF |
-| ARP smart-discover | Periodic timer (proactive) | Disabled | VLANIF only [6]; verify VBDIF availability |
-| `arp direct-route enable` | N/A (publishes learned entries) | Disabled | Converts ARP entries to /32 EVPN host routes |
-
-Huawei's doc warns: do not enable smart-discover if hosts send ARP proactively
-— it may slow ARP learning. Also, on small network segments the probe volume
-can be high, and if a host never responds, probing continues indefinitely [6].
 
 ## CloudEngine vs. NetEngine
 
@@ -157,8 +130,17 @@ EVPN Multi-Site border gateway.
 [4] "CloudEngine 16800 V300R025C10 Log Reference," Huawei Support, updated April 2026. [Online]. Available: https://support.huawei.com/enterprise/en/doc/EDOC1100561851/bbf994b3
 
 [5] "CloudEngine 16800, 9800, 8800, and 6800 V300R024C00 Command, Trap, MIB, YANG, and Telemetry Delta Information," Huawei Support, 2024. [Online]. Available: https://support.huawei.com/enterprise/en/switches/cloudengine-58-68-78-88-98-pid-252837181
+— cited for the existence and scope of per-release delta documentation, not for
+any specific command or default. Not re-verified Oct. 16, 2026: support.huawei.com
+was unreachable from this environment (robots policy/HTTP 403, as with [6]).
+Re-confirm the page and its release scope when the site is reachable.
 
 [6] \"ARP Configuration Commands — CloudEngine 9800, 8800, and 6800
 V300R024C00 Command Reference,\" Huawei, EDOC1100439391. [Online]. Available:
 https://support.huawei.com/enterprise/en/doc/EDOC1100439391/1c40b472/arp-configuration-commands
-— `arp smart-discover enable` in VLANIF interface view. Last confirmed Aug 2026.
+— previously recorded `arp smart-discover enable` in VLANIF interface view,
+Aug. 2026. Recheck Oct. 16, 2026 blocked by robots policy/HTTP 403;
+current-release defaults and VBDIF applicability remain unverified. Retained
+after this file's ARP section was removed; the ARP behavior this source backs
+now lives in
+[techniques/arp.md](../techniques/arp.md#arp-active-detection-huawei-smart-discover).

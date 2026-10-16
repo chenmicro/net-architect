@@ -93,12 +93,15 @@ N9300-FX2/GX2A and Nexus 9408 [1].
   devices don't re-apply it), **D bit** ("Don't Learn" — defined by the spec
   but **not implemented by NX-OS**). Lets the egress VTEP enforce policy
   itself when the ingress VTEP didn't know the destination's SGT (PA bit = 0).
-- **Silent hosts**: endpoints that never originate ARP/GARP stay unlearned —
-  and even a unicast ARP reply to such a host is normally just forwarded as
-  data, not learned. Up to 10.5(3), getting it learned (and thus
-  policy-eligible) requires `suppress-arp` on the L2VNI, which makes the leaf
-  glean the reply, install a local ARP entry, and generate a Type-2 EVPN
-  route.
+- **Silent-host IP learning for GPO**: because GPO policy lookup is IP-based,
+  a bridged host whose MAC/IP binding is never learned cannot be policed at
+  all. The GPO white paper's bridged-flow example therefore depends on
+  `suppress-arp` on the L2VNI so the reply's binding is captured and
+  originated as EVPN Type 2; the suppression and learning mechanics
+  themselves are covered in
+  [arp.md](../../techniques/arp.md#arp-in-fabric-overlay-contexts). This
+  implementation description is scoped through **10.5(3)** [1]; "glean" here
+  means **inspection of a received reply**, not an NX-OS-generated ARP probe.
 
 ## Policy enforcement scenarios
 
@@ -155,4 +158,10 @@ N9300-FX2/GX2A and Nexus 9408 [1].
 
 ## References
 
-[1] "Securing Data Centers with Microsegmentation using VXLAN GPO," Cisco White Paper. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html
+[1] "Securing Data Centers with Microsegmentation using VXLAN GPO," Cisco
+White Paper, updated Aug. 20, 2025. [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/securing-datacenters-with-microsegmentation-and-vxlan-gpo.html
+— "ARP Suppression and Punting of Traffic to the CPU" rechecked Oct. 16,
+2026. Its unicast-reply glean/ARP-suppression requirement is explicitly
+scoped through 10.5(3); this page alone does not validate later-release
+GPO behavior. Other sections were not re-audited in this gleaning review.

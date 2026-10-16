@@ -71,7 +71,7 @@ to step 2.
 | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
 | Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
 | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
-| Silent-host reachability in overlay fabrics | [skills/scenarios/silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, vendor-matrix/cisco/aci.md (COOP gleaning / L2 unknown-unicast) — L2-vs-L3 gateway presence is the master switch; timer discipline applies everywhere |
+| Silent-host reachability in overlay fabrics (L2/bridged) | [skills/scenarios/silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, vendor-matrix/cisco/aci.md — receive-only services only (a TCP listener self-resolves); a Linux UDP syslog server never transmits while unknown unicast is dropped, not flooded; solution turns on gateway ARP aging set below the 300 s MAC aging |
 | Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [skills/scenarios/cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | Variant A: vendor-matrix/cisco/aci.md §ACI Border Gateway + vendor-matrix/huawei.md §DCI. Variant B: vendor-matrix/cisco/nxos-vxlan.md §Multi-Site + vendor-matrix/huawei.md. Both: evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 > **Don't pre-create scenario files.** Add a scenario only after a real
@@ -112,7 +112,7 @@ apply. Each file is a single atomic technique.
 | Segment Routing | [skills/techniques/segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
 | BGP | [skills/techniques/bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene — shared by any technique above that rides on BGP |
 | IGP — OSPF & IS-IS | [skills/techniques/ospf-isis.md](skills/techniques/ospf-isis.md) | OSPF vs. IS-IS selection, area/level design, timer tuning, cross-vendor alignment |
-| ARP | [skills/techniques/arp.md](skills/techniques/arp.md) | RFC 826 basics, ARP flooding vs. suppression in EVPN/VXLAN fabrics, ARP gleaning (ACI), ARP/MAC timer mismatch, cross-vendor behavior |
+| ARP | [skills/techniques/arp.md](skills/techniques/arp.md) | RFC 826 basics, ARP flooding vs. suppression in EVPN/VXLAN fabrics, ARP gleaning (ACI), ARP/MAC timer mismatch, Linux neighbor-cache retention and its UDP-vs-TCP transport effect, cross-vendor behavior |
 | STP | [skills/techniques/stp.md](skills/techniques/stp.md) | PVST+ vs. MSTP vs. RSTP, root bridge placement, cross-vendor STP interop |
 | FHRP | [skills/techniques/fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway as alternative |
 | QoS | [skills/techniques/qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP alignment, DC vs. campus/WAN QoS |

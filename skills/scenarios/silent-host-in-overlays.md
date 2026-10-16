@@ -2,102 +2,213 @@
 
 ## Background
 
-A DC operations team migrates their infrastructure from a legacy L2 access
-network (STP-based, flat VLANs) to an EVPN-VXLAN spine-leaf fabric.
-Post-migration, the centralized syslog collector — a UDP listener on port 514
-that ingests streams from every device in the environment — goes dark. It
-never sends a single packet. This is not a host that *happens* to be quiet;
-it has no reason to respond to anything. Remote log sources work briefly
-while the collector's MAC survives in the leaf's forwarding table from the
-migration window, then fail hard when the MAC aging timer expires and the
-leaf drops the frames as unknown unicast. ARP broadcasts from neighbors on
-the subnet elicit nothing. It is invisible to the control plane by nature,
-not by accident.
+One subnet inside an EVPN-VXLAN fabric carries a **Linux UDP syslog server** and
+the Linux devices that log to it, all in the same subnet. The server takes UDP
+continuously and sends nothing back — UDP has no acknowledgement — so it is a
+receive-only service except for the occasional TCP session an administrator opens
+to inspect logs. Three facts shape the design:
 
-Before the solution, read the fundamentals:
-[arp.md](../techniques/arp.md) (ARP suppression, gleaning, smart-discover,
-timer mismatch), [evpn.md](../techniques/evpn.md) (RFC 7432's reactive model,
-Type 2 learning, no fabric-side probe), and
-[vxlan.md](../techniques/vxlan.md) (BUM path, flood-vs-drop behavior).
+- **Unknown unicast is dropped, not flooded.** Preventing flood is the point, so
+  a frame addressed to a MAC the fabric has not learned is discarded rather than
+  spread across the subnet.
+- **Both ends run Linux.** A Linux ARP entry goes STALE rather than being
+  deleted, and the sender keeps using the cached MAC — see
+  [arp.md](../techniques/arp.md#linux-arp-cache-retention) and its
+  transport-layer treatment of UDP versus TCP.
+- **Nothing is misconfigured.** A receive-only service simply never produces the
+  frame that every reactive learning scheme depends on.
+
+The question this scenario answers: **how do you hold the server's MAC in the
+fabric's forwarding table when nothing the server sends refreshes it, and unknown
+unicast may not be flooded to carry a frame addressed to a MAC that has aged out?**
+
+**Scope: L2/bridged reachability** — forwarding for a host whose MAC is unknown
+to the fabric, or has aged out of it.
 
 ## The challenge
 
-EVPN (RFC 7432) learns endpoints reactively from data-plane traffic. There is
-no fabric-initiated discovery mechanism — no hello protocol, no periodic
-probe, no route type that means "I haven't heard from this host yet." A host
-that never emits a frame, ARP reply, or ND solicitation is permanently
-invisible to the control plane. The design question is not "which protocol
-learns silent hosts" (none do, on their own) but **"which mechanism, at which
-layer, is allowed to ask."** The layer choice — L2 unknown-unicast flooding
-vs. L3 gateway-driven probe — is the master switch for the entire solution
-space.
+**Requirements.** Syslog delivery must stay continuous, without enabling unknown
+unicast flooding, and without changing the server: a Linux receiver has no reason
+to emit keepalives, and the occasional admin TCP session is too rare and too
+irregular to be the mechanism.
+
+**Nothing teaches the fabric the server's MAC.** EVPN learns endpoints reactively
+from data-plane traffic (RFC 7432 Type 2 [3]), so a host that never transmits
+cannot be learned, advertised, or re-learned. Whatever forwarding entry the
+server has exists only because it once sent something — a boot-time gratuitous
+ARP, an admin session, or a reply to an ARP request. Test first whether the
+service really is receive-only: a TCP listener self-resolves, because RFC 9293
+§3.4 and Figure 5 have each side of a connection send its initial sequence number
+and acknowledge the peer's, so its own SYN,ACK teaches the fabric [12]. Here the
+service is UDP virtually all of the time.
+
+**A dropped unknown unicast is a silent loss.** The senders' ARP caches still
+name the server's MAC, so their datagrams leave addressed to it, and the fabric's
+remaining decision is what to do with a MAC it does not know. Where that answer is
+"drop", the syslog stream stops with no error surfacing anywhere: UDP has no
+retransmission, and a fire-and-forget sender never inspects its send path. RFC
+9161 §3.6 is the standard's baseline for the opposite choice — an unresolved
+request floods — which is precisely what this design forbids [6].
+
+### ARP / MAC timer mismatch
+
+The two aging timers run on different clocks and, by default, on opposite sides of
+the problem; the classic analysis is [1], and Cisco documents the failure in a
+campus VLAN network with asymmetric routing and HSRP, without any overlay [11].
+IEEE 802.1Q ages a dynamic MAC entry from its creation *or last update*, with a
+recommended default of **300 s** [4]. ARP cache timeouts are far longer and are
+not standardized — 20 minutes to 4 hours across the platforms tabulated in
+[arp.md](../techniques/arp.md#arp-and-mac-timer-reference). The failure sequence
+is:
+
+1. A sender (host or router) retains a usable destination IP-to-MAC binding.
+2. A switch on the forwarding path ages out that destination MAC because it has
+   not observed frames with that source MAC on the relevant VLAN.
+3. The sender keeps sending frames to the cached MAC. They are unknown unicast:
+   flooded to eligible VLAN ports in an ordinary switched network [4], [11], and
+   **dropped in this one**.
+
+In a conventional network the symptom is excess flooding rather than lost
+reachability [11]; under this scenario's drop policy the same mismatch becomes a
+delivery failure. A timer difference alone does not prove an outage — return
+traffic, ARP refresh, and endpoint-maintenance procedures may keep or restore the
+forwarding entry [6], [9], [11] — so check actual aging and refresh behavior
+before aligning timers. On the Linux side the entry goes STALE, the kernel
+transmits on the cached MAC through a 5 s DELAY, then probes that MAC with
+**unicast** ARP before falling back to broadcast probes; each unicast probe is
+itself addressed to the server's MAC, so the drop policy discards it
+[arp.md](../techniques/arp.md#linux-arp-cache-retention).
 
 ## The solution
 
-ARP is the one protocol every IP host is obligated to answer (RFC 826), which
-is why every fabric-side probe uses ARP. There is no other universal trigger:
-ICMP requires a configured IP stack, LLDP is optional, and UDP/TCP ports are
-application-specific. ARP sits at the lowest common denominator — if a host
-has an IP address, RFC 826 says it must reply to an ARP request for that
-address.
+**Option 1 — make the gateway's own ARP aging the refresh clock.** The subnet's
+distributed L3 gateway (Huawei VBDIF; SVI or IRB elsewhere) holds a **dynamic**
+ARP entry for the syslog server, and Huawei's ARP aging mechanism probes such an
+entry when its aging time expires: the device sends an ARP aging probe, a reply
+updates the entry, and the absence of a reply deletes it [13]. That probe-and-reply
+cycle is precisely the refresh this scenario lacks:
 
-But this also defines the solution's upper bound. A host that is ARP-deaf — a
-UDP syslog collector that binds a port and never sends, a device with a
-hard-coded neighbor table, a powered-off server — defeats every probe. No
-protocol-level mechanism works for these; the only option is a static
-ARP/MAC entry pinned on the attaching leaf. The rest of the solution space
-falls into two tiers: hosts that will answer ARP but never initiate, and hosts
-whose senders still ARP for them.
+1. The gateway's aging time for the server's entry expires.
+2. The gateway sends an ARP aging probe for the server's address.
+3. Linux answers it — the target of an ARP request replies with a unicast ARP
+   Reply [13] — which a receive-only UDP service cannot avoid.
+4. That reply is an ingress frame **from** the server's MAC at its attaching leaf,
+   so it creates or refreshes the dynamic FDB entry. IEEE 802.1Q ages an entry
+   from its creation *or last update*, recommended default 300 s [4]. The leaf
+   also keeps the EVPN Type 2 binding alive, so remote leaves carry the MAC rather
+   than flood toward an unknown one.
+5. The server's MAC therefore never becomes unknown unicast: the drop policy is
+   never exercised, and no flooding is added.
 
-### ACI (Cisco)
+The design rule is a **timing relationship**: set the gateway interface's ARP
+aging time comfortably **below** the MAC aging time — for example 150 s against
+the 300 s default — so the probe and its reply land inside the forwarding entry's
+lifetime. Two details make the margin real rather than cosmetic:
 
-ACI uses COOP gleaning: when a spine receives a packet destined for an
-unknown endpoint, it sends a glean packet via the VRF's GIPo multicast group
-(239.255.255.240) to the leaf that owns the BD's subnet. That leaf's SVI
-issues an ARP request. If the host answers, the endpoint is learned and
-advertised as a Type 2 route. Gleaning requires unicast routing and a subnet
-configured on the BD — without an L3 gateway, there is no SVI to ARP from.
-See [aci.md](../vendor-matrix/cisco/aci.md) for COOP/gleaning pipeline,
-GIPo/FTAG mechanics, and hardware-proxy behavior.
+- **The aging probes are unicast by default.** Huawei's mechanism unicasts the
+  probes and broadcasts only the last one [13]. A unicast probe is itself
+  addressed to the server's MAC, so it needs the FDB entry to still exist;
+  probing that begins only after the entry has expired is dropped as unknown
+  unicast, and the entry is deleted instead of refreshed.
+- **The mismatch is the default, not an edge case.** Most platforms hold ARP far
+  longer than MAC aging (4 h on Cisco IOS XE and Arista, 25 min on NX-OS, 20 min
+  on Junos, against a 300 s MAC default — see the timer table in
+  [arp.md](../techniques/arp.md#arp-and-mac-timer-reference)), so the forwarding
+  entry always expires first.
 
-### Huawei CloudFabric
+RFC 9135 §7.3 describes age-out ARP probing for a previously learned silent host,
+so this is standard-adjacent rather than a vendor trick [5], and Cisco's campus
+mitigation — bringing the two aging times closer so ARP traffic refreshes MAC
+learning before the entry expires — is the same idea in a switched network [11].
 
-Huawei provides `arp smart-discover` — a periodic, fabric-side ARP probe
-initiated from the VBDIF (anycast gateway interface). Also available: ARP
-Miss / broadcast-detect on the VBDIF, which triggers an ARP probe when the
-fabric sees a miss. Both are proprietary and require the BD/VNI to have an L3
-gateway. See [huawei.md](../vendor-matrix/huawei.md) for platform details.
+**Prerequisites and traps.**
 
-### Juniper EVPN-VXLAN
+- **The gateway must already hold a dynamic entry for the server.** Aging probes
+  fire for existing entries only; in a same-subnet-only flow nothing routes
+  through the gateway, so the entry may never be created. When the administrator
+  connects over TCP from another subnet, the gateway routes to the server and
+  seeds the entry naturally — but that is a side effect, not a design. Otherwise
+  seed it explicitly, or use Option 2.
+- **A static ARP entry cannot do this job.** A static entry is neither aged nor
+  overwritten [13], so it produces no aging probe and cannot refresh the FDB
+  entry. Static state is for a host that cannot answer at all, not for keeping a
+  learned entry alive.
+- **Verify the platform's aging parameters** — aging time, aging-probe attempts,
+  aging-probe mode — against the current release documentation, and confirm the
+  VBDIF specifics: the Huawei command reference was still inaccessible at the
+  Oct. 16, 2026 check, so command-level applicability stays **unverified** [13].
 
-Juniper uses `static-mac-ip` entries coupled with ARP/ND probing. The
-operator configures a list of silent-host MAC/IP pairs; the leaf periodically
-ARPs (or NDs) those addresses and, on reply, advertises a Type 2 route. The
-probe interval follows a configurable backoff. Without a configured list,
-Juniper has no spontaneous fabric-side discovery. See
-[juniper.md](../vendor-matrix/juniper.md) for platform details.
+**Option 2 — proactive discovery from the gateway.** Where the gateway holds no
+entry for the server, a per-subnet probe cycle creates one through the same
+request → reply → FDB refresh path. Cost scales with subnet size rather than with
+the number of silent hosts; the current command's VBDIF applicability is
+unverified (see the Huawei bullet under cross-cutting judgment).
 
-### Standard EVPN (Arista EOS, Cisco NX-OS native, others)
+**Option 3 — keep ARP/BUM flooding while dropping unknown unicast.** The
+constraint forbids flooding unknown *unicast*, not broadcast. If ARP requests
+still flood within the BD, a Linux sender whose entry fails eventually re-ARPs
+with a broadcast request that reaches the server, and the reply re-teaches the
+fabric. Treat this as the recovery path of last resort, not the design: it is the
+lossy path the timer mismatch produces, and it holds only while broadcast
+flooding is permitted.
 
-No fabric-initiated probe. The portable workaround is a periodic ARP scan
-(nmap, arping) run from a host in each subnet — the scan triggers ARP replies
-that the fabric learns as Type 2 routes. The scan interval must be sized
-against the MAC aging timer. Timer discipline (MAC aging > ARP aging) is the
-cheapest mitigation and applies everywhere. See
-[arista.md](../vendor-matrix/arista.md) and
-[nxos-vxlan.md](../vendor-matrix/cisco/nxos-vxlan.md) for platform defaults
-on unknown-unicast handling.
+**Fallback — pin the binding.** An explicitly provisioned IP-to-MAC binding on the
+attaching leaf, for a host that will not answer ARP at all. It supplies neither
+the attachment nor EVPN reachability by itself, and it breaks if the server's NIC
+changes (see the ARP-deaf bullet below).
 
-### ARP-deaf fallback (all vendors)
+## Composition
 
-For hosts that will not answer ARP under any circumstances, static ARP/MAC
-entries on the attaching leaf are the only universal option. This applies
-regardless of vendor or fabric type, including ACI.
+Read in this order:
+
+1. **[techniques/arp.md](../techniques/arp.md)** — the bridged trigger cases
+   and the ACI gleaning requirements (§ARP in fabric / overlay contexts);
+   learned-binding refresh and aging (§Endpoint aging and refresh in overlays,
+   §ARP and MAC timer reference); legacy VLAN active discovery (§Active
+   discovery in legacy VLAN networks); then §Cross-vendor / variants and
+   §Design considerations.
+2. **[techniques/evpn.md](../techniques/evpn.md)** — §Silent host handling
+   (RFC 9161 proxy tables and proxy-miss flooding) and §Cross-vendor / variants.
+3. **[techniques/vxlan.md](../techniques/vxlan.md)** — BUM path and
+   flood-vs-drop behavior.
+4. **Vendor files** — [cisco/aci.md](../vendor-matrix/cisco/aci.md) (§Silent
+   host detection: COOP, GIPo/FTAG, hardware proxy),
+   [cisco/nxos-vxlan.md](../vendor-matrix/cisco/nxos-vxlan.md) and
+   [arista.md](../vendor-matrix/arista.md) (unknown-unicast defaults),
+   [cisco/nxos-gpo.md](../vendor-matrix/cisco/nxos-gpo.md) (policy enforcement
+   needs a learned IP binding).
+
+## Cross-cutting judgment
+
+- **ACI (Cisco)**: the bridged recovery path turns on one BD setting — a
+  received host ARP with ARP Flooding **disabled** can still trigger gleaning
+  on a target-IP COOP miss — while that path requires BD unicast routing with
+  a deployed subnet. Unknown-MAC data frames are a separate Flood/Hardware-Proxy
+  decision, and gleaning discovers into COOP rather than as intra-pod EVPN
+  [2], [7], [10].
+- **Huawei CloudFabric**: do not conflate ordinary gateway ARP resolution,
+  periodic `arp smart-discover`, and tunnel-failure `arp broadcast-detect`.
+  The command surface and its verification caveat live in
+  [arp.md](../techniques/arp.md#arp-active-detection-huawei-smart-discover);
+  the cited reference was inaccessible on the Oct. 16, 2026 recheck, so
+  smart-discover's VBDIF availability and current-release defaults are
+  **unverified** — do not prescribe a VBDIF command from a VLANIF example.
+- **Juniper EVPN-VXLAN**: `static-mac-ip` is a configured per-entry probe list,
+  not fabric-wide discovery, and is no evidence that Juniper IRB gateways lack
+  ordinary dynamic discovery [8].
+- **Standard EVPN (Arista EOS, NX-OS native, others)**: verify the actual
+  bridge-only path and platform configuration before adding periodic external
+  scans; NX-OS also documents optional MAC-delete-triggered ARP refresh [9].
+- **ARP-deaf fallback (all vendors)**: for a live host that cannot answer ARP,
+  an explicitly provisioned IP-to-MAC binding and a usable MAC forwarding path
+  may be needed — but a static ARP entry supplies neither the attachment nor an
+  EVPN route, and static state cannot restore a powered-off host; the
+  response-gated Juniper feature is not a universal fallback [8].
 
 ## References
 
 [1] "Silent Hosts in EVPN Fabrics," ipSpace.net, Ivan Pepelnjak, May 2023 —
-full citation and timer analysis in [arp.md](../techniques/arp.md) [3].
+full citation in [arp.md](../techniques/arp.md) [3]; timer analysis above.
 
 [2] "ACI Fabric Endpoint Learning White Paper," Cisco — full citation and
 COOP/gleaning mechanics in [arp.md](../techniques/arp.md) [2] and
@@ -109,3 +220,64 @@ citation and route-type analysis in [evpn.md](../techniques/evpn.md) [1].
 [4] "IEEE Standard for Local and Metropolitan Area Networks — Bridges and
 Bridged Networks," IEEE Std 802.1Q — aging/refresh rules cited in
 [arp.md](../techniques/arp.md) [6].
+
+[5] A. Sajassi et al., "Integrated Routing and Bridging in Ethernet VPN
+(EVPN)," IETF RFC 9135, October 2021, §5.3 and §7.3. [Online]. Available:
+https://www.rfc-editor.org/rfc/rfc9135.html — full procedure notes in
+[evpn.md](../techniques/evpn.md) [6]. Verified Oct. 16, 2026.
+
+[6] J. Rabadan et al., "Operational Aspects of Proxy ARP/ND in Ethernet
+Virtual Private Networks," IETF RFC 9161, January 2022, §3.5–3.6. [Online].
+Available: https://www.rfc-editor.org/rfc/rfc9161.html — optional refresh
+probes without a subnet IP, and proxy-miss flood handling. Verified Oct. 16, 2026.
+
+[7] "Troubleshoot ACI Intra-Fabric Forwarding — MultiPod Forwarding," Cisco,
+Doc ID 218013. [Online]. Available:
+https://www.cisco.com/c/en/us/support/docs/cloud-systems-management/application-policy-infrastructure-controller-apic/218013-troubleshoot-aci-intra-fabric-forwarding.html
+— verify "Proxied requests where the EP is not in COOP" and "Other possible
+causes." Rechecked Oct. 16, 2026.
+
+[8] "Static Configuration of MAC-IP Bindings," Juniper Networks, Junos OS
+EVPN documentation. [Online]. Available:
+https://www.juniper.net/documentation/us/en/software/junos/evpn/topics/concept/static-mac-ip.html
+— verify response-gated learning/advertisement, sender IP 0, and probe-disable
+behavior; check Feature Explorer for platform/release support. Rechecked
+Oct. 16, 2026.
+
+[9] "IPv4 Addresses," Cisco Nexus 9000 Series NX-OS Unicast Routing
+Configuration Guide, Release 10.6(x). [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/unicast-routing-configuration/cisco-nexus-9000-series-nx-os-unicast-routing-configuration-guide/m-n9k-configuring-ipv4-93x.html
+— verify "Configuring periodic ARP refresh on MAC delete for SVIs" and
+"Guidelines and Limitations for IPv4." Rechecked Oct. 16, 2026.
+
+[10] S. Garg, "Understand ARP Flooding and ARP Gleaning in ACI," Cisco TAC,
+Doc ID 222179, July 23, 2024. [Online]. Available:
+https://www.cisco.com/c/en/us/support/docs/technical-details/222179-understand-arp-flooding-and-arp-gleaning.html
+— verify the separate unknown-MAC, host-ARP, and routed-IP workflows and the
+requirements in "Understanding ARP Gleaning." Rechecked Oct. 16, 2026.
+
+[11] "Unicast Flooding in Switched Campus Networks," Cisco Support,
+Doc ID 23563, updated Feb. 8, 2016. [Online]. Available:
+https://www.cisco.com/c/en/us/support/docs/switches/catalyst-6000-series-switches/23563-143.html
+— verify "Problem Definition" and "Cause 1: Asymmetric Routing," especially
+the campus VLAN/HSRP example and ARP-timeout/MAC-aging mitigation. Rechecked
+Oct. 16, 2026. Used to establish the non-overlay mechanism, not current
+platform timer defaults.
+
+[12] W. Eddy, Ed., "Transmission Control Protocol (TCP)," IETF RFC 9293,
+August 2022, §3.4 and Figure 5. [Online]. Available:
+https://www.rfc-editor.org/rfc/rfc9293.txt — Figure 5 (TCP Connection State
+Diagram) shows the passive opener in LISTEN responding to a received SYN with
+SYN,ACK, and §3.4 requires each side to send its initial sequence number and
+to acknowledge the peer's. Verified via doc-fetcher Oct. 16, 2026.
+
+[13] "ARP," Huawei Support Encyclopedia (Info-Finder). [Online]. Available:
+https://info.support.huawei.com/info-finder/encyclopedia/en/ARP.html
+— verify "ARP Aging Mechanism": dynamic ARP aging parameters are the aging
+time, aging-probe attempts, and aging-probe mode; when the aging time expires
+the device sends an ARP aging probe, a reply updates the entry, and no reply
+deletes it; the probe is unicast by default with only the last probe
+broadcast; static ARP entries can be neither aged nor overwritten. Rechecked
+Oct. 16, 2026. Generic mechanism description — the CloudEngine command
+reference for the concrete VBDIF parameters (EDOC1100439391) was still
+blocked by robots policy/HTTP 403, so command-level specifics are unverified.

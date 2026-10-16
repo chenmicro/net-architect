@@ -8,7 +8,7 @@
   underlay ([spine-leaf-clos.md](spine-leaf-clos.md)) carrying a separate iBGP+
   route-reflector overlay just for the EVPN address family, since the overlay
   doesn't need the same one-AS-per-node scheme the underlay does.
-- Route types that matter in design conversations:
+- Route types that matter in design conversations [1], [6]:
   - **Type 1** (Ethernet Auto-Discovery, "A-D") — advertised per-ES and per-EVI.
     The per-ES route is what a leaf withdraws on link/NVE failure, triggering mass
     withdrawal (fast convergence) at every remote VTEP with one route pull instead
@@ -41,96 +41,67 @@
 
 ## Silent host handling — EVPN vs. ACI COOP-gleaning
 
-EVPN (RFC 7432) defines four route types — A-D, MAC/IP, Inclusive Multicast, and
-Ethernet Segment — and **none of them describe a fabric-initiated endpoint probe
-mechanism** [1]. EVPN advertises endpoints *after* they are learned via data-plane
-traffic; it does not autonomously discover silent hosts.
+RFC 9135 §5.3's **MUST** applies to a specific **symmetric-IRB, inter-subnet**
+case where participating PEs do not all have every subnet locally attached.
+It does not require a bridge-only EVPN service to probe arbitrary unknown
+hosts [6].
 
-When a leaf receives traffic for a destination MAC/IP that has no corresponding
-BGP EVPN Type 2 route, the behavior is purely passive:
+For subnet A on PE1 and subnet B on PE2/PE3:
 
-- **ARP requests**: The ARP is treated as BUM traffic and flooded via ingress
-  replication (or P2MP LSP) to every VTEP in the VNI. The silent host receives it,
-  replies, and EVPN learns the Type 2 route.
-- **Non-ARP unknown unicast** (e.g. TCP SYN to a stale MAC): Flooded as unknown
-  unicast BUM to every VTEP — no fabric-side ARP generation, no gleaning.
-- **No probe generation**: RFC 7432 §7 (BGP EVPN Routes) defines no route type or
-  procedure for a VTEP or route reflector to originate a discovery probe toward an
-  unknown host. The entire control plane is reactive to data-plane learning [1].
+1. A sends a routed packet to B, which is in a different subnet.
+2. PE1 has no local subnet-B IRB attachment. A subnet-B **RT-5 prefix route**
+   carries the packet to PE2 or PE3.
+3. The receiving subnet-B PE performs the glean lookup and sends ARP over
+   subnet B's **L2 overlay**. The selected PE can discover B even if B is
+   attached to the other PE.
+4. B's reply lets its attaching PE learn and advertise the MAC/IP binding;
+   later traffic can use that reachability [6].
 
-This means silent hosts are reachable *only when something else ARPs for them*.
-If all senders have stale ARP caches or use static ARP entries, and the MAC table
-on the ingress leaf has aged out, traffic is consumed by unknown-unicast flooding —
-hitting the multicast/BUM queue on every leaf-to-spine uplink, replicated to every
-VTEP in the VNI.
+RT-5 supplies the destination-subnet path; it does not carry the ARP probe or
+create a universal RT-5 requirement for same-subnet bridging. RFC 9135 §7.3
+separately covers probing a **previously learned** host after a silent move;
+that is not initial discovery of an arbitrary unknown host [6].
 
-COOP + gleaning (see [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree))
-is a Cisco ACI proprietary mechanism layered on top of the standards-based VXLAN
-data plane. It has no equivalent in RFC 7432/8365.
-
-### How this differs from ACI
-
-| | ACI (COOP + gleaning) | Standard EVPN-VXLAN |
-|---|---|---|
-| Endpoint database | COOP (IS-IS, spine-based, fabric-wide) | BGP EVPN Type 2 (standards, per-VTEP advertisement) |
-| Unknown destination decision | COOP miss at spine | No BGP Type 2 route |
-| Probe generation | Spine sends glean pkt to 239.255.255.240 → leaf generates ARP | **None** — fabric floods whatever it received |
-| Discovery model | Active (fabric probes) | Passive (relies on external ARP) |
-
-### Workaround
-
-The standard fix is to ensure ARP entries on sending hosts age out **before** MAC
-entries on VTEPs, so the next packet always triggers a fresh ARP that gets
-flooded and reaches the silent host. In practice, many operators run a periodic
-ARP scan (nmap, arping) from a host in each subnet to keep EVPN Type 2 routes
-populated.
-
-See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree)
-for the ACI-specific mechanism that fills this gap.
+For same-subnet ARP suppression, unknown-MAC forwarding, and the ACI COOP
+workflow, see [arp.md](arp.md#arp-in-fabric-overlay-contexts). Those behaviors
+are covered there rather than repeated here.
 
 ## Cross-vendor / variants
 
-- **ACI (Cisco)**: Proprietary COOP + gleaning — the only fabric that proactively
-  probes for silent hosts without pre-configuration. See [cisco/aci.md](../vendor-matrix/cisco/aci.md#silent-host-detection-arp-gleaning--gipo-tree).
 - **Juniper Junos** (23.4R1+): **Static MAC-IP binding with ARP/ND probing** [2].
   You manually configure `static-mac-ip` entries per silent host on the attaching
   PE. The PE probes the host with exponential backoff using an all-zero sender IP
   (`0.0.0.0`). If the host replies, the binding is learned as static and
-  propagated via EVPN Type 2. Configurable per-VNI/BD; probing can be disabled
+  propagated via EVPN Type 2. Configured per logical attachment in a BD/VLAN;
+  probing can be disabled
   globally with `set protocols l2-learning arp-nd-probe-disable`. This is not
   fabric-wide automatic discovery — it's a configured probe list, and probes
   originate only from the PE where the entry is defined. Targeted at
-  infrastructure hosts (BMS, management interfaces), not general-purpose silent
-  endpoint discovery [2].
-- **Arista EOS**: ARP gleaning in centralized-routing designs [3]. When a spine
-  acts as a centralized L3 gateway and receives a packet for an unknown IP on a
-  VXLAN-attached subnet, it performs standard ARP resolution locally. This is
-  router-level ARP behavior, not a fabric-wide COOP equivalent — it only helps
-  if traffic hits the spine that owns the SVI. No automatic probing of silent
-  hosts attached to leaf switches.
-- **NX-OS VXLAN EVPN (Cisco)**: Standards-based, no COOP, no gleaning. ARP
-  suppression caches known bindings and proxies ARP replies but does not
-  discover silent hosts.
-- **Huawei CloudEngine**: Standards-based EVPN. ARP broadcast suppression (VTEP
-  proxies ARP from EVPN-learned host info) [4]. `arp broadcast-detect enable`
-  on VBDIF interfaces triggers ARP probes when VXLAN tunnels go down — a
-  convergence mechanism for detecting host moves on tunnel failure, not silent
-  host discovery [4]. Static ARP/MAC entries are configurable per BD for manual
-  silent-host provisioning. No automatic fabric-wide gleaning or COOP equivalent
-  found in V200R024C00 documentation [4], [5].
+  configured infrastructure hosts, not a subnet scan.
+- **Arista EOS**: Its public TOI index describes ARP broadcast/NS multicast generated by
+  **post-routing glean traffic** and an EOS 4.32.2F head-end replication
+  optimization. Detailed TOI content requires login, so platform/configuration
+  limits were not independently revalidated [10].
+- **NX-OS VXLAN EVPN (Cisco)**: Check the applicable IRB/SVI discovery and
+  ARP-learning configuration. Cisco's 10.6(x) IPv4 guide documents ordinary
+  glean resolution, enhanced local proxy ARP (`ip local-proxy-arp reachable`)
+  that gleans unknown destinations, and optional periodic ARP refresh following
+  MAC deletion (`ip arp refresh-adj-on-mac-delete retry`, introduced in
+  10.2(4)M and disabled by default). These are distinct features, not an
+  unconditional statement that every VXLAN mode probes every unknown host [7].
+- **Huawei CloudEngine**: Tunnel-failure broadcast detection is a separate
+  convergence feature [4]. See
+  [arp.md](arp.md#arp-active-detection-huawei-smart-discover) for the distinct
+  legacy VLAN active-discovery feature.
 
 ## Design considerations
 
-- For deployments with silent hosts (BMS, sensors, printers, syslog collectors),
-  ACI's gleaning is a meaningful operational advantage — no periodic ARP scanning
-  needed, no unknown-unicast flooding risk.
-- In standard EVPN-VXLAN, tune MAC aging > ARP aging to minimize the silent-host
-  flooding window. On NX-OS, ARP timeout defaults to 1500s (25 min); on EOS/IOS,
-  4 hours — both are far longer than typical MAC aging (300s), which guarantees
-  periodic flooding.
-- The nmap scanning workaround works but adds operational complexity and
-  generates synthetic traffic at scale — size the scanning interval against your
-  MAC aging timer.
+- For the RFC 9135 §5.3 workflow, confirm symmetric IRB, subnet-B RT-5
+  reachability, and an L2 overlay path on a PE that can perform the destination
+  subnet's glean lookup [6].
+- Platform-specific gleaning, suppression, and refresh features have their own
+  mode and release prerequisites; verify those before treating optional device
+  behavior as a general EVPN guarantee [7], [10].
 
 ## Relationship to other techniques
 
@@ -146,24 +117,18 @@ for the ACI-specific mechanism that fills this gap.
 [1] A. Sajassi et al., "BGP MPLS-Based Ethernet VPN," IETF RFC 7432, February 2015.
 [Online]. Available: https://www.rfc-editor.org/rfc/rfc7432.txt — the normative EVPN
 specification. §7 defines four route types (A-D, MAC/IP, Inclusive Multicast, Ethernet
-Segment); none define a fabric-side probe/gleaning procedure. EVPN advertises endpoints
-already learned via data-plane; discovery is delegated to BUM flooding of the sender's
-traffic.
+Segment). This route-type list does not establish the absence of gateway probing;
+see the later EVPN IRB specification [6].
 
-[2] "Static configuration of MAC-IP bindings with EVPN-VXLAN," Juniper Networks,
-Junos OS Release Notes 23.4R1. [Online]. Available: https://www.juniper.net/
-documentation/us/en/software/junos/release-notes/23.4/junos-release-notes-23.4r1/
-topics/new-features/feature-descriptions/evpn-6.html — static-mac-ip with ARP/ND
-probing (exponential backoff, all-zero sender IP), arp-nd-probe-disable,
-drop-unknown-macip. Last confirmed Aug 2026.
-
-[3] "EVPN VXLAN Single-Gateway Centralized Routing," Arista EOS User Manual, 4.36.1F.
-[Online]. Available: https://www.arista.com/en/um-eos/eos-evpn-vxlan-single-gateway-
-centralized-routing — centralized routing architecture: VARP MAC, EVPN type-2 route
-generation with `redistribute router-mac next-hop vtep primary`, ARP behavior for
-virtual IPs. The ARP resolution for unknown hosts on VXLAN-attached subnets follows
-standard IP router behavior (ARP gleaning at the gateway SVI) rather than a
-fabric-wide discovery mechanism. Last confirmed Aug 2026.
+[2] "Static Configuration of MAC-IP Bindings," Juniper Networks, Junos OS
+EVPN documentation. [Online]. Available:
+https://www.juniper.net/documentation/us/en/software/junos/evpn/topics/concept/static-mac-ip.html
+— verify response-gated learning/RT-2 advertisement, all-zero sender IP,
+logical attachment scope, and arp-nd-probe-disable; confirm platform/release
+support in Feature Explorer. Rechecked Oct. 16, 2026. Historical introduction:
+"EVPN," Junos OS Release Notes 23.4R1,
+https://www.juniper.net/documentation/us/en/software/junos/release-notes/23.4/junos-release-notes-23.4r1/topics/new-features/feature-descriptions/evpn-6.html
+— introduction applies to the listed platforms, not all Junos products.
 
 [4] "ARP Broadcast Suppression on a VXLAN," Huawei CloudEngine 9800/8800/6800/5800
 V200R024C00 Configuration Guide (also covers V300R025C10 per Update Date 2024-11-13).
@@ -171,9 +136,29 @@ V200R024C00 Configuration Guide (also covers V300R025C10 per Update Date 2024-11
 c7801b0d/arp-broadcast-suppression-on-a-vxlan — standard ARP suppression, arp
 broadcast-detect for tunnel-down convergence probing. Last confirmed Aug 2026.
 
-[5] "EVPN Basic Principles," Huawei CloudEngine 9800/8800/6800/5800 V200R024C00
-Configuration Guide (also covers V300R025C10 per Update Date 2024-11-13).
-[Online]. Available: https://support.huawei.com/enterprise/en/doc/EDOC1100420161/
-a7119a61/evpn-basic-principles — MAC/IP route advertisement, host information
-synchronization via BGP EVPN. No COOP/gleaning mechanism described.
-Last confirmed Aug 2026.
+[6] A. Sajassi, S. Salam, S. Thoria, J. Drake, and J. Rabadan, "Integrated
+Routing and Bridging in Ethernet VPN (EVPN)," IETF RFC 9135, October 2021,
+§5.3 and §7.3. [Online]. Available: https://www.rfc-editor.org/rfc/rfc9135.html
+— §5.3 specifies local subnet RT-5 advertisement and traffic-triggered gleaning
+for symmetric IRB with non-uniform subnet provisioning; the receiving PE's
+glean lookup triggers ARP flooded over the L2 overlay. §7.3 describes age-out
+ARP probing for a silent host that moved. Verified via doc-fetcher Oct. 16,
+2026. These procedures are standard-defined; support/configuration must still
+be verified for each platform and topology.
+
+[7] "IPv4 Addresses," Cisco Nexus 9000 Series NX-OS Unicast Routing
+Configuration Guide, Release 10.6(x), updated Apr. 27, 2026. [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/106x/configuration/unicast-routing-configuration/cisco-nexus-9000-series-nx-os-unicast-routing-configuration-guide/m-n9k-configuring-ipv4-93x.html
+— verify "Glean throttles," "Configuring local proxy ARP on SVIs," "Periodic
+ARP refresh on MAC delete," and its configuration/limitations sections.
+Refresh requires a subsequent MAC-delete trigger and existing adjacency
+context; it is not an initial scan of every IP. Rechecked Oct. 16, 2026.
+
+[10] K. Mandal, "VXLAN Optimized Headend Replication of Glean ARPs," Arista
+TOI public ARP index, EOS 4.32.2F, posted Oct. 15, 2024, updated Dec. 12,
+2025. [Online]. Available: https://www.arista.com/en/support/toi/tag/arp
+— verify the named public entry, which describes post-routing glean-generated
+ARP/NS replication. Detail URL:
+https://www.arista.com/en/support/toi/eos-4-32-2f/20417-vxlan-optimized-headend-replication-of-glean-arps
+requires login; detailed configuration/platform limitations unverified.
+Public entry rechecked Oct. 16, 2026.

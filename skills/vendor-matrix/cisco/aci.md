@@ -28,113 +28,73 @@ convergence ("Nexus One") update relevant to new builds.
 
 ## Silent host detection (ARP gleaning / GIPo tree)
 
-ACI's endpoint-learning model is data-plane-driven: a leaf learns a MAC/IP only when
-it sees traffic *from* that host. A device that silently listens and never initiates
-traffic (a BMS that only responds to requests, a printer, a legacy sensor) never gets
-learned — until the fabric actively probes for it [9].
+The same-subnet and routed-IP trigger cases, the generated ARP's SVI source,
+the learning/COOP-report result, and host responses are shared behavior,
+described in
+[ARP gleaning (ACI COOP)](../../techniques/arp.md#arp-gleaning-aci-coop).
+This section keeps only the ACI-specific fabric implementation details.
 
-### How the fabric detects a silent host
+ACI's intra-pod endpoint directory is **COOP**, not BGP EVPN Type 2: on an
+eligible COOP IP miss the spine proxy originates the glean request, carrying
+the original packet under custom EtherType **0xfff2** to the reserved glean
+group defined below [10]. In Multi-Pod, BGP EVPN between spines separately
+distributes remote-pod endpoint reachability [9], [10].
 
-When a leaf receives traffic destined for an unknown MAC or IP, it forwards it to a
-spine for proxy lookup. The spine consults **COOP** (Council of Oracle Protocol),
-the fabric-wide endpoint database. If the destination is not in COOP — i.e., the
-fabric has never seen this host anywhere — the spine triggers **ARP gleaning** (also
-called silent-host detection) [9].
+Doc 222179's overview describes routed-IP gleaning, while its "Use Case 2"
+different-BD example says gleaning is not relevant. The available text does
+not resolve this wording difference; do not infer an unstated known-destination
+assumption [9], [15], [16].
 
-The mechanism in detail, for the most common case (L3 routed traffic to an unknown IP
-within an ACI subnet):
+### Glean multicast, BD GIPo, and FTAG trees
 
-1. **Ingress leaf**: Packet arrives for IP X. The leaf has no local or remote
-   endpoint for X. It routes the packet to the spine proxy address (pervasive
-   static route in the VRF — `*via <spine-proxy-IP>` in `show ip route`).
-2. **Spine COOP lookup**: The spine checks its COOP database for IP X. COOP is the
-   IS-IS-synchronised, distributed endpoint repository that every spine maintains
-   a full copy of. If the IP is *not* present, the spine cannot forward the packet
-   — so it triggers gleaning.
-3. **Glean packet to the VRF-GIPo tree**: The spine encapsulates a special glean
-   message into VXLAN using the VRF's VNID and sends it to the reserved multicast
-   group **239.255.255.240** — the VRF-level GIPo address [10]. This multicast
-   group reaches every leaf that has an interface in that VRF (the **VRF-GIPo
-   tree**) [11].
-4. **Leaf ARP generation**: The leaf that owns the BD SVI (pervasive gateway) IP
-   for the target subnet receives the glean packet and generates an ARP request
-   sourced from the SVI IP, targeting the unknown host IP. This ARP is flooded
-   (or unicast-routed, depending on BD config) to every front-panel port in the
-   bridge domain.
-5. **Silent host responds**: The silent BMS receives the ARP, replies, and the
-   fabric learns the endpoint. Subsequent traffic uses the learned EP entry.
+Keep three constructs separate:
 
-### The two multicast trees (GIPo) and FTAG trees
+- **BD GIPo** is the multicast destination allocated to a bridge domain for
+  traffic flooded within that BD [10].
+- **239.255.255.240** is the reserved destination for fabric glean messages;
+  it is not the BD's ordinary GIPo or an individually allocated per-VRF group
+  [10]. VRF multicast used for tenant routed multicast is a separate feature
+  described in [11].
+- **FTAG trees** provide the fabric forwarding paths for multi-destination
+  traffic, carried inside the fabric as encapsulated IP multicast [12], [13].
+  Cisco's 6.2(x) Fundamentals guide says the ingress leaf assigns an
+  FTAG, encoded as part of the destination multicast address. The APIC selects
+  tree roots; multiple roots can be on one spine. Do not assume one FTAG per
+  spine, a unique tree per VRF, or equate this with EVPN unicast head-end
+  replication [14].
 
-ANC maintains two overlay multicast trees per tenant construct [11]:
+The current Fundamentals guide describes multicast/FTAG forwarding but does
+not specify a distinct per-VRF glean tree or the complete glean packet format.
+Use the packet-level troubleshooting source [10] for the reserved group and
+subnet-based ARP-generation test, rather than deriving those details from the
+TRM chapter [11].
 
-| Tree | Scope | Multicast group | Used for |
-|---|---|---|---|
-| **BD-GIPo** | Per Bridge Domain | Auto-assigned from the BD's multicast pool | L2 BUM (broadcast, unknown-unicast, multicast); L3 ARP flooding within a BD |
-| **VRF-GIPo** | Per VRF | Auto-assigned; glean uses 239.255.255.240 | L3 glean packets; TRM (Tenant Routed Multicast) replication |
+### Discovery versus host tracking
 
-Both trees are **head-end replication** trees: the source (spine or first-hop leaf)
-replicates to the FTAG tree's leaf membership list — there is no PIM in the underlay
-for overlay BUM (PIM is only used at the border for TRM or across the IPN in
-Multi-Pod) [11].
-
-#### FTAG (Forwarding Tag) trees — the lower-level forwarding construct
-
-FTAG trees are ACI's load-balancing multicast forwarding mechanism that the GIPo
-trees ride on. GIPo addresses answer *where* (which BD/VRF scope); FTAG trees answer
-*how* (which spine replicates, which path it takes) [12]:
-
-- ACI creates multiple FTAG trees per fabric — roughly **one root tree per spine**
-  (a fabric with 4 spines has 4 FTAG root trees, numbered e.g. 0–3 and 5–8) [13].
-  IS-IS builds and maintains these trees.
-- **Why multiple trees**: without load-balancing, every BUM packet would pin to a
-  single spine, wasting the other spines' bandwidth. With FTAG, different traffic
-  flows hash to different spines.
-- **Ingress leaf hashing**: when a leaf needs to forward BUM traffic (ARP flood, L2
-  unknown unicast flood, or a glean packet), it hashes the inner packet headers
-  (src/dst IP, src/dst MAC, etc.) and assigns an **FTAG number**. The FTAG
-  number determines *which spine* is the root of that tree — and therefore which
-  spine performs replication to all other leaves [12].
-- **Spine replication**: the spine that is the root for that FTAG receives the
-  VXLAN-encapsulated frame, replicates it to every leaf that is a member of that
-  FTAG tree (which is all leaves that participate in the same BD/VRF), and sends
-  each copy. The other spines are not involved for this particular BUM flow [13].
-- **FTAG Transit trees** handle the reverse direction (leaf-to-spine), ensuring the
-  ingress leaf's packet reaches the correct root spine without loops.
-
-The hierarchy: **FTAG tree** (IS-IS-built forwarding construct, per-spine load
-balancing) → **GIPo address** (multicast destination IP in the VXLAN outer header,
-carrying the BD/VRF VNID for scope isolation). Every BUM or glean packet carries
-both: an FTAG number that picks the spine, and a GIPo address that identifies the
-BD or VRF [12], [13].
-
-In the gleaning pipeline from the [section above](#how-the-fabric-detects-a-silent-host),
-step 3 — "the spine sends a glean packet to 239.255.255.240" — means the spine
-replicates the glean VXLAN packet using the VRF's FTAG root tree, addressed to the
-VRF-GIPo multicast group. Every leaf in that VRF's FTAG tree receives it [10].
-
-### L2 silent-host considerations
-
-For *switched* (L2, intra-subnet) traffic to a silent host, the BD's **L2 Unknown
-Unicast** setting matters [9]:
-- **Flood**: The frame is flooded over the BD-GIPo tree to all leaves in the BD.
-  The silent host receives the frame and responds — learned.
-- **Hardware-Proxy** (default): The leaf sends the frame to the spine for COOP
-  lookup. If the MAC is unknown, the spine drops it (no gleaning for L2 MACs).
-  Enable ARP flooding in the BD to trigger gleaning instead, since the ARP request
-  then hits the L3 gleaning path even for intra-subnet traffic [9].
+COOP-miss gleaning discovers an **unknown** IP in response to traffic. Host
+Tracking is a separate retention function for **already learned local IP
+endpoints**: the endpoint-learning white paper describes ARP checks at 75% of
+the configured retention interval when no source traffic has been observed.
+It does not perform this IP tracking for MAC-only local endpoints or remote
+endpoint caches [9]. Do not describe traffic-triggered gleaning as a periodic
+subnet scan.
 
 ### Requirements
 
-All gleaning mechanisms require [9], [10]:
-- **Unicast Routing** enabled on the Bridge Domain
-- A **subnet** configured under the BD (so the fabric knows which leaf's SVI is
-  authoritative for the target IP range)
+The BD unicast-routing and deployed-subnet requirements for each trigger case
+are listed in [arp.md](../../techniques/arp.md#arp-gleaning-aci-coop). For
+Multi-Pod, the IPN must carry the reserved glean multicast group defined in
+the GIPo/FTAG subsection above [10].
 
 ### Version note
 
-Silent host detection / ARP gleaning has been present since ACI 1.0(1e) and is
-unchanged through 6.2(2) — it's a design constant, not version-gated [9].
+The endpoint-learning white paper was rechecked on **2026-10-16**. Although its
+page update is June 9, 2026, it explicitly scopes feature coverage to **5.2(1g)**.
+It therefore does not establish an introduction in 1.0(1e), or unchanged behavior
+through 6.2(2). Those historical/current-release assertions remain unverified [9].
+The 6.2(x) Fundamentals guide confirms current distributed-gateway and FTAG
+architecture; it is not proof that every historical glean detail is unchanged
+[14].
 
 ## Multi-Site: stretched workload with per-site NAT
 
@@ -309,9 +269,9 @@ via tag. Cross-fabric microsegmentation becomes possible [8].
 
 [8] T. Kishida, "Deployment of VXLAN EVPN Gateways with Cisco ACI for the Interconnection of Heterogeneous Data Center Fabrics," Cisco Live EMEA 2025, BRKDCN-2634.
 
-[9] "ACI Fabric Endpoint Learning White Paper," Cisco, Release 5.2(1g). [Online]. Available: https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-739989.html — covers silent host detection, ARP gleaning, L2 Unknown Unicast options, and endpoint aging. Section "Silent hosts considerations." Last confirmed Aug 2026.
+[9] "Cisco ACI Fabric Endpoint Learning White Paper," Cisco, updated June 9, 2026; stated feature scope through Release 5.2(1g). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/networking/cloud-networking/application-centric-infrastructure/fabric-endpoint-learning-wp.html — verify sections "Silent hosts considerations," "Local endpoints and remote endpoints," and "Aging of endpoints." Distinguishes routed-IP gleaning, flooded ARP, target-IP lookup with ARP Flooding disabled, and L2 unknown-unicast drop. Rechecked Oct. 16, 2026; page date does not extend stated release scope.
 
-[10] "Troubleshoot ACI Intra-Fabric Forwarding — MultiPod Forwarding," Cisco Support, Doc ID 218013. [Online]. Available: https://www.cisco.com/c/en/us/support/docs/cloud-systems-management/application-policy-infrastructure-controller-apic/218013-troubleshoot-aci-intra-fabric-forwarding.html — COOP database lookup, glean packet to 239.255.255.240 over VRF VNID, pervasive static route. Last confirmed Aug 2026.
+[10] "Troubleshoot ACI Intra-Fabric Forwarding — MultiPod Forwarding," Cisco Support, Doc ID 218013. [Online]. Available: https://www.cisco.com/c/en/us/support/docs/cloud-systems-management/application-policy-infrastructure-controller-apic/218013-troubleshoot-aci-intra-fabric-forwarding.html — verify "Proxied requests where the EP is not in COOP," "Glean ARP verification," and "Other possible causes": custom EtherType 0xfff2, reserved group 239.255.255.240, responding leaves with the destination subnet deployed, and Multi-Pod IPN multicast requirements. Rechecked Oct. 16, 2026.
 
 [11] "IP Multicast," Cisco APIC Layer 3 Networking Configuration Guide, Release 5.0(x).
 [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/5-x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-50x/m_ip_multicast_v2.html
@@ -323,3 +283,28 @@ PIM on bootup. Last confirmed Aug 2026.
 [12] "ACI Fundamentals — Forwarding Within the ACI Fabric," Cisco, Release 3.x and earlier. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/1-x/aci-fundamentals/b_ACI-Fundamentals/b_ACI-Fundamentals_chapter_010010.html — "The ACI fabric uses Forwarding Tag (FTAG) trees to load balance multi-destination traffic. All multi-destination traffic is forwarded in the form of encapsulated IP multicast traffic within the fabric." Last confirmed Aug 2026.
 
 [13] "Configure the L2 Multicast in ACI," Cisco Support, Doc ID 217712. [Online]. Available: https://www.cisco.com/c/en/us/support/docs/software/aci-data-center/217712-configure-the-l2-multicast-in-aci.html — FTAG tree for L2 traffic, spine replication, relationship to IS-IS. Last confirmed Aug 2026.
+
+[14] "Forwarding Within the ACI Fabric," Cisco Application Centric
+Infrastructure Fundamentals, Release 6.2(x), updated Mar. 25, 2026. [Online].
+Available: https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/aci-fundamentals/cisco-aci-fundamentals-62x/fundamentals-62x.html
+— verify "Layer 3 VNIDs Facilitate Transporting Inter-subnet Tenant Traffic"
+and "Multicast Tree Topology": distributed gateway, FTAG assignment in the
+multicast destination address, and configurable roots with multiple tree roots
+possible on one spine. Rechecked Oct. 16, 2026.
+
+[15] S. Garg, "Understand ARP Flooding and ARP Gleaning in ACI," Cisco TAC,
+Doc ID 222179, updated July 23, 2024. [Online]. Available:
+https://www.cisco.com/c/en/us/support/docs/technical-details/222179-understand-arp-flooding-and-arp-gleaning.html
+— verify "Understanding ARP Flooding," use cases 3–5, and "Understanding ARP
+Gleaning," requirements and both use cases. Rechecked Oct. 16, 2026.
+The final example's explanation conflicts with the overview if treated as
+a general rule; its intended endpoint-resolution assumption is unconfirmed.
+Both gleaning workflow diagrams were visually inspected on recheck.
+No specific current software release is stated for these workflows.
+
+[16] "ACI Multi-Pod White Paper," Cisco, updated May 9, 2022, discussion
+around Figures 35–36 in "Inter-Pods VXLAN Data Plane." [Online]. Available:
+https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-737855.html
+— independent definition of ACI ARP gleaning as fabric-generated ARP from
+the BD IP to resolve an unknown endpoint. Rechecked Oct. 16, 2026 for
+terminology; not a blanket validation of current-release implementation details.
