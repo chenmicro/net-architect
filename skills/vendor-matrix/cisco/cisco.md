@@ -59,6 +59,17 @@
   so config syntax and automation tooling don't transfer directly between them —
   plan operational training/tooling per platform, not as one Cisco skillset.
 
+## AgenticOps (AI-driven network operations)
+
+Cisco's agent-first IT operating model — Cloud Control, AI Canvas, the Deep
+Network Model, MCP/A2A integration surfaces, and the governance model around
+autonomous action. It gets its own file because it spans campus, branch, data
+center, service provider, security, and observability rather than belonging to
+one OS or product line: **[agenticops.md](agenticops.md)**. Relevant when a
+design touches AI-driven assurance, agent access to the management plane, or
+where "who can change the network" is being redefined to include non-human
+actors.
+
 ## DC fabric: ACI vs. NX-OS-native EVPN-VXLAN
 
 Two distinct, non-interoperable solutions for the same DC fabric role, each with
