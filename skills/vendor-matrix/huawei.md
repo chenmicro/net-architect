@@ -55,7 +55,11 @@ CloudEngine.
   high-radix 400G/800G) — the default choice for
   [techniques/spine-leaf-clos.md](../techniques/spine-leaf-clos.md),
   [vxlan.md](../techniques/vxlan.md), [evpn.md](../techniques/evpn.md), and
-  [ai-gpu-fabric.md](../techniques/ai-gpu-fabric.md).
+  [ai-gpu-fabric.md](../techniques/ai-gpu-fabric.md). Huawei's VXLAN header
+  extensions — GBP-based microsegmentation and the patented group/application
+  identifiers — are documented in
+  [techniques/vxlan.md](../techniques/vxlan.md) (§Cross-vendor / variants), not
+  duplicated here.
 - **NetEngine (NE series)**: Huawei's routing line — WAN edge, service-provider
   core, MPLS/SR — the default choice for
   [techniques/mpls.md](../techniques/mpls.md) and

@@ -26,6 +26,20 @@ See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the head-to-head
 comparison against NX-OS-native EVPN-VXLAN, including the 2026 Cisco
 convergence ("Nexus One") update relevant to new builds.
 
+## iVXLAN encapsulation
+
+iVXLAN is ACI's proprietary VXLAN variant. Its encapsulation and header field
+inventory — the RFC 7348 baseline, the absence of any IETF specification, and
+the VXLAN-GBP comparison — are documented once in
+[techniques/vxlan.md](../../techniques/vxlan.md) (see **Cross-vendor /
+variants**), with the sources cited there. What stays here is ACI-specific
+behaviour: FTAG/GIPo multicast trees, the per-BD proxy/flood switch, and glean
+processing below.
+
+Two facts worth carrying into capture analysis: the packet is VXLAN on the
+outside, so MTU and ECMP reasoning are unchanged; and the policy tag is ACI's
+own, so a standards-based VTEP will not interpret it.
+
 ## Silent host detection (ARP gleaning / GIPo tree)
 
 The same-subnet and routed-IP trigger cases, the generated ARP's SVI source,

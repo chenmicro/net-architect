@@ -95,7 +95,7 @@ apply. Each file is a single atomic technique.
 | Technique | File | Covers |
 |---|---|---|
 | Spine-Leaf (Clos) Fabric | [skills/techniques/spine-leaf-clos.md](skills/techniques/spine-leaf-clos.md) | Clos topology, oversubscription, ECMP/hashing, BGP underlay rationale |
-| VXLAN | [skills/techniques/vxlan.md](skills/techniques/vxlan.md) | Data-plane encapsulation, VTEPs, VNI |
+| VXLAN (including ACI iVXLAN) | [skills/techniques/vxlan.md](skills/techniques/vxlan.md) | Data-plane encapsulation, VTEPs, VNI, header format (RFC 7348), and the variants — VXLAN-GBP, VXLAN-GPE, ACI iVXLAN |
 | EVPN | [skills/techniques/evpn.md](skills/techniques/evpn.md) | BGP control plane for VXLAN, route types 1-5, anycast gateway, EVPN-MH multi-homing |
 | Multi-Tenancy (DC) | [skills/techniques/multi-tenancy.md](skills/techniques/multi-tenancy.md) | VRF-lite, route-target import/export, VNI numbering |
 | RoCE | [skills/techniques/roce.md](skills/techniques/roce.md) | RDMA over Ethernet, RoCEv2 encapsulation, lossless Ethernet (PFC/ECN/DCQCN), iWARP vs. InfiniBand, packet format, Verbs operations |
