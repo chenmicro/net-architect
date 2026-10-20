@@ -14,6 +14,14 @@
    [bgp.md](../techniques/bgp.md) if BGP peering changes are in scope) — only if
    legacy MPLS is being displaced or is coexisting with the new SD-WAN overlay during
    a migration; skip if this is a greenfield SD-WAN-only build.
+4. The vendor file for each shortlisted platform — read it before comparing, since
+   the same "SD-WAN" label hides materially different models. Cato is currently the
+   only dedicated SD-WAN/SASE vendor file
+   ([vendor-matrix/cato.md](../vendor-matrix/cato.md)): backbone-native, where the
+   SASE-vs-SSE service tier decides the site CPE and the available telemetry before
+   any topology question is asked. The hub files for the other vendors (Cisco,
+   Juniper, Huawei) cover their broader portfolios but do not yet carry SD-WAN
+   depth — say so rather than implying coverage that isn't there.
 
 ## Cross-cutting judgment
 
@@ -22,8 +30,14 @@
   answer "who is this and what can they reach," but they're different systems with
   different trust models. The design needs to state explicitly which one is
   authoritative for which access path — wired/wireless LAN vs. remote/hybrid —
-  rather than leaving both partially overlapping and undocumented about which wins
-  in a conflict.
+  rather than leaving the two partially overlapping and silent about which wins in
+  a conflict.
+- The service tier chosen up front also sets the rollout's physical shape. A
+  backbone-native design that lands on the SSE tier keeps the existing SD-WAN and
+  joins over IPsec, so a later move to vendor appliances is a hardware refresh at
+  every site, not an upgrade — either sequence that refresh into the rollout plan
+  or document the IPsec-only sites as permanent ([sase.md](../techniques/sase.md),
+  [cato.md](../vendor-matrix/cato.md)).
 - If legacy MPLS coexists with SD-WAN during migration, the SLA/app-aware routing
   policy ([sla-policies.md](../techniques/sla-policies.md)) needs to account for
   both transport types being present simultaneously, including circuit diversity
@@ -38,6 +52,9 @@
 - Coexistence-vs-cutover timeline with any existing MPLS.
 - Single-vendor SASE vs. best-of-breed preference, and existing security vendor
   relationships.
+- Whether the current SD-WAN must survive (SSE tier, IPsec join) or can be replaced
+  outright (SASE tier, vendor appliance) — and whether a site-by-site hardware
+  refresh is acceptable, since that is what a later tier change costs.
 - Remote/hybrid user population size and urgency — drives how much ZTNA displaces
   traditional VPN in this phase vs. a later one.
 - Which sites/regions roll out first, and whether the rollout order is driven by

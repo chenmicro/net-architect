@@ -1,6 +1,6 @@
 ---
 name: net-architect
-description: Use this skill for network architecture and design questions — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus networking (wired/wireless, NAC), SD-WAN/SASE, or WAN/MPLS/segment-routing design — and whenever a specific vendor's platform, OS, or product line (Cisco, Arista, Juniper, Huawei, Extreme Networks, IBM, Netis, Dynatrace, NETSCOUT) needs to be evaluated or compared, or current information needs to be pulled from the web: an IETF RFC/draft, a vendor's own spec sheet/datasheet, or a general web search to locate one. Triggers on requests to design, review, size, or compare enterprise/service-provider network topologies, or to pick a vendor/platform for one.
+description: Use this skill for network architecture and design questions — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus networking (wired/wireless, NAC), SD-WAN/SASE, or WAN/MPLS/segment-routing design — and whenever a specific vendor's platform, OS, or product line (Cisco, Arista, Juniper, Huawei, Extreme Networks, Cato, IBM, Netis, Dynatrace, NETSCOUT) needs to be evaluated or compared, or current information needs to be pulled from the web: an IETF RFC/draft, a vendor's own spec sheet/datasheet, or a general web search to locate one. Triggers on requests to design, review, size, or compare enterprise/service-provider network topologies, or to pick a vendor/platform for one.
 ---
 
 # net-architect
@@ -69,7 +69,7 @@ to step 2.
 |---|---|---|
 | AI/GPU training cluster buildout | [skills/scenarios/ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
 | Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
-| Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS) |
+| Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS); vendor-matrix/cato.md (backbone-native — the SASE-vs-SSE tier decides site CPE and telemetry before topology) |
 | Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
 | Silent-host reachability in overlay fabrics (L2/bridged) | [skills/scenarios/silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, vendor-matrix/cisco/aci.md — receive-only services only (a TCP listener self-resolves); a Linux UDP syslog server never transmits while unknown unicast is dropped, not flooded; solution turns on gateway ARP aging set below the 300 s MAC aging |
 | Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [skills/scenarios/cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | Variant A: vendor-matrix/cisco/aci.md §ACI Border Gateway + vendor-matrix/huawei.md §DCI. Variant B: vendor-matrix/cisco/nxos-vxlan.md §Multi-Site + vendor-matrix/huawei.md. Both: evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
@@ -167,6 +167,7 @@ naming and constraints vary.
 | Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
 | Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
 | Extreme Networks | [skills/vendor-matrix/extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Universal Hardware, Switch Engine / Fabric Engine (VOSS/SPBm), SLX data center, ExtremeCloud IQ, Extreme Fabric |
+| Cato Networks | [skills/vendor-matrix/cato.md](skills/vendor-matrix/cato.md) | SASE/SSE tiers, private backbone and PoPs, Socket/vSocket models, site connection capability tiers, link SLA and redundancy models |
 | IBM | [skills/vendor-matrix/ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation, and capacity boundaries |
 | Netis | [skills/vendor-matrix/netis.md](skills/vendor-matrix/netis.md) | NPM, packet/service observability, BPC/wire-data APM, and Netis 42 |
 | Dynatrace | [skills/vendor-matrix/dynatrace.md](skills/vendor-matrix/dynatrace.md) | Host-agent and application-instrumented APM baseline, OpenTelemetry paths, RUM correlation |
@@ -286,6 +287,7 @@ net-architect/
 │       │   ├── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
 │       │   └── agenticops.md # AgenticOps: agent-first IT ops, Cloud Control, AI Canvas, MCP/A2A
 │       ├── arista.md
+│       ├── cato.md          # Cato Networks: SASE/SSE tiers, backbone, Sockets, link SLA
 │       ├── extreme-networks.md
 │       ├── juniper.md
 │       ├── huawei.md
