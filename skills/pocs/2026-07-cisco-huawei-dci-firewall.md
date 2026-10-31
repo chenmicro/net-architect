@@ -1,40 +1,12 @@
 # POC: Cisco firewall service insertion in Huawei CloudFabric
 
-## Metadata
+## Background
 
-| Field | Value |
-|---|---|
-| **Date** | ~2026-07 |
-| **Scope** | Huawei CE M-LAG ↔ Cisco FW BGP peering (service insertion within a single fabric) |
-| **Huawei side** | CloudEngine 8800 M-LAG pair (service leaf), V300R025C10, VRP V800 |
-| **Firewall** | Cisco ASA/FTD (per-VRF BGP peering) |
+- **Date**: ~2026-07
+- **Scope**: Huawei CE M-LAG ↔ Cisco FW BGP peering (service insertion within a single fabric)
+- **Scenario**:
 
----
-
-## 1. Testing Targets
-
-### Objectives
-
-1. Validate BGP route exchange between Huawei CE M-LAG pair and Cisco FW over an M-LAG uplink
-2. Validate EVPN Type-5 → BGP redistribution: tenant host routes from fabric reach the FW
-3. Validate M-LAG HA: BGP session survives single CE member failure via shared anycast IP
-4. Validate return path: FW default route redistributes into EVPN Type-5 and reaches all fabric leaves
-
-### Success criteria
-
-| Criterion | Pass condition |
-|---|---|
-| BGP peering | `Established` on both CE-1 and CE-2 via anycast IP |
-| Route advertisement (C→F) | FW receives tenant host routes (`10.1.1.0/24`) from CE |
-| Route advertisement (F→C) | CE receives `0.0.0.0/0` from FW |
-| EVPN Type-5 propagation | Tenant Leaf installs default route with CE's VTEP as next-hop |
-| Ping across service chain | Tenant server → FW inside interface succeeds |
-| Internet egress | Tenant server → FW → outside (NAT) → Internet → return |
-| HA / M-LAG member failure | Pull CE-1: BGP stays up via CE-2, traffic continues |
-
----
-
-## 2. Testing Environment
+## Test environment
 
 ### Topology
 
@@ -65,86 +37,110 @@
                └──────────────────────┘
 ```
 
-### IP addressing (service leaf → FW link)
+### Device list
+
+| Role | Vendor | Model | Software version |
+|---|---|---|---|
+| Service leaf (M-LAG pair: CE-1, CE-2) | Huawei | CE6885 | V300R025C10, VRP V800 |
+| Firewall (per-VRF BGP peering) | Cisco | ASA/FTD | |
+| Spine | | | |
+| Tenant Leaf (VTEP) | | | |
+
+### Network plan
+
+#### IP addressing (service leaf → FW link)
 
 | Role | IP | Owner |
 |---|---|---|
 | Firewall inside interface | `172.16.100.1/29` | Cisco FW |
-| Shared anycast (BGP peer IP) | `172.16.100.2/29` | Both CE-1 and CE-2 |
-| CE-1 individual M-LAG IP | `172.16.100.3/29` | CE-1 only |
-| CE-2 individual M-LAG IP | `172.16.100.4/29` | CE-2 only |
+| VLANIF primary IP | `172.16.100.2/29` | Both CE-1 and CE-2 (same address) |
+| CE-1 M-LAG IP (BGP source) | `172.16.100.3/29` | CE-1 only |
+| CE-2 M-LAG IP (BGP source) | `172.16.100.4/29` | CE-2 only |
 
-### Tenant mapping
+#### Tenant mapping
 
 | Tenant | VNI | L3VNI | VRF | RT | CE VLAN | FW VLAN | Tenant subnet |
 |---|---|---|---|---|---|---|---|
 | Tenant-A | 10000 | 50000 | Tenant-A | 100:100 | 100 | 100 | 10.1.1.0/24 |
 | Tenant-B | 20000 | 60000 | Tenant-B | 200:200 | 200 | 200 | 10.2.2.0/24 |
 
----
+## Test cases
 
-## 3. Testing Steps
+### TC-01: Underlay reachability
 
-Each step has a pass/fail gate. Do not proceed to the next step until the current one passes.
+**Objective**:
 
-### Step 1: Underlay reachability
+**Prerequisites**:
 
-**Action**:
+**Procedure**:
 ```
 # From CE-1 to FW
 ping -vpn-instance Tenant-A 172.16.100.1
 
-# From FW to shared anycast
-ping vrf Tenant-A 172.16.100.2
+# From FW to both M-LAG IPs
+ping vrf Tenant-A 172.16.100.3
+ping vrf Tenant-A 172.16.100.4
 
 # From Tenant Leaf to CE-1 (underlay)
-ping 172.16.100.3 source loopback0
+ping <CE-1-underlay-IP> source loopback0
 ```
 
-**Expected**: All pings succeed with <1ms latency, no packet loss.
+**Expected result**: All pings succeed with <1ms latency, no packet loss.
 
-**Troubleshooting if fails**:
-- Sub-interface VLAN mismatch (see Issue 3)
+**If it fails**:
 - MTU mismatch (ping with `-s 1472 -f`, then `-s 1500 -f`)
 
-### Step 2: BGP peering
+### TC-02: BGP peering
 
-**Action**:
+**Objective**: Validate BGP route exchange between Huawei CE M-LAG pair and Cisco FW over an M-LAG uplink.
+
+**Prerequisites**: TC-01 passed.
+
+**Procedure**:
 ```
-# On CE-1
+# On CE-1 and CE-2
 display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.1
 
 # On FW
-show bgp vpnv4 unicast vrf Tenant-A summary | include 172.16.100.2
+show bgp vpnv4 unicast vrf Tenant-A summary | include 172.16.100
 ```
 
-**Expected**: State = `Established`. Uptime increasing. No flaps.
+**Expected result**: Two sessions in state `Established`, FW to `172.16.100.3` on CE-1 and FW to `172.16.100.4` on CE-2. Uptime increasing. No flaps.
 
-**Troubleshooting if fails**:
-- M-LAG anycast IP misconfiguration (see Issue 1)
-- FW TCP normalization dropping SYN (see Issue 4)
+**If it fails**:
+- M-LAG IP or BGP source misconfiguration (see ISSUE-01)
+- FW TCP normalization dropping SYN (see ISSUE-03)
 - Wrong AS number or update-source
 
-### Step 3: Route exchange (FW → CE direction)
+### TC-03: Route exchange (CE → FW direction)
 
-**Action**:
+**Objective**: Validate EVPN Type-5 → BGP redistribution: tenant host routes from fabric reach the FW.
+
+**Prerequisites**: TC-02 passed.
+
+**Procedure**:
 ```
-# On FW — verify routes received
-show bgp vpnv4 unicast vrf Tenant-A neighbors 172.16.100.2 routes
+# On FW — verify routes received from each member
+show bgp vpnv4 unicast vrf Tenant-A neighbors 172.16.100.3 routes
+show bgp vpnv4 unicast vrf Tenant-A neighbors 172.16.100.4 routes
 
 # On FW — verify routing table
 show route vrf Tenant-A
 ```
 
-**Expected**: FW sees tenant host routes (`10.1.1.0/24` or `/32` entries) via next-hop `172.16.100.2`.
+**Expected result**: FW sees tenant host routes (`10.1.1.0/24` or `/32` entries) via next-hops `172.16.100.3` and `172.16.100.4`.
 
-**Troubleshooting if fails**:
-- Missing `import-route evpn` on CE (see Issue 2)
+**If it fails**:
+- Missing `import-route evpn` on CE (see ISSUE-02)
 - Route-policy filtering on the CE export side
 
-### Step 4: Route exchange (CE → FW direction)
+### TC-04: Route exchange (FW → CE direction)
 
-**Action**:
+**Objective**: Validate return path: FW default route redistributes into EVPN Type-5 and reaches all fabric leaves.
+
+**Prerequisites**: TC-03 passed.
+
+**Procedure**:
 ```
 # On CE-1
 display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.1 received-routes
@@ -153,46 +149,56 @@ display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.1 received-routes
 display bgp evpn all routing-table | include 0.0.0.0/0
 ```
 
-**Expected**: CE-1 receives `0.0.0.0/0` from FW. Tenant Leaf installs the default route with CE-1's VTEP as next-hop.
+**Expected result**: CE-1 receives `0.0.0.0/0` from FW. Tenant Leaf installs the default route with CE-1's VTEP as next-hop.
 
-**Troubleshooting if fails**:
+**If it fails**:
 - FW not advertising default route in BGP
-- Missing `import-route bgp` under EVPN instance on CE (see Issue 6)
+- Missing `import-route bgp` under EVPN instance on CE (see ISSUE-04)
 
-### Step 5: Ping across service chain
+### TC-05: Ping across service chain
 
-**Action**:
+**Objective**:
+
+**Prerequisites**: TC-04 passed.
+
+**Procedure**:
 ```
 # From a Tenant-A server
 ping 172.16.100.1                          # FW inside interface
 ping <internet-IP>                          # via FW + NAT
 ```
 
-**Expected**: Ping to FW succeeds. Ping to Internet succeeds (NAT translates source).
+**Expected result**: Ping to FW succeeds. Ping to Internet succeeds (NAT translates source): Tenant server → FW → outside (NAT) → Internet → return.
 
-**Troubleshooting if fails**:
+**If it fails**:
 - FW ACL blocking tenant subnet
 - NAT pool not configured
 - Next-hop mismatch in VRF routing table
 
-### Step 6: TCP traffic through firewall
+### TC-06: TCP traffic through firewall
 
-**Action**:
+**Objective**:
+
+**Prerequisites**: TC-05 passed.
+
+**Procedure**:
 ```
 # iperf3 test across the service chain
 iperf3 -c <internet-test-server> -t 30
 ```
 
-**Expected**: Full throughput, no timeouts or retransmits.
+**Expected result**: Full throughput, no timeouts or retransmits.
 
-**Troubleshooting if fails**:
-- MTU fragmentation (see Issue 5)
+**If it fails**:
 - FW TCP inspection parameters
-- MSS clamping needed on both sides
 
-### Step 7: HA / M-LAG member failure
+### TC-07: HA / M-LAG member failure
 
-**Action**:
+**Objective**: Validate M-LAG HA: traffic survives single CE member failure through the BGP session on the other member.
+
+**Prerequisites**: TC-06 passed.
+
+**Procedure**:
 ```
 # Shut down CE-1's uplink to FW (or CE-1 entirely)
 # Observe BGP state on remaining CE-2
@@ -202,71 +208,62 @@ display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.1
 ping <internet-IP> from Tenant-A server
 ```
 
-**Expected**: BGP session stays `Established` via CE-2 (the shared anycast IP moves). Zero or sub-second traffic interruption.
+**Expected result**: The session to CE-1 goes down and the session to CE-2 stays `Established`. Zero or sub-second traffic interruption.
 
----
+## Issues encountered
 
-## 4. Issues Encountered
+### ISSUE-01: BGP over M-LAG — SYN never completes
 
-### Issue 4.1: BGP over M-LAG — SYN never completes
+**Found in**: TC-02
 
-**Symptom**: Huawei CE BGP state stuck in `Connect`. TCP shows SYN sent but no
-SYN-ACK received.
+**Symptom**: Issue on the firewall side. Huawei CE BGP state stuck in `Connect`. TCP
+shows SYN sent but no SYN-ACK received.
 
-**Root cause**: The firewall's BGP neighbor was configured pointing at one of the
-**individual M-LAG member IPs** (`172.16.100.3` or `172.16.100.4`) instead of the
-**shared anycast IP** (`172.16.100.2`) that both M-LAG members own. When the
-firewall's uplink hashed to the other CE, that CE didn't own the individual IP
-→ dropped SYN without reply.
+**Root cause**: The firewall's BGP neighbor used the shared IP (`172.16.100.2`) instead of each member's M-LAG IP.
 
-**Topology**:
+**Fix** (corrected against the CloudEngine V300R026C00 documentation, 2026-10; not
+lab-tested): BGP over M-LAG uses a separate session to each member, on the VLANIF
+interface for the M-LAG, with each member using its own M-LAG IP as the source [4].
+Configure the same primary IP and virtual MAC on both members, a different M-LAG IP on
+each, and routed proxy ARP. Peer the firewall with both M-LAG IPs [4].
+
 ```
-          ┌──────────────┐
-          │  Cisco FW    │
-          │  .1          │
-          │  neighbor: .3│  ← individual CE-1 IP, wrong!
-          └──┬────────┬──┘
-             │        │
-       ┌─────┘        └─────┐
-       ▼                     ▼
-  ┌──────────┐         ┌──────────┐
-  │ CE-1     │         │ CE-2     │
-  │ owns .3  │         │ doesn't  │
-  │ sends SYN│         │ own .3   │
-  │          │         │ → DROP   │
-  └──────────┘         └──────────┘
-```
-
-**Fix**:
-```
-# On both CE-1 and CE-2 — shared anycast loopback
-interface LoopBack100
+# On CE-1 (on CE-2, use 172.16.100.4 as the M-LAG IP and BGP source)
+interface Vlanif100
+ ip binding vpn-instance Tenant-A
  ip address 172.16.100.2 255.255.255.248
+ m-lag ip address 172.16.100.3 255.255.255.248
+ mac-address 0000-5e00-0101
+ arp proxy enable
 
 bgp 65002
- peer 172.16.100.1 as-number 65010
- peer 172.16.100.1 connect-interface LoopBack100
- peer 172.16.100.1 ebgp-max-hop 2
+ ipv4-family vpn-instance Tenant-A
+  peer 172.16.100.1 as-number 65010
+  peer 172.16.100.1 connect-interface Vlanif100 172.16.100.3
 ```
 
 ```
-# On Cisco FW — peer with .2 (shared anycast)
+# On Cisco FW — one neighbor per M-LAG member
 router bgp 65010
- neighbor 172.16.100.2 remote-as 65002
- neighbor 172.16.100.2 description "Huawei-MLAG-anycast"
- neighbor 172.16.100.2 update-source Vlan100
+ neighbor 172.16.100.3 remote-as 65002
+ neighbor 172.16.100.3 description "Huawei-MLAG-CE-1"
+ neighbor 172.16.100.3 update-source Vlan100
+ neighbor 172.16.100.4 remote-as 65002
+ neighbor 172.16.100.4 description "Huawei-MLAG-CE-2"
+ neighbor 172.16.100.4 update-source Vlan100
 ```
 
-**Note**: The anycast IP `.2` must be advertised into the underlay routing
-protocol (OSPF/IS-IS) from both CE-1 and CE-2 so the FW sees it reachable
-via ECMP to both members.
+If BGP imports direct routes, add a routing policy so the M-LAG IPs aren't
+advertised [4]. The CE6885 is on the supported model list for `m-lag ip address` [4].
 
----
+**Verification**: Run `display bgp peer` on both members [4], then repeat TC-02.
 
-### Issue 4.2: BGP established but no routes on FW
+### ISSUE-02: BGP established but no routes on FW
+
+**Found in**: TC-03
 
 **Symptom**: BGP session is `Established`. FW `show bgp vpnv4 vrf Tenant-A
-neighbors 172.16.100.2 routes` returns empty.
+neighbors 172.16.100.3 routes` returns empty.
 
 **Root cause**: The Huawei CE didn't have `import-route evpn` configured under
 `ipv4-family vpn-instance Tenant-A`. EVPN Type-5 routes exist in the VRF's EVPN
@@ -276,40 +273,19 @@ table but are never redistributed into BGP toward the FW.
 ```
 bgp 65002
  ipv4-family vpn-instance Tenant-A
-  peer 172.16.100.2 as-number 65010
+  peer 172.16.100.1 as-number 65010
   import-route evpn
 ```
 
 **Verification**:
 ```
-display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.2 advertised-routes
+display bgp vpnv4 vpn-instance Tenant-A peer 172.16.100.1 advertised-routes
 → shows tenant routes (was empty before fix)
 ```
 
----
+### ISSUE-03: FW TCP normalization drops BGP SYN
 
-### Issue 4.3: Sub-interface VLAN mismatch
-
-**Symptom**: Ping from CE to FW in the same VRF fails. `display ip interface
-brief` shows the sub-interface is up/up.
-
-**Root cause**: Huawei CE sub-interface configured with `vlan-type dot1q 100`
-but the Cisco FW sub-interface expects `dot1q 200`.
-
-**Fix**: Match VLAN IDs on both sides:
-```
-# CE: VLAN 100
-interface 100GE1/0/1.100
- vlan-type dot1q 100
-
-# FW: VLAN 100
-interface GigabitEthernet0/1.100
- vlan 100
-```
-
----
-
-### Issue 4.4: FW TCP normalization drops BGP SYN
+**Found in**: TC-02
 
 **Symptom**: `capture capin` on FW shows SYN arriving from CE, but FW doesn't
 reply. No ACL deny logged.
@@ -318,7 +294,8 @@ reply. No ACL deny logged.
 
 **Fix**:
 ```
-access-list BGP-BYPASS extended permit tcp host 172.16.100.1 host 172.16.100.2 eq bgp
+access-list BGP-BYPASS extended permit tcp host 172.16.100.1 host 172.16.100.3 eq bgp
+access-list BGP-BYPASS extended permit tcp host 172.16.100.1 host 172.16.100.4 eq bgp
 class-map BGP-CLASS
   match access-list BGP-BYPASS
 policy-map GLOBAL-POLICY
@@ -326,29 +303,11 @@ policy-map GLOBAL-POLICY
     no inspect tcp
 ```
 
----
+**Verification**:
 
-### Issue 4.5: MTU fragmentation through the service chain
+### ISSUE-04: Firewall default route not advertised to fabric
 
-**Symptom**: BGP establishes, ping works (small packets). TCP iperf stalls.
-
-**Root cause**: VXLAN adds 50 bytes. Link MTU is 1500. Encapsulated packets
-fragment; FW stateful inspection drops fragments.
-
-**Fix**:
-```
-# Increase link MTU
-interface 100GE1/0/1
- mtu 9216
-
-# TCP MSS clamping on both sides
-interface Vlanif100
- tcp mss 1400
-```
-
----
-
-### Issue 4.6: Firewall default route not advertised to fabric
+**Found in**: TC-04
 
 **Symptom**: FW sends `0.0.0.0/0` to CE. CE receives it. Tenant Leaf doesn't
 install it.
@@ -369,7 +328,7 @@ display bgp evpn all routing-table | include 0.0.0.0/0
 → shows default route with CE's VTEP as next-hop
 ```
 
----
+## Conclusion
 
 ## References
 
@@ -378,3 +337,13 @@ display bgp evpn all routing-table | include 0.0.0.0/0
 [2] "M-LAG Configuration Guide," CloudEngine 8800 V300R025C10, Huawei. [Online]. Available: https://support.huawei.com/enterprise/en/switches/cloudengine-8800-pid-252837183
 
 [3] "ASA/FTD BGP Configuration Guide," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/support/security/asa-5500-series-next-generation-firewalls/products-installation-and-configuration-guides-list.html
+
+[4] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation,"
+Huawei, V300R026C00, Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611778, login required). Verify in:
+Configuration > Configuration Guide > High Availability Configuration > M-LAG
+Configuration > Configuring a Dynamic Routing Protocol for Communication with an M-LAG >
+Configuring BGP or BGP4+ over M-LAG; Configuration > Typical Configuration Examples >
+Multi-Feature Configuration Examples > Example for Configuring Dynamic Routing Protocols
+for Communication with an M-LAG (applies to V300R020C00 or later); References > Command
+Reference > High Availability > M-LAG Configuration Commands > m-lag ip address.
+Confirmed Oct. 31, 2026.

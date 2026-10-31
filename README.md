@@ -42,14 +42,15 @@ then tell the agent where the output is.
 | [skills/scenarios/](skills/scenarios/) | End-to-end requests: which files to read, and the judgment between them |
 | [skills/techniques/](skills/techniques/) | One file per technique, such as VXLAN, EVPN, or BGP |
 | [skills/vendor-matrix/](skills/vendor-matrix/) | Vendor platforms, operating systems, and solutions |
-| [skills/pocs/](skills/pocs/) | What broke in real tests, and how it was fixed |
+| [skills/pocs/](skills/pocs/) | How a pattern is tested, what can go wrong, and how to fix it |
 | [mcp/doc-fetcher/](mcp/doc-fetcher/) | Retrieval tool for RFCs, drafts, web search, and vendor documents |
-| [docs/](docs/) | Authoring, commit, and topology figure rules |
+| [docs/](docs/) | Authoring, POC format, commit, and topology figure rules |
 
 ## How to contribute
 
 - Follow [docs/authoring.md](docs/authoring.md) for citations, file placement, and
-  splitting, and [docs/git-policy.md](docs/git-policy.md) for commits.
+  splitting, [docs/poc-format.md](docs/poc-format.md) for POC records, and
+  [docs/git-policy.md](docs/git-policy.md) for commits.
 - Keep each technique in one file, and keep scenario files thin: link to techniques
   rather than restating them.
 - Prefer concrete, decision-relevant content (thresholds, tradeoffs, when to use what)

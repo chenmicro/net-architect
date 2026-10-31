@@ -1,44 +1,15 @@
 # POC: ACI L2 stretch to external SDN region — shared subnet, separate MSTP domains
 
-> **Status: Proposal — untested.** This record documents a proposed design
-> pattern that has not been validated in a lab. The test steps and issues
-> are predicted, not observed. Update this status after lab execution.
+> Based on product documentation, not lab-tested. The test cases and issues are
+> predicted, not observed.
 
-## Metadata
+## Background
 
-| Field | Value |
-|---|---|
-| **Date** | ~2026-08 |
-| **Scope** | Stretch an IP subnet from a Cisco ACI fabric to an external SDN region while keeping two L2/MSTP failure domains isolated — no L2 flooding, no BPDU exchange, no STP interaction between regions |
-| **ACI side** | Cisco Nexus 9300-EX (or later) leaf switches, ACI release 6.0(1g) |
-| **Internal side** | Non-Cisco L2 switches running MSTP (802.1s) |
-| **External side** | External SDN gateway running MSTP (802.1s) |
+- **Date**: ~2026-08
+- **Scope**: Stretch an IP subnet from a Cisco ACI fabric to an external SDN region while keeping two L2/MSTP failure domains isolated — no L2 flooding, no BPDU exchange, no STP interaction between regions
+- **Scenario**:
 
----
-
-## 1. Testing Targets
-
-### Objectives
-
-1. Validate that a single ACI bridge domain with four EPGs (two tagged, two native/untagged) can stretch an IP subnet across two independent MSTP domains without merging them
-2. Validate that Flood in Encapsulation scopes BUM traffic per-VLAN, preventing cross-domain BPDU leakage
-3. Validate that proxy ARP (enabled automatically by Flood in Encapsulation) allows endpoints in different VLANs to reach each other at L3 via the ACI pervasive SVI
-4. Validate that two separate native-VLAN EPGs are required — a single native-VLAN EPG merges the MSTP domains
-5. Validate that BPDU Guard on access ports (not uplinks) provides loop protection without err-disabling legitimate uplinks
-
-### Success criteria
-
-| Criterion | Pass condition |
-|---|---|
-| L2 isolation | MSTP BPDUs from internal domain do not appear on external-domain ports, and vice versa |
-| IP reachability | Endpoints in VLAN 10 (internal) and VLAN 20 (external) can ping each other via the ACI SVI |
-| MSTP domain independence | Each MSTP region retains its own root bridge; no TCN propagation between domains |
-| Proxy ARP | ACI answers ARP requests for IPs in the other VLAN with its own SVI MAC |
-| BPDU Guard placement | BPDU Guard on access ports blocks accidental loops; BPDU Guard on uplink ports err-disables legitimate links |
-
----
-
-## 2. Testing Environment
+## Test environment
 
 ### Topology
 
@@ -74,7 +45,17 @@ Two independent L2/MSTP domains — internal non-Cisco L2 switches connecting to
      └─────────┘   └─────────────┘
 ```
 
-### Design under test: four EPGs in a single bridge domain
+### Device list
+
+| Role | Vendor | Model | Software version |
+|---|---|---|---|
+| ACI leaf | Cisco | Nexus 9300-EX (or later) | ACI release 6.0(1g) |
+| Internal L2 switches (MSTP 802.1s) | Non-Cisco | | |
+| External SDN gateway (MSTP 802.1s) | | | |
+
+### Network plan
+
+#### Design under test: four EPGs in a single bridge domain
 
 | Component | VLAN | Purpose |
 |---|---|---|
@@ -92,7 +73,7 @@ With **Flood in Encapsulation** enabled on the bridge domain [1, pp. 113–114]:
 - **Requirements**: -EX or later leaf switches, unicast routing enabled, subnet configured on the bridge domain, MAC addresses unique across VLANs
 - **Incompatible with**: microsegmentation, IPv6 (not validated)
 
-### Loop prevention layers
+#### Loop prevention layers
 
 | Layer | Mechanism | Where | Purpose |
 |---|---|---|---|
@@ -101,67 +82,76 @@ With **Flood in Encapsulation** enabled on the bridge domain [1, pp. 113–114]:
 | 3 | **MCP** (Mis-Cabling Protocol) | ACI leaf ports | Detects miscabling at the ACI edge |
 | 4 | **BPDU Guard** | Both internal and external switch **access ports only** | Prevents accidental loop from patching two access ports together [1, p. 129] |
 
----
+## Test cases
 
-## 3. Testing Steps
+### TC-01: Baseline — single native-VLAN EPG (negative test)
 
-### Step 1: Baseline — single native-VLAN EPG (negative test)
+**Objective**: Validate that two separate native-VLAN EPGs are required — a single native-VLAN EPG merges the MSTP domains.
 
-**Action**: Create a single native-VLAN EPG covering both internal and external-facing ports.
+**Prerequisites**:
 
-**Expected (negative)**: MSTP BPDUs from the internal domain appear on external-domain ports, and vice versa — the two MSTP regions merge into a single spanning tree. If the two regions have different root bridges, spanning tree re-converges and may disrupt traffic.
+**Procedure**: Create a single native-VLAN EPG covering both internal and external-facing ports.
 
-**Gate**: Confirmed failure — single native-VLAN EPG is insufficient. Proceed to Step 2 with the two-native-EPG design.
+**Expected result**: MSTP BPDUs from the internal domain appear on external-domain ports, and vice versa — the two MSTP regions merge into a single spanning tree. If the two regions have different root bridges, spanning tree re-converges and may disrupt traffic. A single native-VLAN EPG is insufficient, so proceed to TC-02 with the two-native-EPG design.
 
-### Step 2: Four-EPG isolation — BPDU containment
+### TC-02: Four-EPG isolation — BPDU containment
 
-**Action**:
+**Objective**: Validate that a single ACI bridge domain with four EPGs (two tagged, two native/untagged) can stretch an IP subnet across two independent MSTP domains without merging them, and that Flood in Encapsulation scopes BUM traffic per-VLAN, preventing cross-domain BPDU leakage.
+
+**Prerequisites**: TC-01 completed.
+
+**Procedure**:
 1. Create EPG-Native-Inside with access/untagged static binding on internal-facing ports
 2. Create EPG-Native-Outside with access/untagged static binding on external-facing vPC ports
 3. Enable Flood in Encapsulation on the bridge domain
 4. Capture BPDUs on internal and external ports
 
-**Expected**: MSTP BPDUs from EPG-Native-Inside do not appear on EPG-Native-Outside ports. BPDUs from EPG-Native-Outside do not appear on EPG-Native-Inside ports. Each MSTP region retains its own root bridge.
+**Expected result**: MSTP BPDUs from EPG-Native-Inside do not appear on EPG-Native-Outside ports. BPDUs from EPG-Native-Outside do not appear on EPG-Native-Inside ports. Each MSTP region retains its own root bridge.
 
-**Gate**: Must pass before proceeding. If BPDU leakage is observed, verify Flood in Encapsulation is enabled and that both native-VLAN EPGs are in the same bridge domain.
+**If it fails**: If BPDU leakage is observed, verify Flood in Encapsulation is enabled and that both native-VLAN EPGs are in the same bridge domain.
 
-### Step 3: Proxy ARP — cross-VLAN IP reachability
+### TC-03: Proxy ARP — cross-VLAN IP reachability
 
-**Action**:
+**Objective**: Validate that proxy ARP (enabled automatically by Flood in Encapsulation) allows endpoints in different VLANs to reach each other at L3 via the ACI pervasive SVI.
+
+**Prerequisites**: TC-02 passed.
+
+**Procedure**:
 1. Place a test server in EPG-Inside (VLAN 10) with IP 10.1.1.10
 2. Place a test server in EPG-Outside (VLAN 20) with IP 10.1.1.20
 3. From 10.1.1.10, ping 10.1.1.20
 4. Capture ARP on both VLANs
 
-**Expected**: 
+**Expected result**:
 - 10.1.1.10 ARPs for 10.1.1.20 → ACI responds with its SVI MAC (proxy ARP)
 - Ping succeeds
 - No ARP broadcasts cross between VLAN 10 and VLAN 20
 
-**Gate**: Must pass before proceeding.
+### TC-04: BPDU Guard placement
 
-### Step 4: BPDU Guard placement
+**Objective**: Validate that BPDU Guard on access ports (not uplinks) provides loop protection without err-disabling legitimate uplinks.
 
-**Action**:
+**Prerequisites**: TC-03 passed.
+
+**Procedure**:
 1. Enable BPDU Guard on an external switch access port (not the ACI uplink)
 2. Patch a cable between two access ports on the external switch
 3. Observe the port state
+4. Negative test: enable BPDU Guard on the ACI uplink port
 
-**Expected**: BPDU Guard err-disables the access port, preventing the loop. The ACI uplink remains up.
+**Expected result**: BPDU Guard err-disables the access port, preventing the loop. The ACI uplink remains up. In the negative test, legitimate BPDUs from the external switch err-disable the uplink, breaking connectivity. BPDU Guard belongs on access ports only; on uplinks it is destructive.
 
-**Negative test**: Enable BPDU Guard on the ACI uplink port. Observe that legitimate BPDUs from the external switch err-disable the uplink, breaking connectivity.
+### TC-05: MSTP TCN scope
 
-**Gate**: Confirmed — BPDU Guard on access ports only; BPDU Guard on uplinks is destructive.
+**Objective**: Confirm that Flood in Encapsulation scopes TCN propagation per-VLAN.
 
-### Step 5: MSTP TCN scope
+**Prerequisites**:
 
-**Action**:
+**Procedure**:
 1. Trigger a topology change on the internal MSTP domain (link flap)
 2. Observe TCN propagation on the external MSTP domain
 
-**Expected**: TCN stays within the internal MSTP domain. External domain does not see the TCN. No MAC table flushes on external-side switches.
-
-**Gate**: Must pass — confirms Flood in Encapsulation scopes TCN propagation per-VLAN.
+**Expected result**: TCN stays within the internal MSTP domain. External domain does not see the TCN. No MAC table flushes on external-side switches. Each MSTP region retains its own root bridge.
 
 #### MST instance → VLAN mapping
 
@@ -185,23 +175,25 @@ in Encapsulation handles BPDU containment within the fabric; the external
 switches' MST instance mapping handles TCN MAC-flush scope within their own
 MSTP domain.
 
-### Step 6: Operational sequence (EPG shutdown/unshut)
+### TC-06: Operational sequence (EPG shutdown/unshut)
 
-**Action**:
+**Objective**:
+
+**Prerequisites**:
+
+**Procedure**: The operational sequence from [1, p. 130]:
 1. Create EPG-Outside in Shutdown state
 2. Attach vPC, verify LACP is in P state
 3. Unshut the EPG
 4. Verify connectivity
 
-**Expected**: No loops or traffic disruption during the bring-up. LACP bundle forms correctly before the EPG starts forwarding.
+**Expected result**: No loops or traffic disruption during the bring-up. LACP bundle forms correctly before the EPG starts forwarding.
 
-**Gate**: Confirmed — the operational sequence from [1, p. 130] works as documented.
+## Issues encountered
 
----
+### ISSUE-01: Single native-VLAN EPG merges MSTP domains
 
-## 4. Issues Encountered
-
-### Issue 4.1: Single native-VLAN EPG merges MSTP domains
+**Found in**: TC-01
 
 **Symptom**: With a single native-VLAN EPG covering both internal and external ports, MSTP BPDUs from the internal domain appear on external ports. The two MSTP regions elect a single root bridge — potentially on the wrong side for one domain, causing re-convergence.
 
@@ -211,7 +203,9 @@ MSTP domain.
 
 **Verification**: Capture BPDUs on external-facing ports — no BPDUs from internal domain present. Each MSTP region retains its own root bridge.
 
-### Issue 4.2: Untagged MSTP BPDUs silently dropped without native-VLAN EPG
+### ISSUE-02: Untagged MSTP BPDUs silently dropped without native-VLAN EPG
+
+**Found in**:
 
 **Symptom**: External MSTP domain cannot detect topology changes through the fabric. BPDU frames are not forwarded.
 
@@ -221,7 +215,9 @@ MSTP domain.
 
 **Verification**: `show spanning-tree` on external switches shows BPDUs sent and received across the ACI uplink. MSTP topology changes propagate correctly within each domain.
 
-### Issue 4.3: Cross-VLAN BUM leakage without Flood in Encapsulation
+### ISSUE-03: Cross-VLAN BUM leakage without Flood in Encapsulation
+
+**Found in**: TC-02
 
 **Symptom**: When Flood in Encapsulation is disabled, the four-EPG design provides no isolation. Broadcast from VLAN 10 (EPG-Inside) reaches VLAN 20 (EPG-Outside). Unknown-unicast flooding from one side hits the other side's endpoints. MSTP BPDUs cross between native-VLAN EPGs.
 
@@ -231,7 +227,9 @@ MSTP domain.
 
 **Verification**: Before fix — BPDU capture shows cross-domain leakage. After fix — clean separation. Proxy ARP also becomes available only after Flood in Encapsulation is enabled.
 
-### Issue 4.4: BPDU Guard on uplink err-disables legitimate link
+### ISSUE-04: BPDU Guard on uplink err-disables legitimate link
+
+**Found in**: TC-04
 
 **Symptom**: Enabling BPDU Guard on the ACI uplink port causes the port to err-disable when a legitimate BPDU arrives from the external switch.
 
@@ -241,13 +239,11 @@ MSTP domain.
 
 **Verification**: Access-port BPDU Guard correctly err-disables patched-together access ports without affecting the uplink. Uplink BPDUs flow freely.
 
----
-
-## 5. Design findings
+## Conclusion
 
 ### EPG vs L2Out
 
-**Tested**: Both EPG and L2Out approaches for L2 external connectivity. **Finding**: EPG approach is more flexible and more widely used. L2Out is more restrictive (one VLAN per L2Out) and primarily serves as a training-wheels loop-prevention construct. The ACI Design Guide explicitly recommends the EPG approach [1, p. 128].
+**Compared**: Both EPG and L2Out approaches for L2 external connectivity. **Finding**: EPG approach is more flexible and more widely used. L2Out is more restrictive (one VLAN per L2Out) and primarily serves as a training-wheels loop-prevention construct. The ACI Design Guide explicitly recommends the EPG approach [1, p. 128].
 
 ### MSTP variant choice
 
@@ -285,8 +281,6 @@ more granular EPG-level option exists and is sufficient for the four-EPG pattern
 ### Physical separation requirement
 
 The two MSTP regions must have **no direct L2 connection outside the ACI fabric**. The ACI bridge domain is the only L2 path between them. Any additional physical link creates a loop that Spanning Tree on the external switches may or may not detect (depending on whether BPDUs cross between VLANs — with Flood in Encapsulation, they do not).
-
----
 
 ## References
 

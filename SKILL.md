@@ -22,12 +22,14 @@ the matching file immediately, so the next query doesn't re-fetch it.
 
 - **Before editing anything under `skills/`**, read [docs/authoring.md](docs/authoring.md)
   for citation, file-placement, and splitting rules.
+- **Before creating or editing a POC record**, also read
+  [docs/poc-format.md](docs/poc-format.md).
 - **Before committing**, read [docs/git-policy.md](docs/git-policy.md).
 
-**POC records** ([skills/pocs/](skills/pocs/)): what actually broke in real tests and
-how it was fixed. Consult these when planning a POC, especially for cross-vendor
-integrations where config traps are the main risk. See the
-[POC index](skills/pocs/README.md).
+**POC records** ([skills/pocs/](skills/pocs/)): how a pattern is tested, what can go
+wrong, and how to fix it, from real tests or product documentation. Consult these when
+planning a POC, especially for cross-vendor integrations where config traps are the
+main risk. See the [POC index](skills/pocs/README.md).
 
 ### 1. Scenarios (optional shortcut)
 
