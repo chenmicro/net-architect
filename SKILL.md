@@ -43,7 +43,7 @@ match; fall through to step 2.
 | Multi-site SD-WAN + SASE rollout | [sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md, vendor-matrix/cato.md |
 | Multi-site DC with cross-site workload mobility | [multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, cisco/aci.md, cisco/nxos-epbr.md |
 | Silent-host reachability in overlay fabrics (L2/bridged) | [silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, cisco/aci.md |
-| Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | cisco/aci.md or cisco/nxos-vxlan.md, huawei.md, evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
+| Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | cisco/aci.md or cisco/nxos-vxlan.md, huawei/cloudfabric.md, evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 ### 2. Techniques
 
@@ -95,7 +95,7 @@ only against a legacy-version doc as unverified.
 | Cisco | [cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS; links to ACI, NX-OS VXLAN, GPO, Nexus hardware, 7-5-2, and AgenticOps files. ePBR: [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) |
 | Arista | [arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
 | Juniper | [juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
-| Huawei | [huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
+| Huawei | [huawei/huawei.md](skills/vendor-matrix/huawei/huawei.md) | Hub: product lines by domain, VRP, iMaster NCE, doc sources; links to [cloudfabric.md](skills/vendor-matrix/huawei/cloudfabric.md) (NCE-Fabric, Digital Map, DCI) and [cloudengine.md](skills/vendor-matrix/huawei/cloudengine.md) (device capability, V300) |
 | Extreme Networks | [extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Switch Engine / Fabric Engine (VOSS/SPBm), SLX, ExtremeCloud IQ, Extreme Fabric |
 | Cato Networks | [cato.md](skills/vendor-matrix/cato.md) | SASE/SSE tiers, backbone and PoPs, Socket/vSocket, link SLA and redundancy |
 | IBM | [ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation |
@@ -124,7 +124,7 @@ vendor's own current documentation.
 | **Unknown URL** (need to discover) | `doc-fetcher` `search_web` | Discovery only (Brave Search, has a quota). Fetch the result URLs with `mcp-server-fetch` — never rely on snippets alone. |
 | **PDF or non-HTML** | `doc-fetcher` `fetch_doc` | Only when `mcp-server-fetch` can't handle the format. |
 | **IETF RFC/draft** | `doc-fetcher` `fetch_rfc` / `fetch_draft` / `search_ietf` | See step 4. |
-| **Huawei product documentation** | Local HedEx library | Do not fetch or search the web for it: it requires login. Read the library the user supplied; if the needed library is missing, ask the user. |
+| **Huawei product documentation** | Local HedEx library | Do not fetch or search the web for it: it requires login. Read the library the user supplied; if the needed library is missing, ask the user. See [Documentation sources](skills/vendor-matrix/huawei/huawei.md#documentation-sources). |
 
 ### 6. Design output
 

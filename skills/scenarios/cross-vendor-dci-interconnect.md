@@ -18,7 +18,7 @@ Network. Two variants with very different Cisco-side complexity:
    control and data plane flow, namespace normalization, supported topologies
    by ACI release, policy enforcement across fabrics.
 
-2. **[vendor-matrix/huawei.md](../vendor-matrix/huawei.md#dci-and-cross-vendor-interconnect)**
+2. **[vendor-matrix/huawei/cloudfabric.md](../vendor-matrix/huawei/cloudfabric.md#dci-and-cross-vendor-interconnect)**
    — Huawei-side Segment VXLAN mode, CloudEngine DCI gateway roles.
 
 3. **[techniques/evpn.md](../techniques/evpn.md)**, **[vxlan.md](../techniques/vxlan.md)**,
@@ -50,7 +50,7 @@ identical to Variant A.
 1. **[vendor-matrix/cisco/nxos-vxlan.md](../vendor-matrix/cisco/nxos-vxlan.md)**
    — NX-OS EVPN-VXLAN fundamentals, release history, Multi-Site support.
 
-2. **[vendor-matrix/huawei.md](../vendor-matrix/huawei.md#dci-and-cross-vendor-interconnect)**
+2. **[vendor-matrix/huawei/cloudfabric.md](../vendor-matrix/huawei/cloudfabric.md#dci-and-cross-vendor-interconnect)**
    — Huawei-side Segment VXLAN mode, CloudEngine DCI gateway roles.
 
 3. **[techniques/evpn.md](../techniques/evpn.md)**, **[vxlan.md](../techniques/vxlan.md)**,

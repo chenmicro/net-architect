@@ -32,9 +32,8 @@ Sources fall into two categories with different handling:
   path — a stale fact is worse than no fact because it looks authoritative but
   misleads.
 
-Huawei product documentation requires login, so a URL cannot verify it. Cite the
-HedEx library title, product version, issue number, issue date, table-of-contents
-path, and last-confirmed date instead.
+Huawei product documentation is an exception to the URL requirement; see
+[huawei.md](../skills/vendor-matrix/huawei/huawei.md#documentation-sources).
 
 ## Agent and user documentation
 

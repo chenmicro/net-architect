@@ -133,7 +133,7 @@ header extensions are covered in the subsections above (ACI, Huawei), and
 deployment-level differences (for example Huawei's Segment VXLAN for DCI) live
 in the vendor files:
 [arista.md](../vendor-matrix/arista.md),
-[juniper.md](../vendor-matrix/juniper.md), [huawei.md](../vendor-matrix/huawei.md),
+[juniper.md](../vendor-matrix/juniper.md), [huawei/cloudfabric.md](../vendor-matrix/huawei/cloudfabric.md),
 and [cisco/nxos-vxlan.md](../vendor-matrix/cisco/nxos-vxlan.md).
 
 ## Design considerations

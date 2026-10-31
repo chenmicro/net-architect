@@ -529,7 +529,7 @@ FX2/FX2P/GX/GX2+ leaf nodes that bridge ACI's internal COOP control plane to
 external MP-BGP EVPN [8]. This is the mechanism for connecting an ACI fabric to
 any standards-compliant VXLAN EVPN fabric, including NX-OS EVPN-VXLAN Multi-Site,
 Arista, Juniper, and **Huawei CloudFabric** (see
-[huawei.md](../../vendor-matrix/huawei.md#dci-and-cross-vendor-interconnect)).
+[huawei/cloudfabric.md](../huawei/cloudfabric.md#dci-and-cross-vendor-interconnect)).
 
 This is part of Cisco's broader **Nexus ONE Fabric Experience** convergence
 initiative (see [aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md) §2026 convergence
@@ -588,7 +588,7 @@ via tag. Cross-fabric microsegmentation becomes possible [8].
 
 ### External fabric references
 
-- **Huawei CloudFabric**: See [huawei.md](../../vendor-matrix/huawei.md#dci-and-cross-vendor-interconnect)
+- **Huawei CloudFabric**: See [huawei/cloudfabric.md](../huawei/cloudfabric.md#dci-and-cross-vendor-interconnect)
   for the Huawei-side DCI architecture (Segment VXLAN on CloudEngine gateways).
 - **Any standards-based VXLAN EVPN fabric** (NX-OS EVPN-VXLAN Multi-Site,
   Arista, Juniper): the same ACI BGW architecture above applies unchanged —
