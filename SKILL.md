@@ -58,7 +58,7 @@ apply. Each file is a single atomic technique.
 | EVPN | [evpn.md](skills/techniques/evpn.md) | BGP control plane, route types 1-5, anycast gateway, EVPN-MH |
 | Multi-Tenancy (DC) | [multi-tenancy.md](skills/techniques/multi-tenancy.md) | VRF-lite, route-target import/export, VNI numbering |
 | RoCE | [roce.md](skills/techniques/roce.md) | RDMA over Ethernet, RoCEv2, PFC/ECN/DCQCN, iWARP vs. InfiniBand, Verbs |
-| AI/GPU Fabric | [ai-gpu-fabric.md](skills/techniques/ai-gpu-fabric.md) | Lossless Ethernet, rail-optimized topology, InfiniBand vs. Ethernet |
+| AI/GPU Fabric | [ai-gpu-fabric.md](skills/techniques/ai-gpu-fabric.md) | Lossless Ethernet, rail-optimized topology, NSLB, InfiniBand vs. Ethernet |
 | Core/Aggregation/Access | [core-agg-access.md](skills/techniques/core-agg-access.md) | Three-tier vs. collapsed-core, L2/L3 boundary, redundancy |
 | Wireless | [wireless.md](skills/techniques/wireless.md) | WLC architecture, AP density, RF planning, Wi-Fi 6E/7 |
 | NAC | [nac.md](skills/techniques/nac.md) | 802.1X, MAB, dynamic VLAN/RADIUS, SGT/TrustSec |
