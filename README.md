@@ -13,6 +13,9 @@ RFC/draft or a current vendor spec sheet into context.
 
 - **[SKILL.md](SKILL.md)** — entry point and routing table: when to load which
   scenario/technique/vendor file and when to reach for `doc-fetcher`. Load this first.
+- **[docs/authoring.md](docs/authoring.md)** and
+  **[docs/git-policy.md](docs/git-policy.md)** — on-demand rules for editing the
+  library (citations, file placement, splitting) and for committing.
 - **[docs/network-topology-figures.md](docs/network-topology-figures.md)** —
   plugin-agnostic conventions for topology viewpoints, device cards, role colors,
   physical links, logical relationships, and traffic paths.

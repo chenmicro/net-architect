@@ -140,7 +140,7 @@ this is genuinely unresolved for some of them:
    it.
 3. The relevant vendor DC-fabric file, only needed for Option 2 above — see
    Fix options for which platforms currently have this documented (see
-   Maintenance in [SKILL.md](../../SKILL.md) for why the concrete mechanism
+   [docs/authoring.md](../../docs/authoring.md#scenarios) for why the concrete mechanism
    lives in the vendor file, not here).
 
 ## Cross-cutting judgment

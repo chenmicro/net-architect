@@ -1,90 +1,49 @@
 ---
 name: net-architect
-description: Use this skill for network architecture and design questions — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus networking (wired/wireless, NAC), SD-WAN/SASE, or WAN/MPLS/segment-routing design — and whenever a specific vendor's platform, OS, or product line (Cisco, Arista, Juniper, Huawei, Extreme Networks, Cato, IBM, Netis, Dynatrace, NETSCOUT) needs to be evaluated or compared, or current information needs to be pulled from the web: an IETF RFC/draft, a vendor's own spec sheet/datasheet, or a general web search to locate one. Triggers on requests to design, review, size, or compare enterprise/service-provider network topologies, or to pick a vendor/platform for one.
+description: Use for network architecture and design — data center fabric (spine-leaf, EVPN-VXLAN, AI/GPU fabrics), campus (wired/wireless, NAC), SD-WAN/SASE, and WAN/MPLS/segment routing. Use to design, review, size, or compare enterprise or service-provider topologies; to evaluate or pick a vendor or platform (Cisco, Arista, Juniper, Huawei, Extreme Networks, Cato, IBM, Netis, Dynatrace, NETSCOUT); or to look up an IETF RFC/draft or vendor spec sheet.
 ---
 
 # net-architect
 
 A reference library plus a pure-retrieval MCP tool for network architecture and
-solution-design work, organized so an agent loads only the knowledge relevant to the
-task at hand and only reaches for live retrieval when static knowledge isn't enough.
-This is a specialist/architect toolset — it brings external specifications and vendor
-documentation into context; it does not touch live infrastructure. `doc-fetcher` has no
-offline mode or bundled copies: every call is a live outbound HTTPS fetch against the
-IETF or a vendor's own site, so it needs internet access to function, and it fails
-outright (rather than silently falling back to a stale answer) if that access isn't
-available — see [README.md](README.md#network-access) for the specific hosts involved.
+solution-design work. Load only the knowledge relevant to the task, and reach for live
+retrieval only when static knowledge isn't enough. It brings specifications and vendor
+documentation into context; it does not touch live infrastructure. `doc-fetcher` needs
+internet access and fails outright without it.
 
 ## How to use this skill
 
-**POC records** ([pocs/](skills/pocs/)): Operational knowledge captured from real POC
-tests — not architectural theory, but what actually broke and how it was fixed.
-Consult these when planning a POC for a scenario you've designed, especially for
-cross-vendor integrations where config traps are the main risk. Each POC record
-ties to the scenario it validates. See
-[pocs/README.md](skills/pocs/README.md) for the filing convention.
-
 **Workflow**: Start with the static library ([scenarios/](skills/scenarios/) →
 [techniques/](skills/techniques/) → [vendor-matrix/](skills/vendor-matrix/)). When the
-library doesn't cover a claim, fetch live (steps 4–5). **Write every new fact back into
-the matching file immediately** — the library grows with each query so the next one
-doesn't need to re-fetch the same fact.
+library doesn't cover a claim, fetch live (steps 4–5). Write every new fact back into
+the matching file immediately, so the next query doesn't re-fetch it.
 
-**Source annotations** (applies to all files in this repo): every fact pulled from an
-external source must carry an IEEE-style numbered citation in square brackets at the
-point of use — e.g., `[1]`, `[2]` — with a corresponding `## References` section at
-the end of the file listing the full source details in order of first appearance. Never
-delete or renumber an existing citation; new sources get the next available number.
+**Load on demand:**
 
-Sources fall into two categories with different handling:
+- **Before editing anything under `skills/`**, read [docs/authoring.md](docs/authoring.md)
+  for citation, file-placement, and splitting rules.
+- **Before committing**, read [docs/git-policy.md](docs/git-policy.md).
 
-- **Non-changeable** (RFCs, IEEE standards, published journal/conference papers):
-  the fact is permanently fixed. Write the relevant detail inline in the technique
-  file — a normative requirement, a protocol field definition, a well-known
-  constant — so future readers don't need to re-fetch the source. The References
-  entry should include the full bibliographic citation plus a URL when available.
-  Example: an RFC's normative timer default goes inline; the reference cites the
-  RFC number, title, and rfc-editor.org link.
-
-- **Changeable / time-sensitive** (vendor datasheets, product documentation,
-  third-party blog/review, vendor compatibility matrix): the fact can go stale
-  — a port count, a buffer size, a supported software version, a pricing tier.
-  The References entry must record **how to verify** the fact: which vendor
-  document, section or chapter name, URL pattern (or search terms), and a
-  date/version stamp of when the fact was last confirmed. Prefer the most stable
-  URL path available (product-family doc hub over a per-release PDF). Do not
-  embed a changeable fact inline as permanent truth without the verification
-  path — a stale fact is worse than no fact because it looks authoritative but
-  misleads.
+**POC records** ([skills/pocs/](skills/pocs/)): what actually broke in real tests and
+how it was fixed. Consult these when planning a POC, especially for cross-vendor
+integrations where config traps are the main risk. See the
+[POC index](skills/pocs/README.md).
 
 ### 1. Scenarios (optional shortcut)
 
 Check whether the request matches a known deployment scenario before reading
-technique files piecemeal. A scenario file names which technique/vendor files a
-given end-to-end ask draws on, in what order, plus cross-cutting judgment that only
-exists at the intersection of those files. Most requests won't match; fall through
-to step 2.
+technique files piecemeal. A scenario file names which files a request draws on, in
+what order, plus judgment that only exists where they intersect. Most requests won't
+match; fall through to step 2.
 
 | Scenario | File | Composes |
 |---|---|---|
-| AI/GPU training cluster buildout | [skills/scenarios/ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
-| Campus refresh with WAN edge modernization | [skills/scenarios/campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
-| Multi-site SD-WAN + SASE rollout | [skills/scenarios/sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md (if migrating off MPLS); vendor-matrix/cato.md (backbone-native — the SASE-vs-SSE tier decides site CPE and telemetry before topology) |
-| Multi-site DC with cross-site workload mobility | [skills/scenarios/multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, vendor-matrix/cisco/aci.md (PBR — no confirmed fix on Multi-Site's documented architecture) and nxos-epbr.md (single-service-object ePBR pattern) |
-| Silent-host reachability in overlay fabrics (L2/bridged) | [skills/scenarios/silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, vendor-matrix/cisco/aci.md — receive-only services only (a TCP listener self-resolves); a Linux UDP syslog server never transmits while unknown unicast is dropped, not flooded; solution turns on gateway ARP aging set below the 300 s MAC aging |
-| Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [skills/scenarios/cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | Variant A: vendor-matrix/cisco/aci.md §ACI Border Gateway + vendor-matrix/huawei.md §DCI. Variant B: vendor-matrix/cisco/nxos-vxlan.md §Multi-Site + vendor-matrix/huawei.md. Both: evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
-
-> **Don't pre-create scenario files.** Add a scenario only after a real
-> cross-technique request has been confirmed solved and confirmed network-related
-> (double-check with the user). Keep scenario files thin — composition + cross-cutting
-> judgment, never a copy of technique content.
-
-> **POC records** ([skills/pocs/](skills/pocs/)) are standalone operational knowledge —
-> real issues from lab testing, not architectural reference. They cover specific
-> integration patterns (e.g. BGP over M-LAG to an external firewall) that may appear
-> as sub-components of a larger scenario but are documented separately. Check the
-> [POC index](skills/pocs/README.md) to see if a record covers a pattern relevant to
-> your current question.
+| AI/GPU training cluster buildout | [ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
+| Campus refresh with WAN edge modernization | [campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
+| Multi-site SD-WAN + SASE rollout | [sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md, vendor-matrix/cato.md |
+| Multi-site DC with cross-site workload mobility | [multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, cisco/aci.md, cisco/nxos-epbr.md |
+| Silent-host reachability in overlay fabrics (L2/bridged) | [silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, cisco/aci.md |
+| Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | cisco/aci.md or cisco/nxos-vxlan.md, huawei.md, evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 ### 2. Techniques
 
@@ -94,112 +53,70 @@ apply. Each file is a single atomic technique.
 
 | Technique | File | Covers |
 |---|---|---|
-| Spine-Leaf (Clos) Fabric | [skills/techniques/spine-leaf-clos.md](skills/techniques/spine-leaf-clos.md) | Clos topology, oversubscription, ECMP/hashing, BGP underlay rationale |
-| VXLAN (including ACI iVXLAN) | [skills/techniques/vxlan.md](skills/techniques/vxlan.md) | Data-plane encapsulation, VTEPs, VNI, header format (RFC 7348), and the variants — VXLAN-GBP, VXLAN-GPE, ACI iVXLAN |
-| EVPN | [skills/techniques/evpn.md](skills/techniques/evpn.md) | BGP control plane for VXLAN, route types 1-5, anycast gateway, EVPN-MH multi-homing |
-| Multi-Tenancy (DC) | [skills/techniques/multi-tenancy.md](skills/techniques/multi-tenancy.md) | VRF-lite, route-target import/export, VNI numbering |
-| RoCE | [skills/techniques/roce.md](skills/techniques/roce.md) | RDMA over Ethernet, RoCEv2 encapsulation, lossless Ethernet (PFC/ECN/DCQCN), iWARP vs. InfiniBand, packet format, Verbs operations |
-| AI/GPU Fabric | [skills/techniques/ai-gpu-fabric.md](skills/techniques/ai-gpu-fabric.md) | RoCEv2, lossless Ethernet (PFC/ECN/DCQCN), rail-optimized topology, InfiniBand vs. Ethernet |
-| Core/Aggregation/Access | [skills/techniques/core-agg-access.md](skills/techniques/core-agg-access.md) | Three-tier vs. collapsed-core, L2/L3 boundary placement, redundancy |
-| Wireless | [skills/techniques/wireless.md](skills/techniques/wireless.md) | WLC architecture, AP density, RF planning, Wi-Fi 6E/7 |
-| NAC | [skills/techniques/nac.md](skills/techniques/nac.md) | 802.1X, MAB, dynamic VLAN/RADIUS, SGT/TrustSec |
-| PoE | [skills/techniques/poe.md](skills/techniques/poe.md) | Power budgeting, 802.3af/at/bt, cable-length derating |
-| SD-WAN Overlay Architecture | [skills/techniques/overlay-architecture.md](skills/techniques/overlay-architecture.md) | Controller/orchestrator model, IPsec overlay, topology choice |
-| DIA / Local Breakout | [skills/techniques/dia-local-breakout.md](skills/techniques/dia-local-breakout.md) | Local internet egress, security tradeoff, traffic steering |
-| SLA Policies | [skills/techniques/sla-policies.md](skills/techniques/sla-policies.md) | App-aware routing, SLA classes, BFD, circuit diversity |
-| SASE | [skills/techniques/sase.md](skills/techniques/sase.md) | SSE convergence, ZTNA, single-vendor vs. best-of-breed |
-| MPLS | [skills/techniques/mpls.md](skills/techniques/mpls.md) | LDP/RSVP-TE, L3VPN (RFC 4364), L2VPN (VPWS/VPLS) |
-| Segment Routing | [skills/techniques/segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
-| BGP | [skills/techniques/bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene — shared by any technique above that rides on BGP |
-| IGP — OSPF & IS-IS | [skills/techniques/ospf-isis.md](skills/techniques/ospf-isis.md) | OSPF vs. IS-IS selection, area/level design, timer tuning, cross-vendor alignment |
-| ARP | [skills/techniques/arp.md](skills/techniques/arp.md) | RFC 826 basics, ARP flooding vs. suppression in EVPN/VXLAN fabrics, ARP gleaning (ACI), ARP/MAC timer mismatch, Linux neighbor-cache retention and its UDP-vs-TCP transport effect, cross-vendor behavior |
-| STP | [skills/techniques/stp.md](skills/techniques/stp.md) | PVST+ vs. MSTP vs. RSTP, root bridge placement, cross-vendor STP interop |
-| FHRP | [skills/techniques/fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway as alternative |
-| QoS | [skills/techniques/qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP alignment, DC vs. campus/WAN QoS |
-| Management Plane | [skills/techniques/management-plane.md](skills/techniques/management-plane.md) | Discovery (LLDP/CDP), AAA (RADIUS/TACACS+), SNMP/telemetry, port mirroring, NTP/syslog — cross-vendor interop |
-| Network Performance Monitoring (NPM) | [skills/techniques/npm.md](skills/techniques/npm.md) | Device, flow, packet, active-probe, path, and conventional NPM evidence |
-| Application Performance Monitoring (APM) | [skills/techniques/apm.md](skills/techniques/apm.md) | APM taxonomy, host-agent/instrumentation versus network-derived collection, and solution selection |
-| NPM/APM Correlation | [skills/techniques/npm-apm.md](skills/techniques/npm-apm.md) | Shared identity, clocks, topology, and multi-point cross-layer correlation |
-**Writing back to techniques:**
-- Fetched knowledge goes into the matching technique file, not left in chat context.
-- **One file per technique** — protocol architecture, vendor-specific implementation
-  differences, interop constraints, and cross-vendor defaults mismatches all live in
-  the same technique file. Splitting per-protocol vendor behavior across technique
-  and vendor files is the wrong cut: a solution architect researching a multi-vendor
-  interconnection consults the technique file first and expects the complete answer
-  there, not a cross-reference trail to multiple vendor files.
-- If a file grows to cover a second distinct technique, split it. If new material
-  doesn't fit any existing file, add one + a row above — but only after the question
-  is resolved and you've confirmed with the user it's genuinely network
-  architecture/design related.
-- A technique used across many scenarios (e.g. BGP) stays written once, in its own
-  file, with everything else linking to it.
-- **Standard chapter layout** — every technique file should follow a consistent
-  section structure so the content is navigable and grep-friendly. Not every file
-  needs every section (a protocol with no vendor variants skips Cross-vendor), but
-  heading names must match exactly across files for searchability:
-
-  ```
-  # [Technique Name]
-  [Overview — what it does, why it matters in design conversations]
-  ## [Concept section(s)] — as needed per technique
-  ## Cross-vendor / variants
-  [Vendor implementation comparison table or prose, proprietary vs. open, interop constraints]
-  ## Design considerations
-  [Decision points, common pitfalls, default behaviors]
-  ## Relationship to other techniques
-  [Cross-links to related technique files with one-line notes on how they interact]
-  ## References
-  [Numbered citations, IEEE-style, ordered by first appearance]
-  ```
+| Spine-Leaf (Clos) Fabric | [spine-leaf-clos.md](skills/techniques/spine-leaf-clos.md) | Clos topology, oversubscription, ECMP/hashing, BGP underlay |
+| VXLAN | [vxlan.md](skills/techniques/vxlan.md) | Encapsulation, VTEPs, VNI, RFC 7348, VXLAN-GBP, VXLAN-GPE, ACI iVXLAN |
+| EVPN | [evpn.md](skills/techniques/evpn.md) | BGP control plane, route types 1-5, anycast gateway, EVPN-MH |
+| Multi-Tenancy (DC) | [multi-tenancy.md](skills/techniques/multi-tenancy.md) | VRF-lite, route-target import/export, VNI numbering |
+| RoCE | [roce.md](skills/techniques/roce.md) | RDMA over Ethernet, RoCEv2, PFC/ECN/DCQCN, iWARP vs. InfiniBand, Verbs |
+| AI/GPU Fabric | [ai-gpu-fabric.md](skills/techniques/ai-gpu-fabric.md) | Lossless Ethernet, rail-optimized topology, InfiniBand vs. Ethernet |
+| Core/Aggregation/Access | [core-agg-access.md](skills/techniques/core-agg-access.md) | Three-tier vs. collapsed-core, L2/L3 boundary, redundancy |
+| Wireless | [wireless.md](skills/techniques/wireless.md) | WLC architecture, AP density, RF planning, Wi-Fi 6E/7 |
+| NAC | [nac.md](skills/techniques/nac.md) | 802.1X, MAB, dynamic VLAN/RADIUS, SGT/TrustSec |
+| PoE | [poe.md](skills/techniques/poe.md) | Power budgeting, 802.3af/at/bt, cable-length derating |
+| SD-WAN Overlay Architecture | [overlay-architecture.md](skills/techniques/overlay-architecture.md) | Controller/orchestrator model, IPsec overlay, topology choice |
+| DIA / Local Breakout | [dia-local-breakout.md](skills/techniques/dia-local-breakout.md) | Local internet egress, security tradeoff, traffic steering |
+| SLA Policies | [sla-policies.md](skills/techniques/sla-policies.md) | App-aware routing, SLA classes, BFD, circuit diversity |
+| SASE | [sase.md](skills/techniques/sase.md) | SSE convergence, ZTNA, single-vendor vs. best-of-breed |
+| MPLS | [mpls.md](skills/techniques/mpls.md) | LDP/RSVP-TE, L3VPN (RFC 4364), L2VPN (VPWS/VPLS) |
+| Segment Routing | [segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
+| BGP | [bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene |
+| IGP — OSPF & IS-IS | [ospf-isis.md](skills/techniques/ospf-isis.md) | Selection, area/level design, timers, cross-vendor alignment |
+| ARP | [arp.md](skills/techniques/arp.md) | RFC 826, flooding vs. suppression, gleaning, ARP/MAC timer mismatch, Linux neighbor cache |
+| STP | [stp.md](skills/techniques/stp.md) | PVST+ vs. MSTP vs. RSTP, root placement, cross-vendor interop |
+| FHRP | [fhrp.md](skills/techniques/fhrp.md) | VRRP (RFC 5798) vs. HSRP/GLBP, preemption, tracking, anycast gateway |
+| QoS | [qos.md](skills/techniques/qos.md) | Classification/marking/queuing, trust models, DSCP, DC vs. campus/WAN |
+| Management Plane | [management-plane.md](skills/techniques/management-plane.md) | LLDP/CDP, RADIUS/TACACS+, SNMP/telemetry, port mirroring, NTP/syslog |
+| Network Performance Monitoring (NPM) | [npm.md](skills/techniques/npm.md) | Device, flow, packet, active-probe, and path evidence |
+| Application Performance Monitoring (APM) | [apm.md](skills/techniques/apm.md) | Taxonomy, host-agent vs. network-derived collection, selection |
+| NPM/APM Correlation | [npm-apm.md](skills/techniques/npm-apm.md) | Shared identity, clocks, topology, multi-point correlation |
 
 ### 3. Vendors
 
 If the request names or implies a vendor (or asks you to choose one), read the
 matching vendor file(s) to ground recommendations in actual product lines, OS, and
-silicon. When comparing vendors, read all relevant files — platform-specific
-naming and constraints vary.
+silicon. When comparing vendors, read all relevant files.
+
+Always reference the current-version documentation and CLI for the product line. The
+vendor file's version section says which version is current. Treat a fact confirmed
+only against a legacy-version doc as unverified.
 
 | Vendor | File | Covers |
 |---|---|---|
-| Cisco | [skills/vendor-matrix/cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS. Links out to [aci.md](skills/vendor-matrix/cisco/aci.md) (APIC/ACI), [nxos-vxlan.md](skills/vendor-matrix/cisco/nxos-vxlan.md) (NX-OS-native EVPN-VXLAN), [aci-vs-nxos-vxlan.md](skills/vendor-matrix/cisco/aci-vs-nxos-vxlan.md) (head-to-head), [nexus-752-architecture.md](skills/vendor-matrix/cisco/nexus-752-architecture.md) (7-5-2 design/limitations/upgrade), [nexus-hardware.md](skills/vendor-matrix/cisco/nexus-hardware.md) (Nexus hardware/EOL), [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) (ePBR), [nxos-gpo.md](skills/vendor-matrix/cisco/nxos-gpo.md) (GPO), [agenticops.md](skills/vendor-matrix/cisco/agenticops.md) (AgenticOps: agent-first IT ops model, Cloud Control/AI Canvas, MCP/A2A surfaces) |
-| Arista | [skills/vendor-matrix/arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
-| Juniper | [skills/vendor-matrix/juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
-| Huawei | [skills/vendor-matrix/huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
-| Extreme Networks | [skills/vendor-matrix/extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Universal Hardware, Switch Engine / Fabric Engine (VOSS/SPBm), SLX data center, ExtremeCloud IQ, Extreme Fabric |
-| Cato Networks | [skills/vendor-matrix/cato.md](skills/vendor-matrix/cato.md) | SASE/SSE tiers, private backbone and PoPs, Socket/vSocket models, site connection capability tiers, link SLA and redundancy models |
-| IBM | [skills/vendor-matrix/ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation, and capacity boundaries |
-| Netis | [skills/vendor-matrix/netis.md](skills/vendor-matrix/netis.md) | NPM, packet/service observability, BPC/wire-data APM, and Netis 42 |
-| Dynatrace | [skills/vendor-matrix/dynatrace.md](skills/vendor-matrix/dynatrace.md) | Host-agent and application-instrumented APM baseline, OpenTelemetry paths, RUM correlation |
-| NETSCOUT | [skills/vendor-matrix/netscout.md](skills/vendor-matrix/netscout.md) | nGeniusONE network-derived APM/service-assurance baseline and packet-collection architecture |
-
-**Writing back to vendors:**
-- **Splitting**: when a vendor's coverage spans genuinely distinct, non-interoperable
-  solutions (e.g. Cisco ACI vs. NX-OS-native EVPN-VXLAN), create a subfolder with a
-  hub file (`cisco/cisco.md`) and one file per solution. Only split when a real
-  second solution is confirmed — don't pre-create subfolders. The objective test: if
-  the vendor ships a feature under its own separately-versioned Configuration/Solution
-  Guide, it gets its own file here.
-- **Version scope**: always reference the current/latest-version documentation and
-  CLI for the product line in question. Older versions may differ in features, command
-  names, or defaults. A fact confirmed only against a legacy-version doc is
-  **unverified** until confirmed against the current version's documentation or a
-  live CLI. Per-product-line version details (which version is current, which is EOL)
-  live in the vendor file's version section, never duplicated here.
+| Cisco | [cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS; links to ACI, NX-OS VXLAN, GPO, Nexus hardware, 7-5-2, and AgenticOps files. ePBR: [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) |
+| Arista | [arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
+| Juniper | [juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
+| Huawei | [huawei.md](skills/vendor-matrix/huawei.md) | VRP, CloudEngine vs NetEngine, iMaster NCE |
+| Extreme Networks | [extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Switch Engine / Fabric Engine (VOSS/SPBm), SLX, ExtremeCloud IQ, Extreme Fabric |
+| Cato Networks | [cato.md](skills/vendor-matrix/cato.md) | SASE/SSE tiers, backbone and PoPs, Socket/vSocket, link SLA and redundancy |
+| IBM | [ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation |
+| Netis | [netis.md](skills/vendor-matrix/netis.md) | NPM, packet/service observability, BPC/wire-data APM, Netis 42 |
+| Dynatrace | [dynatrace.md](skills/vendor-matrix/dynatrace.md) | Host-agent and instrumented APM, OpenTelemetry paths, RUM correlation |
+| NETSCOUT | [netscout.md](skills/vendor-matrix/netscout.md) | nGeniusONE network-derived APM, packet-collection architecture |
 
 ### 4. Fetch RFCs and IETF drafts
 
 When a design claim hinges on a specific RFC or draft (normative behavior,
-MUST/SHOULD language, whether an extension is standards-track or still a draft),
-use `doc-fetcher`'s `fetch_rfc` / `fetch_draft` / `search_ietf` (see
-[mcp/doc-fetcher/](mcp/doc-fetcher/)) instead of relying on memory. RFC numbers
-and draft status are cheap to get wrong from recall and cheap to verify live.
+MUST/SHOULD language, standards-track vs. draft status), use `doc-fetcher`'s
+`fetch_rfc` / `fetch_draft` / `search_ietf` (see [mcp/doc-fetcher/](mcp/doc-fetcher/))
+instead of relying on memory. RFC numbers and draft status are cheap to get wrong from
+recall and cheap to verify live.
 
 ### 5. Fetch current vendor documentation
 
-When a claim depends on specifics that go beyond what [skills/vendor-matrix/](skills/vendor-matrix/)
-captures, or that may have changed (port speeds/counts, ASIC buffer size, feature
-support matrix, licensing tier), pull the vendor's own current documentation.
+When a claim depends on specifics that go beyond what
+[skills/vendor-matrix/](skills/vendor-matrix/) captures, or that may have changed (port
+speeds/counts, ASIC buffer size, feature support matrix, licensing tier), pull the
+vendor's own current documentation.
 
 | Resource type | Tool | Notes |
 |---|---|---|
@@ -207,6 +124,7 @@ support matrix, licensing tier), pull the vendor's own current documentation.
 | **Unknown URL** (need to discover) | `doc-fetcher` `search_web` | Discovery only (Brave Search, has a quota). Fetch the result URLs with `mcp-server-fetch` — never rely on snippets alone. |
 | **PDF or non-HTML** | `doc-fetcher` `fetch_doc` | Only when `mcp-server-fetch` can't handle the format. |
 | **IETF RFC/draft** | `doc-fetcher` `fetch_rfc` / `fetch_draft` / `search_ietf` | See step 4. |
+| **Huawei product documentation** | Local HedEx library | Do not fetch or search the web for it: it requires login. Read the library the user supplied; if the needed library is missing, ask the user. |
 
 ### 6. Design output
 
@@ -216,12 +134,9 @@ budget/licensing constraints. The `skills/` files describe the design space, not
 specific customer's constraints — ask if they're not given and materially change
 the recommendation.
 
-When a design needs a topology figure (read, edit, or create), first apply the
-plugin-agnostic conventions in
-[docs/network-topology-figures.md](docs/network-topology-figures.md), then use the
-selected implementation adapter. The current adapter is
-[plugins/drawio-mcp.md](plugins/drawio-mcp.md); it owns draw.io format, authoring,
-validation, export, and repository-handling rules.
+When a design needs a topology figure (read, edit, or create), first apply
+[docs/network-topology-figures.md](docs/network-topology-figures.md), then the
+implementation adapter [plugins/drawio-mcp.md](plugins/drawio-mcp.md).
 
 ## Boundaries
 
@@ -229,182 +144,58 @@ validation, export, and repository-handling rules.
   stays in this skill's prose, not in the tool. It has no write path — this repo
   targets solution design, not Day-2 operations. Anything that would touch a live
   device belongs in a different tool/repo.
-- Never write new files while a question is still open or uncertain. Confirm with
-  the user both that the issue is resolved and that it's genuinely network
-  architecture/design related before adding a file or a table row.
 
 ## Repo layout
 
-```
-net-architect/
-├── SKILL.md                 # Root entry point & design decision logic
-├── docs/
-│   └── network-topology-figures.md # Plugin-agnostic topology-figure conventions
-├── skills/
-│   ├── pocs/               # POC test findings, config traps, and operational lessons
-│   │   └── README.md       # Index — what each POC record covers
-│   ├── scenarios/           # Cross-technique composition (which techniques + in what order)
-│   │   ├── ai-gpu-training-cluster.md
-│   │   ├── campus-wan-edge-refresh.md
-│   │   ├── sdwan-sase-rollout.md
-│   │   ├── multi-site-workload-mobility.md
-│   │   └── silent-host-in-overlays.md
-│   ├── techniques/          # Atomic, one file per technique (flat, no domain grouping)
-│   │   ├── spine-leaf-clos.md
-│   │   ├── vxlan.md
-│   │   ├── evpn.md
-│   │   ├── multi-tenancy.md
-│   │   ├── roce.md
-│   │   ├── ai-gpu-fabric.md
-│   │   ├── core-agg-access.md
-│   │   ├── wireless.md
-│   │   ├── nac.md
-│   │   ├── poe.md
-│   │   ├── overlay-architecture.md
-│   │   ├── dia-local-breakout.md
-│   │   ├── sla-policies.md
-│   │   ├── sase.md
-│   │   ├── mpls.md
-│   │   ├── segment-routing.md
-│   │   ├── bgp.md
-│   │   ├── ospf-isis.md
-│   │   ├── stp.md
-│   │   ├── fhrp.md
-│   │   ├── qos.md
-│   │   ├── management-plane.md
-│   │   ├── npm.md
-│   │   ├── apm.md
-│   │   └── npm-apm.md
-│   └── vendor-matrix/       # Platform specs, ASICs, & capabilities
-│       ├── cisco/           # Hub + per-solution files for distinct products
-│       │   ├── cisco.md     # Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS
-│       │   ├── aci.md       # ACI/APIC: architecture, release history, Multi-Site PBR/NAT case
-│       │   ├── nxos-vxlan.md # NX-OS-native EVPN-VXLAN: architecture, release history
-│       │   ├── nxos-epbr.md # ePBR (own Config Guide, not a VXLAN feature): L4-7 redirect
-│       │   ├── nxos-gpo.md  # GPO (own whitepaper, unratified IETF drafts): tag-based microsegmentation
-│       │   ├── nexus-752-architecture.md # 7-5-2 design, limitations, upgrade path
-│       │   ├── nexus-hardware.md # Nexus hardware, models & EOL/lifecycle
-│       │   ├── aci-vs-nxos-vxlan.md # Head-to-head comparison + judgment call
-│       │   └── agenticops.md # AgenticOps: agent-first IT ops, Cloud Control, AI Canvas, MCP/A2A
-│       ├── arista.md
-│       ├── cato.md          # Cato Networks: SASE/SSE tiers, backbone, Sockets, link SLA
-│       ├── extreme-networks.md
-│       ├── juniper.md
-│       ├── huawei.md
-│       ├── ibm.md
-│       ├── netis.md
-│       ├── dynatrace.md
-│       └── netscout.md
-├── mcp/
-│   └── doc-fetcher/         # Pure retrieval tool (IETF RFCs, web search, vendor spec sheets)
-│       ├── index.ts
-│       └── package.json
-├── tools/                   # Local inspection and validation utilities
-│   ├── drawio_parse.py      # Decode pages and report topology structure
-│   └── drawio_validate.py   # XML/schema, references, geometry, and coverage checks
-└── plugins/                # Tooling submodules + per-plugin workflow docs
-    ├── drawio-mcp/         # Submodule: jgraph/drawio-mcp (draw.io XML reference library)
-    └── drawio-mcp.md       # Workflow: read/edit/create network topologies in draw.io format
-```
+`skills/` holds the library (`pocs/`, `scenarios/`, `techniques/`, `vendor-matrix/`).
+`docs/` holds on-demand guidance, `mcp/doc-fetcher/` the retrieval tool, `tools/` the
+draw.io validators, and `plugins/` the draw.io submodule and workflow.
 
 ## Agent behavior
 
 ### MCP server bootstrap
 
-When this skill is loaded, the agent must first read `.mcp.json` and verify every
-listed MCP server is installed and its tools are reachable. For each server that is
-missing or unreachable:
+When this skill is loaded, read `.mcp.json` and verify every listed MCP server is
+installed and reachable. If the agent has no MCP support, say so, skip live retrieval,
+and work from the library. Otherwise, for each server that isn't available:
 
-1. Attempt to install it (e.g., `npm install` in the server's directory, or `uv tool install`
-   for Python-based servers).
-2. If installation succeeds, re-verify the tools are available.
-3. If installation fails, surface the failure to the user immediately — do not silently
-   skip the fetch step. The user must be told which server failed and what was attempted.
+1. Attempt to install it (e.g., `npm install` in the server's directory, or
+   `uv tool install` for Python-based servers), then re-verify its tools.
+2. If installation fails, tell the user which server failed and what was attempted —
+   do not silently skip the fetch step.
 
-- **Do not update dependencies.** Never run `npm update`, `pip install --upgrade`, or any
-  command that modifies `package-lock.json`, `pnpm-lock.yaml`, `Pipfile`, `Cargo.lock`, or
-  equivalent lock/dependency files. The agent must only install missing MCP servers from
-  `.mcp.json`, not alter existing dependency versions.
+**Do not update dependencies.** Never run `npm update`, `pip install --upgrade`, or any
+command that modifies `package-lock.json`, `pnpm-lock.yaml`, `Pipfile`, `Cargo.lock`, or
+equivalent files. Only install servers missing from `.mcp.json`.
 
 ### Minimizing manual intervention
 
-- **No pagers, no prompts.** Every git command must bypass interactive
-  pagers and confirmations. Always use `git --no-pager` (or set
-  `GIT_PAGER=cat`) for commands that would launch a pager (log, diff, show,
-  blame). Pipe output to `cat` or redirect to a file when the tool doesn't
-  support `--no-pager`. Never issue a command that pauses for user input —
-  the agent must read all output programmatically without the user having to
-  press tab, down, or q.
-- **No heredocs, herestrings, or interactive shell constructs.** The
-  `execute_command` tool runs commands programmatically — heredocs
-  (`<<EOF` / `<<-EOF`), herestrings (`<<<`), and any construct that causes
-  the shell to prompt for continuation input (`dquote>`, `heredoc>`,
-  `quote>`) will freeze the terminal. Use `write_to_file` to write content
-  to a file and then reference the file path in the command. For short
-  inline content, pipe via `printf` or `echo` instead.
-- **Write back immediately.** After every external fetch (RFC, draft, vendor
-  doc, web search result), write the new fact into the matching skill file
-  before proposing the design. Do not accumulate facts in chat context — the
-  library must grow with each query so the next one doesn't re-fetch the same
-  information. **Keep changes uncommitted** — the user reviews and commits.
-- **List changes on startup.** At the beginning of each session, run
-  `git diff --stat` and `git diff` to show all uncommitted changes from prior
-  sessions so the user knows what's pending review.
-- **Resolve before creating.** Never create a new technique, scenario, or
-  vendor file while a question is still open or uncertain. Confirm with the
-  user both that the issue is resolved and that it's genuinely network
-  architecture/design related before adding a file or a table row.
-- **Don't ask what you can infer.** When the user gives a design request,
-  extract all implied constraints (scale, vendor, topology) from the request
-  itself before asking for clarifications. Only prompt the user when a missing
-  parameter materially changes the recommendation — and when you do ask, make
-  it a single consolidated question, not a back-and-forth.
-- **Verify heading conformance.** Before editing any file under
-  `skills/techniques/`, confirm the file contains the four mandatory `## `
-  headings from the [standard chapter layout](#2-techniques) above. The
-  heading names must match exactly — no synonyms, no rewording. A file may
-  have additional `## ` concept sections above these four, but all four must
-  be present and named exactly as in the template. If any is missing or
-  renamed, fix it.
-- **One turn, one deliverable.** When the user asks a design question, produce
-  a complete answer (design rationale, vendor recommendation if applicable,
-  citations) in a single response. Don't drip-feed partial answers across
-  multiple turns unless the user explicitly asks for iteration.
+- **No pagers, no prompts.** Every git command must bypass interactive pagers and
+  confirmations: use `git --no-pager` (or set `GIT_PAGER=cat`), and pipe to `cat` or a
+  file when a tool lacks that option. Never issue a command that pauses for user input.
+- **No heredocs, herestrings, or interactive shell constructs.** Shell commands run
+  programmatically — `<<EOF`, `<<<`, and anything that prompts for continuation
+  (`dquote>`, `heredoc>`, `quote>`) will freeze the terminal. Use your file-writing tool
+  and reference the file path, or pipe short content via `printf` or `echo`.
+- **Write back immediately.** After every external fetch (RFC, draft, vendor doc, web
+  search result), write the new fact into the matching skill file before proposing the
+  design. **Keep changes uncommitted** — the user reviews and commits.
+- **List changes on startup.** At the beginning of each session, run `git diff --stat`
+  to show uncommitted changes from prior sessions. Open the full diff only if needed.
+- **Don't ask what you can infer.** Extract implied constraints (scale, vendor,
+  topology) from the request first. Only prompt when a missing parameter materially
+  changes the recommendation, as a single consolidated question.
+- **One turn, one deliverable.** Answer a design question completely (rationale, vendor
+  recommendation if applicable, citations) in a single response unless the user
+  explicitly asks for iteration.
 
 ### Branch policy
 
 - **Never commit to `main`.** The `main` branch is protected — only the repo
   maintainer merges into it (via PR or locally), never the agent.
 - The agent works on a branch named by the `BRANCH_NAME` variable in `.env`.
-- **If `BRANCH_NAME` is unset or empty**, the agent must generate a UUID, write
-  the first 8 hex characters to `.env` as `BRANCH_NAME=agents/<short-uuid>`,
-  and reload the env before proceeding.
-- The agent must ensure its branch exists locally: `git checkout -b "$BRANCH_NAME"`
-  if it doesn't already exist.
+- **If `BRANCH_NAME` is unset or empty**, generate a UUID, write the first 8 hex
+  characters to `.env` as `BRANCH_NAME=agents/<short-uuid>`, and reload the env.
+- Ensure the branch exists locally: `git checkout -b "$BRANCH_NAME"` if it doesn't.
 - Before each session, sync from main: `git fetch origin && git merge origin/main`
-  (or rebase) to stay current.
-
-### Commit policy
-
-The agent does not commit autonomously — all file edits are left uncommitted
-unless the user explicitly asks. When asked to commit, the agent follows:
-
-- Commit author identity must come from the active `git config` (`git config
-  user.name` / `git config user.email` — repo-local config takes precedence over
-  global) at the time of the commit. Never source author name/email from any other
-  signal (session/environment metadata, chat context, memory, or guesswork). If
-  `git config` has no name/email set (locally or globally), stop and ask rather
-  than filling one in from elsewhere.
-- Every commit must carry a `Co-authored-by` trailer identifying the LLM that
-  performed the write, and a `Signed-off-by` trailer attributed to the author
-  identity resolved from the active `git config`.
-- Commit messages must conform to the [Conventional Commits](https://www.conventionalcommits.org/)
-  specification.
-- **Use `.git/COMMIT_MSG` for multi-line messages.** Never pass a multi-line
-  commit message with `git commit -m` — shell quoting fails on mixed quotes and
-  special characters. Heredocs are also prohibited (see [No heredocs](#minimizing-manual-intervention)
-  above). Instead, write the message to `.git/COMMIT_MSG` using
-  `write_to_file` (VS Code excludes `.git/` from file watchers, so no save
-  prompt) and commit with `git commit -F .git/COMMIT_MSG`. Single-line messages
-  are safe with `-m`. Do not use `/tmp/` paths — they trigger VS Code save
-  prompts.
+  (or rebase).
