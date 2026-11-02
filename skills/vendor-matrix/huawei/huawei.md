@@ -5,12 +5,13 @@ and device detail live in the linked files.
 
 | Domain | Device line | Current software | Legacy (do not reference) | Solution / controller |
 |---|---|---|---|---|
-| Data center fabric | [CloudEngine (CE series)](cloudengine.md) | V300 (V300R026C00 for CE9800/8800/6800) | V200 | [CloudFabric](cloudfabric.md) with iMaster NCE-Fabric |
+| Data center fabric | [CloudEngine (CE series)](cloudengine.md) | V300 (V300R026C00 for the CE9800/8800/6800 and CE16800 families) | V200 | [CloudFabric](cloudfabric.md) with iMaster NCE-Fabric |
 | Campus | S-series | V600 (V600R025C10) | V200 | iMaster NCE-Campus |
 | WAN | NetEngine (NE series) | — | — | iMaster NCE-IP |
+| Storage network | CloudEngine SAN models (box: CE6885-SAN, CE8855H-SAN, CE8865-SAN; chassis: CE16800-X) | Solution V100R025C10 | — | [Xinghe NoF+](nof-plus.md) with OceanStor Dorado |
 
 Version rule: see [SKILL.md](../../../SKILL.md#3-vendors). CloudEngine version
-sources are in [cloudengine.md](cloudengine.md#version-line-v300-current-v200-legacy).
+sources are in [cloudengine.md](cloudengine.md#version-line-v300).
 
 Campus and data center product lines run different OS trains — do not conflate
 them. V600 on campus S-series is not the same CLI or feature set as V300 on
@@ -19,24 +20,38 @@ CloudEngine.
 ## Documentation sources
 
 support.huawei.com requires login, so a URL cannot verify a Huawei product
-documentation fact. This is an exception to the URL requirement in
-[docs/authoring.md](../../../docs/authoring.md#source-annotations):
+documentation fact — the single exception to the URL requirement in
+[docs/authoring.md](../../../docs/authoring.md#source-annotations).
 
-- **Document ID**: the ID depends on which audience Huawei publishes the document for.
-  - **After-sales** (Support portal, HedEx product documentation): a document ID
-    (`EDOC...`).
-  - **Pre-sales** (solution design guides, technical presentations): an item ID
-    (`itemId`, a 32-character hex string).
-- **Citing**: the References entry records the document or library title, its
-  document ID or item ID, product or solution version, issue number, issue date, the
-  table-of-contents path (or slide number) to the section, and the date it was last
-  confirmed.
-- **Origin**: a document or software package outside a HedEx library records where
-  Huawei publishes it: its document ID or item ID, its software release ID, or the
-  package that contains it. Do not write "supplied by the user". If the origin is
-  unknown, ask the user for it before citing.
-- **Verifying**: read that section in a local copy of the HedEx library. Do not fetch
-  or search the web for it; if the library is missing, ask the user.
+**One identifier per audience tier:**
+
+- **After-sales** (Support portal, HedEx product documentation): an `EDOC...` document ID.
+- **Pre-sales** (solution design guides, technical presentations): an `itemId`, a
+  32-character hex string.
+
+**Precedence — after-sales outranks pre-sales** whenever both cover the same claim:
+
+- Read after-sales first: device product documentation for the version and model, then
+  solution deployment guides. It states published behaviour.
+- Pre-sales material is written ahead of the product and often not revisited when it
+  changes, so cite it only for what it alone can state: solution version history,
+  compatibility matrices, positioning and cost comparisons, reference customers, and
+  design-level recommendations the product documentation does not carry.
+- Never repeat a pre-sales figure that an after-sales document contradicts or narrows.
+  Replace it from the after-sales source, or record both and mark which is which — and
+  in any file that mixes the tiers, mark the tier per claim.
+
+**Every References entry** records the title, its `EDOC` or `itemId`, product or solution
+version, issue number, issue date, the table-of-contents path (or slide number) to the
+section, and the date last confirmed. A document or package outside a HedEx library
+additionally records where Huawei publishes it: its software release ID, or the package
+that contains it.
+
+- **Never invent an identifier.** If an ID, a library, or an origin is missing, ask the
+  user for it rather than searching for one, and do not fall back to a local mirror's
+  folder name or write "supplied by the user".
+- **Verification** is a read of that section in a local copy of the HedEx library. Do not
+  fetch or search the web for Huawei documentation.
 - **Converting**: a library ships as a single `.hdx` file. Convert it with
   [huawei-hdx-converter.py](https://gist.github.com/chenmicro/3f1008e180af05f7ee45fa739cfa133f)
   (`python3 huawei-hdx-converter.py library.hdx`), which writes a `library_web/`
@@ -75,6 +90,10 @@ documentation fact. This is an exception to the URL requirement in
   their respective DC fabrics, with additional variants/modules extending into
   campus (NCE-Campus) and WAN (NCE-IP) domains. The data center variant,
   NCE-Fabric, is covered in [cloudfabric.md](cloudfabric.md).
+- FabricInsight, the NCE analyzer, is a separate product with its own documentation and
+  its own release line. It owns the O&M claims in [nof-plus.md](nof-plus.md): read it for
+  what the analyzer reports, and the switch documentation for what the switch measures and
+  exports.
 - Procurement note relevant to design conversations rather than technical
   ones: Huawei networking equipment is subject to restrictions or outright
   bans in a number of jurisdictions and for certain customer sectors

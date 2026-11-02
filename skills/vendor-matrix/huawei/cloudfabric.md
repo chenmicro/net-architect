@@ -20,7 +20,7 @@ See the [Huawei hub](huawei.md) for other product lines.
 | CloudFabric feature | Device-side reference |
 |---|---|
 | Fabric underlay and overlay | [Role and capabilities](cloudengine.md#role-and-capabilities) |
-| Software release scope | [Version line](cloudengine.md#version-line-v300-current-v200-legacy) |
+| Software release scope | [Version line](cloudengine.md#version-line-v300) |
 
 ## Digital Map (iMaster NCE-Fabric)
 

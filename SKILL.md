@@ -61,6 +61,8 @@ apply. Each file is a single atomic technique.
 | Multi-Tenancy (DC) | [multi-tenancy.md](skills/techniques/multi-tenancy.md) | VRF-lite, route-target import/export, VNI numbering |
 | RoCE | [roce.md](skills/techniques/roce.md) | RDMA over Ethernet, RoCEv2, PFC/ECN/DCQCN, iWARP vs. InfiniBand, Verbs |
 | AI/GPU Fabric | [ai-gpu-fabric.md](skills/techniques/ai-gpu-fabric.md) | Lossless Ethernet, rail-optimized topology, NSLB, InfiniBand vs. Ethernet |
+| Fibre Channel (FC) | [fibre-channel.md](skills/techniques/fibre-channel.md) | FC stack and frame format, FLOGI/PLOGI, name server, zoning, RSCN, buffer-to-buffer credits, 64G/128G FC |
+| NVMe over Fabrics (NoF) | [nvme-of.md](skills/techniques/nvme-of.md) | NVMe transports (FC, RoCEv2, TCP), FC SAN vs. lossless-Ethernet SAN, dual-plane multipathing |
 | Core/Aggregation/Access | [core-agg-access.md](skills/techniques/core-agg-access.md) | Three-tier vs. collapsed-core, L2/L3 boundary, redundancy |
 | Wireless | [wireless.md](skills/techniques/wireless.md) | WLC architecture, AP density, RF planning, Wi-Fi 6E/7 |
 | NAC | [nac.md](skills/techniques/nac.md) | 802.1X, MAB, dynamic VLAN/RADIUS, SGT/TrustSec |
@@ -97,7 +99,7 @@ only against a legacy-version doc as unverified.
 | Cisco | [cisco/cisco.md](skills/vendor-matrix/cisco/cisco.md) | Hub: CVDs, Silicon One, Catalyst vs Nexus, IOS-XE vs NX-OS; links to ACI, NX-OS VXLAN, GPO, Nexus hardware, 7-5-2, and AgenticOps files. ePBR: [nxos-epbr.md](skills/vendor-matrix/cisco/nxos-epbr.md) |
 | Arista | [arista.md](skills/vendor-matrix/arista.md) | EOS/SysDB, CloudVision, Broadcom merchant silicon, low-latency (7130) |
 | Juniper | [juniper.md](skills/vendor-matrix/juniper.md) | JVDs, Junos/Junos Evolved, Mist AI, MX vs PTX |
-| Huawei | [huawei/huawei.md](skills/vendor-matrix/huawei/huawei.md) | Hub: product lines by domain, VRP, iMaster NCE, doc sources; links to [cloudfabric.md](skills/vendor-matrix/huawei/cloudfabric.md) (NCE-Fabric, Digital Map, DCI) and [cloudengine.md](skills/vendor-matrix/huawei/cloudengine.md) (device capability, V300) |
+| Huawei | [huawei/huawei.md](skills/vendor-matrix/huawei/huawei.md) | Hub: product lines by domain, VRP, iMaster NCE, doc sources; links to [cloudfabric.md](skills/vendor-matrix/huawei/cloudfabric.md) (NCE-Fabric, Digital Map, DCI) and [cloudengine.md](skills/vendor-matrix/huawei/cloudengine.md) (device capability, V300, SAN vs. standard feature differences, DPCF licensing), and [nof-plus.md](skills/vendor-matrix/huawei/nof-plus.md) (Xinghe storage network: iNOF, RPFR/DPFR, intra-city lossless) |
 | Extreme Networks | [extreme-networks.md](skills/vendor-matrix/extreme-networks.md) | Switch Engine / Fabric Engine (VOSS/SPBm), SLX, ExtremeCloud IQ, Extreme Fabric |
 | Cato Networks | [cato.md](skills/vendor-matrix/cato.md) | SASE/SSE tiers, backbone and PoPs, Socket/vSocket, link SLA and redundancy |
 | IBM | [ibm.md](skills/vendor-matrix/ibm.md) | QRadar QFlow collection, application identification, flow correlation |
