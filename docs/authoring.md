@@ -8,8 +8,10 @@ where they go, and when a file may be created or split.
 Every fact pulled from an external source must carry an IEEE-style numbered citation
 in square brackets at the point of use — e.g., `[1]`, `[2]` — with a corresponding
 `## References` section at the end of the file listing the full source details in
-order of first appearance. Never delete or renumber an existing citation; new sources
-get the next available number.
+order of first appearance. A citation that text depends on is never deleted or
+renumbered; new sources get the next available number. An entry that no text cites is
+dead weight — remove it, then renumber the rest so the list stays sequential by first
+appearance.
 
 Sources fall into two categories with different handling:
 
