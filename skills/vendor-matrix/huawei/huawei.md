@@ -25,14 +25,18 @@ documentation fact — the single exception to the URL requirement in
 
 **One identifier per audience tier:**
 
-- **After-sales** (Support portal, HedEx product documentation): an `EDOC...` document ID.
+- **After-sales** (Support portal, HedEx product and solution documentation): an `EDOC...`
+  document ID.
 - **Pre-sales** (solution design guides, technical presentations): an `itemId`, a
   32-character hex string.
 
 **Precedence — after-sales outranks pre-sales** whenever both cover the same claim:
 
-- Read after-sales first: device product documentation for the version and model, then
-  solution deployment guides. It states published behaviour.
+- Read after-sales first. Inside after-sales, **solution documentation outranks product
+  documentation**: the solution guide states what the solution deploys and supports, and
+  the device or product documentation for the version and model supplies published
+  behaviour behind it. Where the two differ, follow the solution document and keep the
+  product document's wording only when it adds a constraint the solution text omits.
 - Pre-sales material is written ahead of the product and often not revisited when it
   changes, so cite it only for what it alone can state: solution version history,
   compatibility matrices, positioning and cost comparisons, reference customers, and
