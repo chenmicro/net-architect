@@ -124,7 +124,7 @@ there is nothing for STP to block — the port-channel is a single logical link
 with no redundant path.
 
 - **Cisco vPC side**: `spanning-tree bpdufilter enable` on the port-channel
-- **Huawei M-LAG side**: `stp disable` on the Eth-Trunk [5]
+- **Huawei M-LAG side**: `stp disable` on the Eth-Trunk [4]
 
 This is the only PVST+-safe L2 interconnection without migrating to MSTP. It
 requires strict operational discipline — a second inter-pair port-channel (or
@@ -194,11 +194,7 @@ second path is planned, both sides must migrate to MSTP first.
     Amendment to 802.1Q: Virtual Bridged Local Area Networks — Multiple
     Spanning Trees."
 
-[4] IEEE 802.1Q-2018, "IEEE Standard for Local and Metropolitan Area
-    Networks — Bridges and Bridged Networks." (MSTP was merged into this base
-    standard in the 2018 revision and is no longer a separate amendment.)
-
-[5] Huawei, "Configuring M-LAG Through the Root Bridge," CX320 Switch Module
+[4] Huawei, "Configuring M-LAG Through the Root Bridge," CX320 Switch Module
     V100R001 Configuration Guide.
     *Changeable* — verify at Huawei CloudEngine configuration guides:
     https://support.huawei.com/enterprise/en/

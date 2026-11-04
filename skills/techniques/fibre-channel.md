@@ -38,9 +38,9 @@ FC defines five levels [1, §2.3], [2, slide 8]:
 - The value of SOF selects the class of service.
 - The CRC is 32-bit, using the FDDI polynomial [1, §2.3].
 - **Error correction before the CRC**: Brocade Gen 8 uses dual forward error correction
-  (FEC), which corrects some bit errors so they never reach the CRC check [4]. The CRC
+  (FEC), which corrects some bit errors so they never reach the CRC check [2]. The CRC
   above is what catches the rest. Whether a Cisco module offers an equivalent FEC, or a
-  link-level retransmission option, is not checked here [5].
+  link-level retransmission option, is not checked here [3].
 - The data field carries up to 2112 octets [1, §2.3], [2, slide 9].
 
 The 24-octet header [2, slide 9], [1, §2.3–2.4]:
@@ -65,7 +65,7 @@ The 24-octet header [2, slide 9], [1, §2.3–2.4]:
   - Class 3: datagram;
   - Class 4: fractional bandwidth;
   - Class 6: reliable multicast.
-  - Switches commonly support Class 2, Class 3, and Class F (switch-to-switch) [4].
+  - Switches commonly support Class 2, Class 3, and Class F (switch-to-switch) [2].
 
 ## Addressing, login, and fabric services
 
@@ -94,7 +94,7 @@ The 24-octet header [2, slide 9], [1, §2.3–2.4]:
 - **Routing**:
   - Fabric Shortest Path First (FSPF) computes paths across arbitrary topologies of up
     to 239 switches [2, slide 20].
-  - Cisco MDS load-balances across up to 16 equal-cost paths [5].
+  - Cisco MDS load-balances across up to 16 equal-cost paths [3].
 
 ### Plug-and-play
 
@@ -152,13 +152,13 @@ configuring it.
     causes drops.
   - **What is vendor-specific**: how many buffers a port or port group owns, how many
     of them one long-distance port may claim, and how the switch recovers lost credits.
-    - Cisco publishes a 16,000-credit ceiling per 64G port [5], which is also its
+    - Cisco publishes a 16,000-credit ceiling per 64G port [3], which is also its
       long-distance limit.
     - Brocade pools a port group's buffers and lets one long-distance E_Port claim the
       unreserved ones: 22,338 unreserved credits per 64-port group on a G720, or 16,578
       when QoS is not enabled. Allocation is `portCfgLongDistance`, with separate credit
       recovery, and Extended Fabrics adds DWDM metro links with in-flight compression and
-      encryption on ISLs [4], [9].
+      encryption on ISLs [2], [7].
     - The mechanism is identical; the pool sizes are not.
 - **Slow drain**: a slow or congested device holds credits, which backs up traffic
   toward it.
@@ -194,7 +194,7 @@ configuring it.
   - **Rule of thumb**: with 2 KB frames, plan about half the link speed in Gbit/s of
     credits per km of link, at every generation. A 100 km 64GFC ISL therefore needs
     roughly 3,000 credits per port.
-  - **Brocade documents the same rule** [9]: buffers for distance = distance × link
+  - **Brocade documents the same rule** [7]: buffers for distance = distance × link
     speed ÷ 2, plus 6 credits reserved for fabric services (and 14 more with QoS). A
     50 km 32G link is `50 × 32 ÷ 2 + 6 = 806` credits. Read per kilometre, that is
     speed ÷ 2 — the estimate above — so it is safe to quote as a vendor figure in a
@@ -208,14 +208,14 @@ configuring it.
       Plan on the higher number.
   - **No published 128G per-port maximum.** Brocade's credit tables stop at 64G
     (57.8 Gbit/s line rate), and the Cisco module documented here is 64G per port
-    [5], [9]. So size a 128G link against its port group's unreserved pool, and
+    [3], [7]. So size a 128G link against its port group's unreserved pool, and
     confirm the per-port ceiling with the vendor.
   - **Frame size sets the number**, not just speed: credits scale inversely with frame
     size, so 512-byte I/Os need about four times as many as 2 KB. A storage workload's
     real I/O size is the input that matters most. Brocade expresses the same thing by
     inflating the distance: `desired_distance = real distance × 2112 ÷ average payload`,
-    so a 1024-byte average payload doubles the credits [9].
-  - **Cross-check**: Cisco's 16,000-credit ceiling [5] covers about 500 km at 2 KB
+    so a 1024-byte average payload doubles the credits [7].
+  - **Cross-check**: Cisco's 16,000-credit ceiling [3] covers about 500 km at 2 KB
     frames and about 140 km at 512 bytes by this estimate.
   - **Credits are per link, not end to end.** Each hop buffers its own frames, so only
     the long ISLs need the extra credits; short hops on either side do not pool their
@@ -232,28 +232,28 @@ configuring it.
 | 128GFC | 24850 | 56.1 GBd PAM-4 | 2022 | 2024 |
 | 256GFC | 49700 | 112.2 GBd PAM-4 | 2025 | Market demand |
 
-Source: [3].
+Source: [1].
 
 - **The throughput column counts both directions.** A 64GFC link's 28.9 GBd PAM-4 line
   rate carries 57.8 Gbit/s, which is 7.2 GB/s, so 12,800 MB/s cannot be a one-way
   payload rate. Half of each figure in the table is the per-direction payload rate.
   Credit sizing (see [Flow control](#flow-control)) works from the per-direction rate,
   so halve these numbers before using them there.
-- Each generation is backward compatible with at least the two before it [3].
+- Each generation is backward compatible with at least the two before it [1].
 - Shipping examples:
   - Brocade Gen 8 G820: 56 × 128G ports, 580 ns local-switching latency at 128G, and
-    autosensing 128/64/32/16G [4].
-  - Cisco MDS 9700: 48 × 64G per module, autosensing 64/32/16/8G [5].
+    autosensing 128/64/32/16G [2].
+  - Cisco MDS 9700: 48 × 64G per module, autosensing 64/32/16/8G [3].
 
 ## Standards access
 
 - **Who maintains the standards**: T11 maintains them; the FC industry association
-  (FCIA) does not [6].
+  (FCIA) does not [4].
 - **Getting them**:
   - Published standards are bought from INCITS, through the ANSI eStandards Store or
-    Accuris (Techstreet) [6], [7].
-  - Drafts are free to download only during public review [7].
-- **Host support**: FC support is included in Linux distributions [8].
+    Accuris (Techstreet) [4], [5].
+  - Drafts are free to download only during public review [5].
+- **Host support**: FC support is included in Linux distributions [6].
 - **What this means**: FC is an open standard in the same sense as RoCE. Anyone may
   implement it, but the specification text is not free. The practical constraint is
   the dedicated hardware ecosystem.
@@ -262,7 +262,7 @@ Source: [3].
 
 The two FC switch vendors are Broadcom (Brocade) and Cisco (MDS):
 
-| | Brocade Gen 8 (G820) [4] | Cisco MDS 9700 64G module [5] |
+| | Brocade Gen 8 (G820) [2] | Cisco MDS 9700 64G module [3] |
 |---|---|---|
 | Fastest port | 128G | 64G |
 | Fabric partitioning | Zoning (default, port/WWN, peer, target-driven), Integrated Routing | Zoning (enhanced, Smart Zoning), VSANs, Inter-VSAN Routing |
@@ -273,9 +273,9 @@ The two FC switch vendors are Broadcom (Brocade) and Cisco (MDS):
 
 - **NVMe/FC**:
   - Defined by INCITS as FC-NVMe (INCITS 540-2018) and FC-NVMe-2 (INCITS 556-2020)
-    [5].
+    [3].
   - It runs on the same fabric, zoning, and name server as SCSI FCP.
-  - Both vendors' current platforms support it [4], [5].
+  - Both vendors' current platforms support it [2], [3].
 
 ## Design considerations
 
@@ -300,20 +300,16 @@ The two FC switch vendors are Broadcom (Brocade) and Cisco (MDS):
 
 ## References
 
-[1] C. DeSanti, "Transmission of IPv6 Packets over Fibre Channel," IETF RFC 3831, July 2004, §2 "Summary of Fibre Channel." [Online]. Available: https://www.rfc-editor.org/rfc/rfc3831
+[1] "The Fibre Channel Roadmap," Fibre Channel Industry Association, updated 2023-08-07. [Online]. Available: https://fibrechannel.org/roadmap/ (FC speed roadmap table; last confirmed 2026-11-02)
 
-[2] A. J. Casamento (Broadcom) and E. Mazurek (Cisco), "SAN Overview: How Fibre Channel Hosts & Targets Really Communicate," SNIA Networking Storage Forum webcast, 2021-09-23. [Online]. Available: https://www.snia.org/sites/default/files/ESF/How-Fibre-Channel-Hosts-Targets-Communicate-Final.pdf (last confirmed 2026-11-02)
+[2] "Brocade G820 Switch Product Brief," Broadcom, G820-Switch-PB103, 2026-06-12. [Online]. Available: https://docs.broadcom.com/doc/G820-Switch-PB (Highlights, Advanced Security, and Specifications: Performance, Maximum Fabric Latency, Classes of Service, Fabric Services and Features, Long Distance, Security, Management and Monitoring; last confirmed 2026-11-02)
 
-[3] "The Fibre Channel Roadmap," Fibre Channel Industry Association, updated 2023-08-07. [Online]. Available: https://fibrechannel.org/roadmap/ (FC speed roadmap table; last confirmed 2026-11-02)
+[3] "Cisco MDS 9700 48-Port 64-Gbps Fibre Channel Switching Module Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/storage-networking/mds-9700-series-multilayer-directors/datasheet-c78-2466559.html (Product overview, Main benefits, Table 1 Protocols; last confirmed 2026-11-02)
 
-[4] "Brocade G820 Switch Product Brief," Broadcom, G820-Switch-PB103, 2026-06-12. [Online]. Available: https://docs.broadcom.com/doc/G820-Switch-PB (Highlights, Advanced Security, and Specifications: Performance, Maximum Fabric Latency, Classes of Service, Fabric Services and Features, Long Distance, Security, Management and Monitoring; last confirmed 2026-11-02)
+[4] "Specifications (T11 Committee)," Fibre Channel Industry Association. [Online]. Available: https://fibrechannel.org/specifications-t11-committee/ (last confirmed 2026-11-02)
 
-[5] "Cisco MDS 9700 48-Port 64-Gbps Fibre Channel Switching Module Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/storage-networking/mds-9700-series-multilayer-directors/datasheet-c78-2466559.html (Product overview, Main benefits, Table 1 Protocols; last confirmed 2026-11-02)
+[5] "Purchase Standards or Download dpANS," INCITS. [Online]. Available: https://www.incits.org/standards-information/purchase-standards-or-download-dpans (last confirmed 2026-11-02)
 
-[6] "Specifications (T11 Committee)," Fibre Channel Industry Association. [Online]. Available: https://fibrechannel.org/specifications-t11-committee/ (last confirmed 2026-11-02)
+[6] "FC-NVMe for Containerized Machine Learning Q&A," Fibre Channel Industry Association. [Online]. Available: https://fibrechannel.org/fc-nvme/ ("Fibre Channel is included in the Linux distributions"; last confirmed 2026-11-02)
 
-[7] "Purchase Standards or Download dpANS," INCITS. [Online]. Available: https://www.incits.org/standards-information/purchase-standards-or-download-dpans (last confirmed 2026-11-02)
-
-[8] "FC-NVMe for Containerized Machine Learning Q&A," Fibre Channel Industry Association. [Online]. Available: https://fibrechannel.org/fc-nvme/ ("Fibre Channel is included in the Linux distributions"; last confirmed 2026-11-02)
-
-[9] "Brocade Fabric OS Administration Guide, 9.2.x," Broadcom. [Online]. Available: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/v26761894.html (Buffer-to-Buffer Credits and Credit Recovery: "Calculating the Number of Buffers Required Based on Full-Size Frames" and "Allocating Buffer Credits Based on Average-Size Frames"; "Buffer Credits per Switch or Blade Model"; "Fibre Channel Gigabit Values Reference Definition"; last confirmed 2026-11-02)
+[7] "Brocade Fabric OS Administration Guide, 9.2.x," Broadcom. [Online]. Available: https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-administration/9-2-x/v26761894.html (Buffer-to-Buffer Credits and Credit Recovery: "Calculating the Number of Buffers Required Based on Full-Size Frames" and "Allocating Buffer Credits Based on Average-Size Frames"; "Buffer Credits per Switch or Blade Model"; "Fibre Channel Gigabit Values Reference Definition"; last confirmed 2026-11-02)

@@ -223,9 +223,9 @@ shows SYN sent but no SYN-ACK received.
 
 **Fix** (corrected against the CloudEngine V300R026C00 documentation, 2026-10; not
 lab-tested): BGP over M-LAG uses a separate session to each member, on the VLANIF
-interface for the M-LAG, with each member using its own M-LAG IP as the source [4].
+interface for the M-LAG, with each member using its own M-LAG IP as the source [1].
 Configure the same primary IP and virtual MAC on both members, a different M-LAG IP on
-each, and routed proxy ARP. Peer the firewall with both M-LAG IPs [4].
+each, and routed proxy ARP. Peer the firewall with both M-LAG IPs [1].
 
 ```
 # On CE-1 (on CE-2, use 172.16.100.4 as the M-LAG IP and BGP source)
@@ -254,9 +254,9 @@ router bgp 65010
 ```
 
 If BGP imports direct routes, add a routing policy so the M-LAG IPs aren't
-advertised [4]. The CE6885 is on the supported model list for `m-lag ip address` [4].
+advertised [1]. The CE6885 is on the supported model list for `m-lag ip address` [1].
 
-**Verification**: Run `display bgp peer` on both members [4], then repeat TC-02.
+**Verification**: Run `display bgp peer` on both members [1], then repeat TC-02.
 
 ### ISSUE-02: BGP established but no routes on FW
 
@@ -332,13 +332,7 @@ display bgp evpn all routing-table | include 0.0.0.0/0
 
 ## References
 
-[1] "Example for Configuring Segment VXLAN to Implement Layer 2 Interworking (Local VNI Mode)," CloudEngine 16800 Series Typical Configuration Examples, Huawei. [Online]. Available: https://support.huawei.com/enterprise/en/doc/EDOC1000039339/6c964738/example-for-configuring-segment-vxlan-to-implement-layer-2-interworking-local-vni-mode
-
-[2] "M-LAG Configuration Guide," CloudEngine 8800 V300R025C10, Huawei. [Online]. Available: https://support.huawei.com/enterprise/en/switches/cloudengine-8800-pid-252837183
-
-[3] "ASA/FTD BGP Configuration Guide," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/support/security/asa-5500-series-next-generation-firewalls/products-installation-and-configuration-guides-list.html
-
-[4] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation,"
+[1] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation,"
 Huawei, V300R026C00, Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611778, login required). Verify in:
 Configuration > Configuration Guide > High Availability Configuration > M-LAG
 Configuration > Configuring a Dynamic Routing Protocol for Communication with an M-LAG >

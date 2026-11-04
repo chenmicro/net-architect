@@ -82,7 +82,7 @@ PID on EOX [11]):
 Net: **all six are past end-of-sale (2018/2020) and past end-of-support (2023/
 2025)** — and Cisco's official replacements (EX/FX line cards) are not in the FEX
 matrix's 9500 table at all, i.e. they do not support FEX. The "N9500 as FEX
-parent" path is closed even with refurbished hardware [14]–[19].
+parent" path is closed even with refurbished hardware [14]–[15].
 
 ## Nexus 9500 (modular spine / core)
 
@@ -95,21 +95,21 @@ chassis EOL as of 2026-08; re-verify per PID on EOX [11].
   C9516-FM; FM-S for the X9432C-S, FM-E/E2 for cloud-scale cards, FM-R for
   R-series) — line-card traffic is load-balanced across all fabric modules and
   survives a fabric-module loss at reduced capacity; chassis bandwidth up to
-  172.8 Tbps [20], [21].
-- **Supervisors**: N9K-SUP-A (EOL, last order 2020-11-27 [24]), N9K-SUP-A+,
-  N9K-SUP-B, N9K-SUP-B+ [20].
+  172.8 Tbps [16], [17].
+- **Supervisors**: N9K-SUP-A (EOL, last order 2020-11-27 [20]), N9K-SUP-A+,
+  N9K-SUP-B, N9K-SUP-B+ [16].
 - **Line cards** (three generations):
   - *Classic*: X9432PQ (32×40G), X9536PQ/X9636PQ/X9736PQ (36×40G), X9464PX/
     X9564PX (48×1/10G + 4×40G), X9564TX/X9464TX2 (48×10G-T + 4×40G), X9432C-S
     (32×100G). **These are the only 9500 line cards that support FEX** — and only
     the six classic PQ/PX cards (X9432PQ, X9464PX, X9536PQ, X9564PX, X9564TX,
     X9636PQ) appear in the FEX matrix's 9500 table; X9464TX2 and X9736PQ do not
-    [13], [21]. All six are EOL and past end-of-support (see the EOL table above)
-    [14]–[19].
+    [13], [17]. All six are EOL and past end-of-support (see the EOL table above)
+    [14]–[15].
   - *Cloud-scale EX/FX/GX* (X9700-EX/FX/GX, with FM-E/E2): current generation,
-    1/10/25/40/50/100G — **not FEX-capable** [22].
+    1/10/25/40/50/100G — **not FEX-capable** [18].
   - *R-series* (X9624D-R2, X9636C-RX, X9636C-R, X9636Q-R, with FM-R): high-density
-    100/40G with deep buffers for the 9504/9508 — not FEX-capable [23].
+    100/40G with deep buffers for the 9504/9508 — not FEX-capable [19].
 - **FEX capability bottom line**: FEX is possible only on the six classic PQ/PX
   cards, all now past end-of-support; every current line card and every official
   replacement for the classic cards is excluded from the FEX matrix ("The switches
@@ -158,22 +158,14 @@ chassis EOL as of 2026-08; re-verify per PID on EOX [11].
 
 [14] "End-of-Sale and End-of-Life Announcement for the Cisco N9K-X9564TX Linecard On Cisco Nexus 9500" (EOL11903), Cisco, 2017 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-739496.html (accessed 2026-08-13).
 
-[15] "End-of-Sale and End-of-Life Announcement for the Cisco N9K-X9564PX Linecard On Cisco Nexus 9500" (EOL11904), Cisco, 2017 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-739497.html (accessed 2026-08-13).
+[15] "End-of-Sale and End-of-Life Announcement for the Cisco Nexus 9500 48p 1/10G SFP+ plus 4p QSFP line card - N9K-X9464PX" (EOL13402), Cisco, 2020 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-743849.html (accessed 2026-08-13).
 
-[16] "End-of-Sale and End-of-Life Announcement for the Cisco N9K-X9536PQ Linecard On Cisco Nexus 9500" (EOL11902), Cisco, 2017 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-739495.html (accessed 2026-08-13).
+[16] "Cisco Nexus 9500 Series Switches Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-729404.html (accessed 2026-08-13).
 
-[17] "End-of-Sale and End-of-Life Announcement for the Cisco N9K-X9636PQ Linecard On Cisco Nexus 9500" (EOL11905), Cisco, 2017 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-739498.html (accessed 2026-08-13).
+[17] "Cisco Nexus 9500 Classic Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-741336.html (accessed 2026-08-13).
 
-[18] "End-of-Sale and End-of-Life Announcement for the Cisco Nexus 9500 32p 40G QSFP aggregation line card - N9K-X9432PQ" (EOL13403), Cisco, 2020 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-743851.html (accessed 2026-08-13).
+[18] "Cisco Nexus 9500 Cloud-Scale Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-736677.html (accessed 2026-08-13).
 
-[19] "End-of-Sale and End-of-Life Announcement for the Cisco Nexus 9500 48p 1/10G SFP+ plus 4p QSFP line card - N9K-X9464PX" (EOL13402), Cisco, 2020 (amended). [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-743849.html (accessed 2026-08-13).
+[19] "Cisco Nexus 9500 R-Series Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-738321.html (accessed 2026-08-13).
 
-[20] "Cisco Nexus 9500 Series Switches Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-729404.html (accessed 2026-08-13).
-
-[21] "Cisco Nexus 9500 Classic Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-741336.html (accessed 2026-08-13).
-
-[22] "Cisco Nexus 9500 Cloud-Scale Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-736677.html (accessed 2026-08-13).
-
-[23] "Cisco Nexus 9500 R-Series Line Cards and Fabric Modules Data Sheet," Cisco. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/datasheet-c78-738321.html (accessed 2026-08-13).
-
-[24] "End-of-Sale and End-of-Life Announcement for the Cisco Nexus 9500 4-Core/4-Thread Supervisor - N9K-SUP-A," Cisco, 2020. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-743848.html (accessed 2026-08-13).
+[20] "End-of-Sale and End-of-Life Announcement for the Cisco Nexus 9500 4-Core/4-Thread Supervisor - N9K-SUP-A," Cisco, 2020. [Online]. Available: https://www.cisco.com/c/en/us/products/collateral/switches/nexus-9000-series-switches/eos-eol-notice-c51-743848.html (accessed 2026-08-13).

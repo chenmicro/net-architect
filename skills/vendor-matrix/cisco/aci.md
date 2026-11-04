@@ -46,7 +46,7 @@ This is the mechanism behind "unknown unicast is flooded as multicast" in ACI.
 Cisco's vocabulary is **FTAG (Forwarding Tag) tree** and **BD GIPo** (Group IP
 Outer, shown as `bcastP` on the `fvBD` object [10]). The FTAG is not a separate
 header field — it is encoded in the encapsulated packet's destination multicast
-address [18].
+address [16].
 
 This section covers how the fabric **forwards** multi-destination traffic. What
 it does when the destination is unknown to COOP — gleaning — builds on the same
@@ -57,28 +57,28 @@ machinery and is covered in **Silent host detection** below.
 - Everything in the fabric is VXLAN-encapsulated, and **all multi-destination
   traffic** from endpoints — broadcast, multicast, and unknown unicast when
   flooding is enabled — is carried through the fabric as **encapsulated IP
-  multicast** [18].
+  multicast** [16].
 - The **ingress leaf assigns the FTAG** when it forwards the frame to the
-  spine; spine and transit leaves then forward on the FTAG ID [18].
+  spine; spine and transit leaves then forward on the FTAG ID [16].
 - **One forwarding tree per FTAG ID**, and **between any two nodes only one
   link forwards per FTAG**. That is what makes the trees loop-free. Parallel
   equal-cost links are exploited by giving different FTAGs different links, so
-  more FTAG trees means better multi-destination load spreading [18].
+  more FTAG trees means better multi-destination load spreading [16].
 - The fabric supports **up to 12 FTAGs**. Trees are rooted on spines and the
   roots are chosen by the APIC during bring-up, where **multiple roots can sit
   on one spine** (so "one spine = one FTAG" is wrong). Root placement is
   **configuration-driven and is not re-rooted on run-time events such as a
   spine failure**; the trees are recalculated on any topology change, and an
-  administrator can re-anchor FTAGs when spines are added or removed [18].
+  administrator can re-anchor FTAGs when spines are added or removed [16].
 - The **BD GIPo** is the multicast group its flooded traffic is sent to. The
   address APIC displays is a **/28 network address** (last four bits zero); the
   FTAG occupies those four bits on the wire, which is how the destination
   selects one of **16 possible trees** (the fabric supports up to 12) [11],
-  [22]. Allocation and membership are in the next subsection.
+  [20]. Allocation and membership are in the next subsection.
 - The FTAG ID is chosen by a **payload hash (documented range 0–12)**, so the
   value is unpredictable and varies per flow even for the same ingress leaf and
   BD GIPo. That variability is the load-balancing mechanism, not a per-BD
-  constant [19].
+  constant [17].
 
 So the FTAG count is a **BUM load-spreading dimension**, not a per-BD setting:
 the tree set is fabric-wide and APIC-configured, and the per-flow hash decides
@@ -90,9 +90,9 @@ Allocation is **implicit — there is no user-sized multicast pool**. APIC deriv
 GIPos from configuration: **one GIPo for the VRF and one GIPo for every BD under
 that VRF**, and a GIPo **may be shared between multiple BDs or between multiple
 VRFs, but never between a VRF and a BD**. IS-IS was extended to build trees for
-the VRF and BD GIPos as well as handling the VRF group [22].
+the VRF and BD GIPos as well as handling the VRF group [20].
 
-Which traffic uses which group [22]:
+Which traffic uses which group [20]:
 
 | Traffic | BD without multicast routing | PIM/PIM6-enabled BD |
 |---|---|---|
@@ -102,11 +102,11 @@ Which traffic uses which group [22]:
 
 So enabling tenant routed multicast moves tenant **multicast** traffic onto the
 VRF GIPo, while broadcast and unknown-unicast flooding stay on the BD GIPo
-[22]. What moves is only the **outer transport group**: the tenant's own
+[20]. What moves is only the **outer transport group**: the tenant's own
 multicast group address stays in the inner packet, and which host ports receive
 the stream is still decided per BD by IGMP snooping (enabled by default in ACI)
-[19], [22]. VRF-group membership is VRF-wide — every leaf where the VRF is
-deployed [23] — so the transport copy reaches more leaves than a BD group would,
+[17], [20]. VRF-group membership is VRF-wide — every leaf where the VRF is
+deployed [21] — so the transport copy reaches more leaves than a BD group would,
 and the egress leaf prunes with its snooping state. A receiver in another BD
 consumes the stream only if L3 multicast routing forwards it there; the choice
 of GIPo does not create that reachability by itself.
@@ -115,36 +115,36 @@ of GIPo does not create that reachability by itself.
 where that BD is deployed; other leaves can hold a **TRANSIT** entry and forward
 toward the deployed leaves without decapsulating. `show isis internal mcast
 routes gipo` labels each group `[LOCAL]` (deployed here) or `[TRANSIT]`
-(pass-through) [19]. In practice a BD is deployed on a leaf when at least one
+(pass-through) [17]. In practice a BD is deployed on a leaf when at least one
 EPG of that BD has a binding there — static path binding, VMM/domain
 association, or the peer of a vPC pair — and Cisco describes the flood as
-reaching "all the nodes where a bridge domain is deployed" [17]. The VRF GIPo
+reaching "all the nodes where a bridge domain is deployed" [15]. The VRF GIPo
 follows the same rule one level up: it is programmed on all leaf switches where
-the VRF is deployed, and TRM multicast is received by all of them [23].
+the VRF is deployed, and TRM multicast is received by all of them [21].
 
 **Two different address roles — and why they do not collide.** A leaf's **TEP**
 is a **unicast** address from the TEP pool (default `10.0.0.0/16`, infra VRF),
 while a **GIPo** is a **multicast destination** in the outer IP header — never
-an address assigned to a leaf interface [22], [26]. The GIPo pool is a fabric
+an address assigned to a leaf interface [20], [24]. The GIPo pool is a fabric
 setup parameter, not a per-BD choice: APIC asks for it at bring-up, defaults to
 **225.0.0.0/15**, and constrains it to **225.0.0.0/15 – 231.254.0.0/15 with
 prefix length 15** (128k addresses), so the pool always sits in multicast space,
-separate from unicast pools [26]. A leaf "joining" a group is therefore routing
-state — a `[LOCAL]` or `[TRANSIT]` GIPo entry — not an interface address [19].
+separate from unicast pools [24]. A leaf "joining" a group is therefore routing
+state — a `[LOCAL]` or `[TRANSIT]` GIPo entry — not an interface address [17].
 
 Practical rules:
 
 - Keep the GIPo pool distinct from the TEP pool, infra/management addressing,
   and routed space. The address families do not overlap by design, and the
-  setup-validated range keeps the pool in multicast space [26].
+  setup-validated range keeps the pool in multicast space [24].
 - In **Multi-Pod**, the IPN's PIM **bidir** range must include the fabric's GIPo
   pool (default `225.0.0.0/15`) **and** `239.255.255.240/28` for glean, or BUM
-  and glean stop crossing pods [27].
+  and glean stop crossing pods [25].
 - Many leaves joining one group is normal, not a conflict: the VNID inside the
   encapsulation identifies the BD/VRF, and APIC may even share one GIPo across
-  BDs [22].
+  BDs [20].
 - The same GIPo may be reused across **Multi-Site** sites — identical group
-  addresses on two sites are not a conflict [26].
+  addresses on two sites are not a conflict [24].
 - A tenant multicast group (inner) can numerically match a GIPo (outer) without
   a protocol conflict, because they are different headers; keep them distinct
   in capture filters and monitoring so the two layers are not confused.
@@ -153,14 +153,14 @@ Practical rules:
 
 Cisco documents that sharing **can** happen but not what triggers it: "any given
 GIPo might be shared between multiple BDs or multiple VRFs, but not a
-combination of VRFs and BDs. APIC will be required to ascertain this" [22].
+combination of VRFs and BDs. APIC will be required to ascertain this" [20].
 There is **no user-facing knob**, so sharing is never a design action — you
 cannot request, size, or prevent it, and it should not be planned around.
 
 Why it is harmless: the outer group is only the delivery mechanism, while the
 inner VNID identifies the segment, so the receiving leaf forwards per VNID.
 Sharing therefore does not leak one BD's flood into another; the group is a bus,
-the VNID is the address [18], [22].
+the VNID is the address [16], [20].
 
 The trigger is undocumented. The likely drivers — an identical deployment
 footprint (same member leaves, so delivery is unchanged) and conservation or
@@ -169,9 +169,9 @@ reuse of the multicast address space — are unconfirmed.
 Operational consequences:
 
 - Do not use `bcastP` as a BD key in monitoring or tooling — two BDs showing the
-  same GIPo is legal, not a fault [22].
+  same GIPo is legal, not a fault [20].
 - `show isis internal mcast routes gipo` lists the group once; its `[LOCAL]`
-  leaves are the union of the sharing BDs'/VRFs' deployments [19].
+  leaves are the union of the sharing BDs'/VRFs' deployments [17].
 
 ### Proxy or flood is a per-BD setting
 
@@ -186,16 +186,16 @@ packet and is covered in **Silent host detection** below [10].
 
 Changing a BD between the two modes **bounces traffic** on the interfaces
 attached to that BD's EPGs, so schedule it rather than treating it as a live
-tweak [17]. Cisco's guidance is not "always flood": the best-practices summary
+tweak [15]. Cisco's guidance is not "always flood": the best-practices summary
 recommends **Flood** only when **unicast routing is disabled**, or when **L2 is
-extended through non-ACI switches** (for example during a migration) [20].
+extended through non-ACI switches** (for example during a migration) [18].
 
 **The published default is contradictory — verify it per BD instead of quoting
 one.** The 6.2(x) Fundamentals storm-control text states that BD Layer 2
 unknown-unicast flooding "is enabled by default within the BD but can be
 disabled by an administrator," while the same release's Layer 2 guide calls
 hardware-proxy the optimized mode and the best-practices summary treats
-flooding as the exception [17], [18], [20]. Read the value rather than assuming
+flooding as the exception [15], [16], [18]. Read the value rather than assuming
 it:
 
 ```
@@ -204,7 +204,7 @@ moquery -c fvBD -f 'fv.BD.name=="<bd>"' | grep -E "unkMacUcastAct|bcastP|multiDs
 
 `unkMacUcastAct` is `proxy` or `flood` [10]. The GUI location is
 Tenant > Networking > Bridge Domains > Policy > General > L2 Unknown Unicast
-[20].
+[18].
 
 ### Multiple EPGs in one BD
 
@@ -213,7 +213,7 @@ multicast **group** is per BD — so an EPG never gets a tree of its own. Every
 EPG in the same BD shares that BD's GIPo and therefore the same flood scope.
 Cisco states the default directly: ACI "uses the bridge domain as the Layer 2
 broadcast boundary," each BD can contain multiple EPGs, and "ordinarily ...
-broadcast flooding sends traffic to all the EPGs in the bridge domain" [21].
+broadcast flooding sends traffic to all the EPGs in the bridge domain" [19].
 
 With default settings, multiple EPGs in one BD mean:
 
@@ -221,24 +221,24 @@ With default settings, multiple EPGs in one BD mean:
   **Flood** — unknown unicast all ride the BD's GIPo and are delivered to every
   EPG's ports in that BD. **Contracts do not scope this:** Cisco notes that
   with several EPGs in one BD, "multicast traffic flood in all EPGs regardless
-  of contracts in place between EPGs" [19].
+  of contracts in place between EPGs" [17].
 - ARP/GARP follow the same scope when ARP Flooding is enabled, so ARP is
   visible across the EPGs of the BD.
 - The blast radius of a broadcast or unknown-unicast storm is the **whole BD**,
   not the EPG. Storm control is applied per port, so it caps ingress rate
-  rather than removing the flood domain [18].
+  rather than removing the flood domain [16].
 - EPGs stay policy containers inside one L2 domain: putting an endpoint in a
   different EPG does not give it a different broadcast or learning domain
-  [21].
+  [19].
 
 **To scope flooding to the EPG, use Flood in Encapsulation** — the BD
 `Multi Destination Flooding` setting (`multiDstPktAct=encap-flood`, NX-OS-style
 CLI `multi-destination encap-flood`) or the per-EPG `Flood in Encapsulation`
 setting (`flood-on-encapsulation`). It limits flooding to a single VLAN/VXLAN
 encapsulation, and a per-EPG setting takes precedence over the BD setting
-[21]. From APIC 3.1(1) on EX/FX-and-later switches, **all** protocols are
+[19]. From APIC 3.1(1) on EX/FX-and-later switches, **all** protocols are
 flooded in encapsulation (ARP, GARP, and BUM, not just broadcast); from
-3.2(5), VXLAN-encapsulated EPGs are supported [21].
+3.2(5), VXLAN-encapsulated EPGs are supported [19].
 
 | Flood in Encapsulation | Behavior |
 |---|---|
@@ -246,7 +246,7 @@ flooded in encapsulation (ARP, GARP, and BUM, not just broadcast); from
 | BD off, EPG on | Flooding scoped to encapsulation for that EPG's VLAN/VXLAN only |
 | BD off, EPG off (default) | Flooding within the entire BD |
 
-Two constraints matter in design [21]:
+Two constraints matter in design [19]:
 
 - It requires a BD **subnet and IP routing**, because ACI enables **proxy
   ARP** so endpoints in different EPGs/VLANs of the same BD can still reach
@@ -270,20 +270,20 @@ keeping one BD while stopping cross-EPG flooding.
   Switching the BD to flood removes the drop-on-miss step; it does not make a
   silent receiver answer.
 - Flooding means the frame is carried on the BD's multicast tree to every leaf
-  attached to that tree, rather than resolved to a single egress leaf [17],
-  [18]. Storm control only counts L2 unknown unicast when the BD is flooding
-  [18].
+  attached to that tree, rather than resolved to a single egress leaf [15],
+  [16]. Storm control only counts L2 unknown unicast when the BD is flooding
+  [16].
 - FTAG selection is per payload hash, not per BD, so FTAG values cannot be used
   as a tenant/VRF identifier, and one BD's flood traffic spreads across several
-  trees [19].
+  trees [17].
 - A GIPo is a transport group, not a BD identifier: APIC may share one GIPo
   across several BDs, or across several VRFs, but not between a BD and a VRF
-  [22]. Don't build monitoring or troubleshooting logic that maps one multicast
+  [20]. Don't build monitoring or troubleshooting logic that maps one multicast
   group to exactly one BD — the VNID inside the encapsulation still identifies
   the BD.
 - This is **not** EVPN head-end replication: an NX-OS/Arista EVPN-VXLAN fabric
   replicates BUM at the ingress VTEP or uses an underlay multicast group per
-  BD, with no FTAG concept [14], [18].
+  BD, with no FTAG concept [12], [16].
 
 ## Silent host detection (ARP gleaning / GIPo tree)
 
@@ -303,9 +303,9 @@ spines separately distributes remote-pod endpoint reachability [9], [10].
 
 `239.255.255.240` is the fabric's **System GIPo**, reserved for glean messages
 — the CLI shows it as `System GIPo ... Operational: 239.255.255.240` — not the
-BD GIPo and not the individually allocated VRF GIPo [10], [19]. Keep the three
+BD GIPo and not the individually allocated VRF GIPo [10], [17]. Keep the three
 apart: the BD/VRF groups and their tree mechanics are in **BUM and
-unknown-unicast forwarding** above [22]; this group carries infrastructure
+unknown-unicast forwarding** above [20]; this group carries infrastructure
 control traffic.
 
 - Glean requests are flooded **fabric-wide** to the group, but only egress
@@ -314,9 +314,9 @@ control traffic.
   cannot resolve a silent endpoint this way [10].
 - The base is a /28 (`239.255.255.240/28`), so the FTAG is added into the last
   nibble exactly as for any other GIPo — the capture below shows the wire
-  destination as `.241`, i.e. base plus FTAG 1 [24].
+  destination as `.241`, i.e. base plus FTAG 1 [22].
 - VRF multicast used for tenant routed multicast is a separate feature; see
-  [11], [22].
+  [11], [20].
 
 The current Fundamentals guide describes multicast/FTAG forwarding but does
 not specify a distinct per-VRF glean tree or the complete glean packet format.
@@ -329,9 +329,9 @@ TRM chapter [11].
 239.0.0.0/8, which RFC 3171 describes as "for local use within a domain" and
 for which "no IANA assignment policy is required"; RFC 2365 further defines
 239.255.0.0/16 as the IPv4 **Local Scope**, whose traffic "must not be
-forwarded across any link for which a scoped boundary is defined" [28], [29].
+forwarded across any link for which a scoped boundary is defined" [26], [27].
 The IANA registry lists 239/8 as a single block and assigns no sub-range for
-ACI [30]. So Cisco's "reserved" is a **vendor convention** honoured inside the
+ACI [28]. So Cisco's "reserved" is a **vendor convention** honoured inside the
 ACI fabric — plus, in Multi-Pod, a configuration requirement on the IPN's bidir
 range — not an address the registry protects.
 
@@ -341,18 +341,18 @@ Two consequences:
   standard. The avoidance mechanism is the **operator's domain address plan**
   and RFC 2365 scope boundaries: list `239.255.255.240/28` in the LLD as
   "ACI fabric-internal control group — do not assign", and include it in the
-  IPN's bidir range [27]. No configuration knob for the group is documented,
+  IPN's bidir range [25]. No configuration knob for the group is documented,
   so it cannot be moved.
 - The default GIPo pool has a different status worth knowing: `225.0.0.0/15`
   lies inside the block RFC 3171 lists as **RESERVED**
   (225.0.0.0–231.255.255.255), and its §11 says applications "MUST NOT use
-  addressing in the IANA reserved blocks" [29]. Treat GIPo as strictly
+  addressing in the IANA reserved blocks" [27]. Treat GIPo as strictly
   fabric/IPN-internal and never leak or route it into shared networks.
 
 ### Glean packet on the wire
 
 Cisco's own glean capture (`tcpdump` on the CPU pseudo-interface, decoded with
-`knet_parser.py`) shows, outermost to innermost [24]:
+`knet_parser.py`) shows, outermost to innermost [22]:
 
 | Layer | Sample contents |
 |---|---|
@@ -365,29 +365,29 @@ Cisco's own glean capture (`tcpdump` on the CPU pseudo-interface, decoded with
 
 Note the outer group: **.241 = the reserved base .240 plus FTAG 1** — the glean
 uses the same FTAG-in-the-last-nibble scheme as any other GIPo, so the base is a
-/28 and the wire destination varies within it [24].
+/28 and the wire destination varies within it [22].
 
 **Does it carry the BD?** It carries the **VNID**, which is the forwarding
 context: the **BD VNID for bridged traffic** and the **VRF's L3 VNID for routed
 traffic**, since ACI assigns one L3 VNID per tenant VRF and, at the egress leaf,
-routes from that L3 VNID to the egress subnet's VNID [25]. The sample VNID
+routes from that L3 VNID to the egress subnet's VNID [23]. The sample VNID
 (`0x2b0000`) sits in the `0x2xxxxx` range the same deck shows for VRF VNIDs and
 the captured flow is routed, which is consistent with an L3 VNID; the deck does
 not label the field, so that mapping is inferred from the flow type rather than
-documented per case [24].
+documented per case [22].
 
 There is **no separate BD field on the wire**. For a routed glean the egress leaf
 matches the destination IP against the BD subnets it has deployed — the event log
 reads `Address in PSVI subnet or special VIP` / `Dst IP is in BD subnet` — which
 is exactly why only subnet-owning leaves respond [10]. For a same-subnet,
 ARP-triggered glean the VNID would be the BD VNID; that follows from the L2
-forwarding model but is **not** shown in the available captures [24], [25].
+forwarding model but is **not** shown in the available captures [22], [23].
 
 Switch-internal headers carry more than the wire does: a capture on the CPU
 pseudo-interface shows an `ieth` header with `bd:0x120e`, `outer_bd:0x27` and
 `sup_code: ISTACK_SUP_CODE_SPINE_GLEAN(0x21)`. Those are internal ASIC/CPU
 metadata, not fabric fields. In practice, `tcpdump -xxxvei kpm_inb ether proto
-0xfff2` is the quick way to see gleans, and `knet_parser.py` decodes them [24].
+0xfff2` is the quick way to see gleans, and `knet_parser.py` decodes them [22].
 
 Decode order at the egress leaf, and what each field can and cannot tell it:
 
@@ -395,7 +395,7 @@ Decode order at the egress leaf, and what each field can and cannot tell it:
    this only gets the packet onto the fabric's multicast tree, so every member
    switch receives it. It says nothing about which BD or VRF.
 2. **VXLAN (iVXLAN) VNID** — the tenant context: the **BD VNID** for bridged
-   traffic, the **VRF's L3 VNID** for routed traffic [25].
+   traffic, the **VRF's L3 VNID** for routed traffic [23].
 3. **Inner EtherType `0xfff2`** — this is what marks the payload as a **glean**
    rather than tenant data. The VNID alone does not say "glean"; a normal
    VXLAN-encapsulated tenant frame differs only here (and in being punted to
@@ -431,7 +431,7 @@ Multi-Pod, the IPN must carry the reserved glean multicast group defined above
 
 Doc 222179's overview describes routed-IP gleaning while its "Use Case 2"
 different-BD example says gleaning is not relevant. The wording is unresolved;
-no known-destination assumption should be inferred [9], [15], [16].
+no known-destination assumption should be inferred [9], [13], [14].
 
 The endpoint-learning white paper was rechecked on **2026-10-16**. Although its
 page update is June 9, 2026, it explicitly scopes feature coverage to **5.2(1g)**.
@@ -439,7 +439,7 @@ It therefore does not establish an introduction in 1.0(1e), or unchanged behavio
 through 6.2(2). Those historical/current-release assertions remain unverified [9].
 The 6.2(x) Fundamentals guide confirms current distributed-gateway and FTAG
 architecture; it is not proof that every historical glean detail is unchanged
-[14].
+[12].
 
 ## Multi-Site: stretched workload with per-site NAT
 
@@ -625,11 +625,7 @@ the fabric, the destination multicast GIPo address will be an address within thi
 block and is used to select one of 16 FTAG trees"; COOP repo synchronization for
 PIM on bootup. Last confirmed Aug 2026.
 
-[12] "ACI Fundamentals — Forwarding Within the ACI Fabric," Cisco, Release 3.x and earlier. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/1-x/aci-fundamentals/b_ACI-Fundamentals/b_ACI-Fundamentals_chapter_010010.html — "The ACI fabric uses Forwarding Tag (FTAG) trees to load balance multi-destination traffic. All multi-destination traffic is forwarded in the form of encapsulated IP multicast traffic within the fabric." Last confirmed Aug 2026.
-
-[13] "Configure the L2 Multicast in ACI," Cisco Support, Doc ID 217712. [Online]. Available: https://www.cisco.com/c/en/us/support/docs/software/aci-data-center/217712-configure-the-l2-multicast-in-aci.html — FTAG tree for L2 traffic, spine replication, relationship to IS-IS. Last confirmed Aug 2026.
-
-[14] "Forwarding Within the ACI Fabric," Cisco Application Centric
+[12] "Forwarding Within the ACI Fabric," Cisco Application Centric
 Infrastructure Fundamentals, Release 6.2(x), updated Mar. 25, 2026. [Online].
 Available: https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/aci-fundamentals/cisco-aci-fundamentals-62x/fundamentals-62x.html
 — verify "Layer 3 VNIDs Facilitate Transporting Inter-subnet Tenant Traffic"
@@ -637,7 +633,7 @@ and "Multicast Tree Topology": distributed gateway, FTAG assignment in the
 multicast destination address, and configurable roots with multiple tree roots
 possible on one spine. Rechecked Oct. 16, 2026.
 
-[15] S. Garg, "Understand ARP Flooding and ARP Gleaning in ACI," Cisco TAC,
+[13] S. Garg, "Understand ARP Flooding and ARP Gleaning in ACI," Cisco TAC,
 Doc ID 222179, updated July 23, 2024. [Online]. Available:
 https://www.cisco.com/c/en/us/support/docs/technical-details/222179-understand-arp-flooding-and-arp-gleaning.html
 — verify "Understanding ARP Flooding," use cases 3–5, and "Understanding ARP
@@ -647,14 +643,14 @@ a general rule; its intended endpoint-resolution assumption is unconfirmed.
 Both gleaning workflow diagrams were visually inspected on recheck.
 No specific current software release is stated for these workflows.
 
-[16] "ACI Multi-Pod White Paper," Cisco, updated May 9, 2022, discussion
+[14] "ACI Multi-Pod White Paper," Cisco, updated May 9, 2022, discussion
 around Figures 35–36 in "Inter-Pods VXLAN Data Plane." [Online]. Available:
 https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-737855.html
 — independent definition of ACI ARP gleaning as fabric-generated ARP from
 the BD IP to resolve an unknown endpoint. Rechecked Oct. 16, 2026 for
 terminology; not a blanket validation of current-release implementation details.
 
-[17] "Bridge Domains and Subnets," Cisco APIC Layer 2 Networking Configuration
+[15] "Bridge Domains and Subnets," Cisco APIC Layer 2 Networking Configuration
 Guide, Release 6.2(x), updated July 7, 2026. [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l2-configuration/cisco-apic-layer-2-networking-configuration-guide-62x/bridging-62x/bridge-domain-subnets.html
 — verify "Bridge domain options" and the packet-behavior table: L2 Unknown
@@ -663,7 +659,7 @@ over the multicast tree of the bridge domain (GIPo); optimized mode =
 hardware-proxy, where frames go to the spine-proxy anycast VTEP address;
 switching flood to hw-proxy is disruptive to traffic in the BD. Checked 2026-10-19.
 
-[18] "Forwarding Within the ACI Fabric," Cisco ACI Fundamentals, Release
+[16] "Forwarding Within the ACI Fabric," Cisco ACI Fundamentals, Release
 6.2(x), updated Mar. 25, 2026 — "Multicast Tree Topology" and "Traffic storm
 control" sections. [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/aci-fundamentals/cisco-aci-fundamentals-62x/fundamentals-62x.html
@@ -676,9 +672,9 @@ Also verify "Traffic storm control": the statement that BD Layer 2
 unknown-unicast flooding "is enabled by default within the BD but can be
 disabled by an administrator," and that storm control covers L2 unknown unicast
 only when that flooding is enabled. Checked 2026-10-19. The default statement
-conflicts with [17] and [20].
+conflicts with [15] and [18].
 
-[19] "Configure the L2 Multicast in ACI," Cisco Support, Doc ID 217712.
+[17] "Configure the L2 Multicast in ACI," Cisco Support, Doc ID 217712.
 [Online]. Available:
 https://www.cisco.com/c/en/us/support/docs/software/aci-data-center/217712-configure-the-l2-multicast-in-aci.html
 — verify the verification section: FTAG IDs assigned by the payload hash
@@ -689,7 +685,7 @@ statement that with multiple EPGs sharing one BD, L2 multicast floods in all
 EPGs regardless of contracts. Checked 2026-10-19. Lab scope: Release 4.2(7q)
 on N9K-C93180YC-FX; CLI field names are version-scoped.
 
-[20] "Cisco ACI Best Practices Quick Summary," Cisco — "L2 Unknown Unicast"
+[18] "Cisco ACI Best Practices Quick Summary," Cisco — "L2 Unknown Unicast"
 section. [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/cisco-aci-best-practices-quick-summary.html
 — L2 Unknown Unicast decides between flooding frames for an unknown MAC and
@@ -697,7 +693,7 @@ sending them to a spine for COOP lookup; best practice is Flood when unicast
 routing is disabled or when L2 is extended through non-ACI switches; GUI path
 Tenant > Networking > Bridge Domains > Policy > General. Checked 2026-10-19.
 
-[21] "Flood in Encapsulation for All Protocols and Proxy ARP Across
+[19] "Flood in Encapsulation for All Protocols and Proxy ARP Across
 Encapsulations," Cisco APIC Layer 2 Networking Configuration Guide, Release
 6.2(x), updated July 7, 2026. [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l2-configuration/cisco-apic-layer-2-networking-configuration-guide-62x/bridging-62x/flood-in-encapsulation-for-all-protocols.html
@@ -714,7 +710,7 @@ Flood in Encapsulation; NX-OS-style CLI `multi-destination encap-flood` (BD)
 and `flood-on-encapsulation` (EPG); the service-node/load-balancer example
 where proxy ARP and flood in encapsulation do not take place. Checked 2026-10-19.
 
-[22] "VRF GIPo Allocation," Cisco APIC Layer 3 Networking Configuration Guide,
+[20] "VRF GIPo Allocation," Cisco APIC Layer 3 Networking Configuration Guide,
 Release 6.2(x). [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-62x/ip-multicast-layer3-config-62x/allocating-vrf-gipo.html
 — verify: one GIPo for the VRF and one for every BD under it; GIPo sharing
@@ -725,7 +721,7 @@ the VRF GIPo once PIM/PIM6 is enabled on the BD); the displayed address is
 always a /28 network address with the last four bits zero, and the wire
 destination inside that /28 selects one of 16 FTAG trees. Checked 2026-10-19.
 
-[23] "Tenant Routed Multicast," Cisco APIC Layer 3 Networking Configuration
+[21] "Tenant Routed Multicast," Cisco APIC Layer 3 Networking Configuration
 Guide, Release 6.2(x). [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-62x/ip-multicast-layer3-config-62x/l3-multicast.html
 — verify "Traffic forwarding differences": the VRF GIPo is programmed on all
@@ -733,7 +729,7 @@ leaf switches where the VRF is deployed, TRM packets are received by all of
 them, and remote leaf switches use unicast head-end replication instead.
 Checked 2026-10-19.
 
-[24] J. Young, "ACI Technical Leader," Cisco Live EMEA 2023, BRKDCN-3900 —
+[22] J. Young, "ACI Technical Leader," Cisco Live EMEA 2023, BRKDCN-3900 —
 slides "Overlay iVXLAN" (15), "Capturing a Glean with Tcpdump" (36), and
 "Layer 3 Unicast – Glean Scenario" (38). [Online]. Available:
 https://www.ciscolive.com/c/dam/r/ciscolive/emea/docs/2023/pdf/BRKDCN-3900.pdf
@@ -748,7 +744,7 @@ The 2025 edition carries the same slide:
 https://www.ciscolive.com/c/dam/r/ciscolive/emea/docs/2025/pdf/BRKDCN-3900.pdf
 Conference deck: slide numbers may shift between editions.
 
-[25] "Layer 3 VNIDs Facilitate Transporting Inter-subnet Tenant Traffic,"
+[23] "Layer 3 VNIDs Facilitate Transporting Inter-subnet Tenant Traffic,"
 Cisco APIC Layer 3 Networking Configuration Guide, Release 6.2(x). [Online].
 Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-62x/aci-forwarding-layer3-config-62x/l3-vnids-facilitate-transport-intersubnet-tenant-traffic.html
@@ -757,7 +753,7 @@ transported across the fabric according to the L3 VNID, and at the egress leaf
 switch, ACI routes the packet from the L3 VNID to the VNID of the egress
 subnet." Checked 2026-10-19.
 
-[26] "Initial Setup," Cisco APIC Getting Started Guide, Release 6.1(x).
+[24] "Initial Setup," Cisco APIC Getting Started Guide, Release 6.1(x).
 [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/getting-started/cisco-apic-getting-started-guide-61x/initial-setup-60x.html
 — verify the setup table rows: "IP address pool for bridge domain multicast
@@ -767,7 +763,7 @@ same across Multi-Site sites; and "IP address pool for tunnel endpoint
 addresses … 10.0.0.0/16 … for the infrastructure VRF only." Checked 2026-10-19
 (6.1(x) edition; confirm the prompt and defaults in the target release).
 
-[27] "Configure Multi-Pod Provisioning," Cisco APIC Layer 3 Networking
+[25] "Configure Multi-Pod Provisioning," Cisco APIC Layer 3 Networking
 Configuration Guide, Release 6.2(x). [Online]. Available:
 https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-62x/multipod-layer3-config-62x/configure-multi-pod-provisioning.html
 — verify the IPN steps: enable PIM; "Add bridge domain GIPO range as PIM
@@ -775,14 +771,14 @@ Bidirectional (bidir) group range (default is 225.0.0.0/15)"; "Add
 239.255.255.240/28 as PIM bidir group range"; enable PIM and IGMP on the
 interfaces connected to all spines. Checked 2026-10-19.
 
-[28] D. Meyer, "Administratively Scoped IP Multicast," BCP 23, RFC 2365,
+[26] D. Meyer, "Administratively Scoped IP Multicast," BCP 23, RFC 2365,
 July 1998. [Online]. Available:
 https://www.rfc-editor.org/rfc/rfc2365.txt — §4 defines the administratively
 scoped space as 239.0.0.0–239.255.255.255; §6.1 defines 239.255.0.0/16 as the
 IPv4 Local Scope and requires that scoped traffic not be forwarded across a
 scope boundary. Checked 2026-10-19.
 
-[29] Z. Albanna, K. Almeroth, D. Meyer, and M. Schipper, "IANA Guidelines for
+[27] Z. Albanna, K. Almeroth, D. Meyer, and M. Schipper, "IANA Guidelines for
 IPv4 Multicast Address Assignments," BCP 51, RFC 3171, August 2001. [Online].
 Available: https://www.rfc-editor.org/rfc/rfc3171.txt — §2 table lists
 225.0.0.0–231.255.255.255 as RESERVED and 239/8 as the Administratively Scoped
@@ -790,7 +786,7 @@ Block; §9 says 239/8 addresses "are for local use within a domain" and that
 "no IANA assignment policy is required"; §11 says applications "MUST NOT use
 addressing in the IANA reserved blocks." Checked 2026-10-19.
 
-[30] "IPv4 Multicast Address Space Registry," Internet Assigned Numbers
+[28] "IPv4 Multicast Address Space Registry," Internet Assigned Numbers
 Authority. [Online]. Available:
 https://www.iana.org/assignments/multicast-addresses/ — lists
 225.0.0.0–231.255.255.255 as RESERVED and 239.0.0.0–239.255.255.255 as a single
