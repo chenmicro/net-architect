@@ -25,7 +25,10 @@ See the [Huawei hub](huawei.md) for other product lines.
 ## Digital Map (iMaster NCE-Fabric)
 
 An iMaster NCE-Fabric O&M feature that builds topology views and path navigation from
-collected network data [1][2].
+collected network data [1]. Digital Map runs in the MDC scenario: only the MDC solution
+documentation covers it, and the fabric-scenario solution documentation carries no Digital Map
+topics at all [2]. Data sources, device coverage, and limits are in
+[digital-map.md](digital-map.md).
 
 ## DCI and cross-vendor interconnect
 
@@ -65,19 +68,30 @@ speak MP-BGP EVPN at the border (e.g. Arista, Juniper, NX-OS EVPN-VXLAN),
 the same Segment VXLAN model applies with the foreign fabric presenting an
 EVPN Multi-Site border gateway.
 
+## iMaster NCE-Fabric releases
+
+C00 releases are LTS, and C10 releases are normal releases.
+A C00 release can be reached from the two previous C00 releases and the C10
+releases between them. A C10 release can be reached only from the C00 of the
+same release. The upgrade guides fit this rule:
+
+| Target | One-click upgrade from |
+|---|---|
+| V100R026C00SPC100 | V100R024C00, V100R024C10, V100R025C00, V100R025C10 |
+| V100R025C10SPC180 | V100R025C00 |
+| V100R025C10SPC100 | V100R025C00 |
+
 ## References
 
-[1] "iMaster NCE-Fabric Product Documentation," Huawei, V100R025C00, Issue 04,
-Jun. 30, 2026 (HedEx library EDOC1100509727, login required). Verify in: Digital Map Usage
-Guide (Overview, Licensing Requirements, Fundamentals, Path Navigation, Topology
-Restoration, FAQ); Restrictions and Precautions > Digital Map Constraints and
-Precautions; Getting Started > Functions. Confirmed Oct. 31, 2026.
+[1] "Stellar AI Fabric Data Center Network Solution Product Documentation (MDC Scenario),"
+Huawei, V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100612446 (verify at
+support.huawei.com HedEx, `docid=EDOC1100612446`). Verify in: Digital Map > Digital Map Usage
+Guide > Overview. Confirmed Nov. 4, 2026.
 
-[2] "iMaster NCE-Fabric MDC Product Documentation," Huawei, V100R025C00, Issue 04,
-Jun. 30, 2026 (HedEx library EDOC1100509717, login required). Verify in: Digital Map > Simulation
-View > Multi-Cloud Simulation (Restrictions and Limitations, Licensing
-Requirements); Digital Map > Security View; Digital Map > Job View; Digital Map >
-Digital Map Usage Guide > General Configurations (Path Navigation, Topology
-Restoration). Confirmed Oct. 31, 2026.
+[2] "Stellar AI Fabric Data Center Network Solution Product Documentation," Huawei,
+V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100612448 (verify at
+support.huawei.com HedEx, `docid=EDOC1100612448`). Read for the solution documentation set: it
+has no Digital Map section, so Digital Map is an MDC-scenario feature [1]. Confirmed Nov. 4,
+2026.
 
 [3] "What DCI Solutions Are Available? — E2E VXLAN and Segment VXLAN," Huawei Support Encyclopedia. [Online]. Available: https://info.support.huawei.com/info-finder/encyclopedia/en/DCI.html

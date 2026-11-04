@@ -93,7 +93,9 @@ that contains it.
   broadly playing the same role Cisco ACI/APIC or Juniper Apstra play for
   their respective DC fabrics, with additional variants/modules extending into
   campus (NCE-Campus) and WAN (NCE-IP) domains. The data center variant,
-  NCE-Fabric, is covered in [cloudfabric.md](cloudfabric.md).
+  NCE-Fabric, is covered in [cloudfabric.md](cloudfabric.md). Digital Map data sources are
+  covered in [digital-map.md](digital-map.md), and its third-party device drivers in
+  [digital-map-driver.md](digital-map-driver.md).
 - FabricInsight, the NCE analyzer, is a separate product with its own documentation and
   its own release line. It owns the O&M claims in [nof-plus.md](nof-plus.md): read it for
   what the analyzer reports, and the switch documentation for what the switch measures and
