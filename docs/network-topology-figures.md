@@ -130,6 +130,60 @@ Classification notes:
   attachment or physical/virtual deployment.
 - A cloud represents an abstract domain, not a router. Put vendor/platform
   identity in text; vendor icons may decorate but never replace the role label.
+- **A border leaf is still a leaf.** Keep its leaf fill and leaf size preset; draw it
+  in a row of its own above the spine pair only when the figure has to show the
+  north-south boundary explicitly, and place it next to the firewall or external router
+  it faces.
+- **"IPN" is an ACI term; the inter-site pair's card depends on which platform is drawn.**
+  In Cisco ACI the IPN is a separate routed underlay that belongs to no single fabric —
+  draw it as an **aggregation-tier card: purple fill, medium preset (68 × 32), placed
+  outside the fabric's boundary container**, never as a leaf, and keep the label `IPN`
+  (see [skills/vendor-matrix/cisco/aci.md](../skills/vendor-matrix/cisco/aci.md)). Huawei
+  CloudFabric has no IPN: the same function is a **DCI leaf** that belongs to one specific
+  fabric — draw it as a leaf (**green fill, small preset 45 × 32**) inside that fabric's
+  container and label it `DCI leaf`; the solution documentation also calls the node a DCI
+  gateway or fabric gateway, and each one sits in exactly one fabric (see
+  [skills/vendor-matrix/huawei/cloudfabric.md](../skills/vendor-matrix/huawei/cloudfabric.md#dci-gateway-role)).
+  Either way, place the pair facing the other site: two cards **vertically aligned on one
+  axis** at the fabric edge that faces the remote data center, with the inter-site
+  transport (DWDM) centred on the pair's horizontal midline. It must not sit beside the
+  spine row, where it reads as another fabric switch.
+
+### Card sizes and spacing
+
+Card size is a house convention, not a draw.io requirement. Two presets cover the
+figures in this library; sizes are in draw.io units.
+
+| Preset | W × H | Label | Applies to |
+|---|---|---|---|
+| Small | 45 × 32 | 10 pt | Leaf switches (server, service, border, DCI), WAN and edge routers, hosts (storage arrays, bare-metal servers, hypervisor hosts) |
+| Medium | 68 × 32 | 11 pt | Spine switches, aggregation and distribution switches, firewalls, DWDM and other optical systems, core routers, load balancers |
+| Boundary | Container | 14 pt bold, label in the top-left corner | One solid boundary per site, one dashed boundary per fabric or region nested inside it |
+
+Two router roles sit on either side of the line: a WAN or edge router normally carries a
+single ISP uplink and takes the small card, while a core router fans out to many links and
+takes the medium one.
+
+- **One preset per role.** Never mix presets within a row, except where a lone role
+  needs the wider card to hold its label.
+- **Spacing:** 6 units between the two switches of a pair, 14 units between pairs, and
+  at least 16 units between a container and the cards inside it.
+- **A card alone under a switch pair is centred on the pair's midline**, not under one
+  of the two switches — a load balancer under a leaf pair, for example.
+- **Container children set coordinates relative to the container**, and an edge's parent
+  is the innermost container that holds both of its ends, otherwise the layer — see
+  [plugins/drawio-mcp.md](../plugins/drawio-mcp.md) §2.
+- **Link to the facing edge, not the centre line.** Leave the upper card's bottom-centre
+  (`exitX=0.5;exitY=1`) and land on the lower card's top-centre
+  (`entryX=0.5;entryY=0`); for side-by-side cards use right-centre to left-centre the
+  same way. Without an anchor the renderer aims at the target's centre, so a link into
+  a row of cards has already dipped into the row's band before it arrives and crosses
+  the top corners of the cards in between — the reason a spine-leaf fan can look like it
+  attaches to the wrong leaf. This is the standard construction for spine-leaf figures:
+  rows of pairs, links drawn between the facing edges.
+
+Change a preset only when a role's label no longer fits, and then change it for that
+role everywhere.
 
 ## Link and traffic semantics
 
