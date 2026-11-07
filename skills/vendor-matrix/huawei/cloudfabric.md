@@ -51,6 +51,27 @@ iMaster NCE-Fabric instance
   VXLAN stays within each DC [3]
 - The gateway function is configured on CloudEngine leaf/spine nodes at
   the fabric edge [3]
+- **Naming:** the solution documentation calls these nodes **DCI leaf nodes**,
+  "also called DCI gateways and fabric gateways" [2]. The term **IPN is not used
+  anywhere** in the CloudFabric solution documentation — it is Cisco ACI terminology
+  (checked against both the non-MDC and MDC libraries: TOCs plus the DCI, multi-fabric
+  and inter-DC interconnection topics, Nov. 7, 2026). Each DCI leaf belongs to exactly
+  one fabric: on the forwarding path the MDC documentation writes
+  `Service Leaf1 of Fabric1 > Fabric GW1 of Fabric1 > Fabric GW2 of Fabric2 >
+  Service Leaf2 of Fabric2` [1].
+- **What they do:** BGP EVPN on the DCI leaves creates the Segment VXLAN
+  tunnel; VXLAN received from one DC is decapsulated, re-encapsulated and
+  tunnelled to the peer DC, so the two fabrics keep independent inner VXLAN
+  domains [2].
+- **Routing:** EBGP between the two fabrics' DCI leaves, IBGP inside each
+  fabric [2].
+- **Placement:** when both Layer 2 and Layer 3 DCI are in use the DCI leaves run
+  active-active and must not connect servers, firewalls or load balancers [2].
+  They need large routing and MAC tables, and their service model differs from
+  server, service and border leaves, so deploying them separately is
+  recommended [2].
+- **Management:** each iMaster NCE-Fabric orchestrates only its own fabric's DCI
+  leaves; settings that must match across fabrics are kept consistent by hand [2].
 
 To interconnect Segment VXLAN on CloudFabric with **Cisco ACI**, the ACI
 fabric must present an **ACI Border Gateway** (BGW). See
@@ -91,7 +112,10 @@ Guide > Overview. Confirmed Nov. 4, 2026.
 [2] "Stellar AI Fabric Data Center Network Solution Product Documentation," Huawei,
 V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100612448 (verify at
 support.huawei.com HedEx, `docid=EDOC1100612448`). Read for the solution documentation set: it
-has no Digital Map section, so Digital Map is an MDC-scenario feature [1]. Confirmed Nov. 4,
-2026.
+has no Digital Map section, so Digital Map is an MDC-scenario feature [1]; and for the DCI-leaf
+role — "DCI Scenario Overview" and "Configuring Underlay Network Connectivity Between DCI Leaf
+Nodes" (DCI Scenario (Multi-Site and Non-MDC Scenario), DCI leaf naming, BGP EVPN stitching,
+EBGP/IBGP split, active-active placement, separate deployment), and "Multi-fabric Network
+Management". Confirmed Nov. 4, 2026; DCI topics rechecked Nov. 7, 2026.
 
 [3] "What DCI Solutions Are Available? — E2E VXLAN and Segment VXLAN," Huawei Support Encyclopedia. [Online]. Available: https://info.support.huawei.com/info-finder/encyclopedia/en/DCI.html
