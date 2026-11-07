@@ -26,6 +26,41 @@ See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the head-to-head
 comparison against NX-OS-native EVPN-VXLAN, including the 2026 Cisco
 convergence ("Nexus One") update relevant to new builds.
 
+### NX-OS-style CLI configuration mode removed in 6.1(2)
+
+From APIC **6.1(2)** (6.1(2f) available Dec. 4, 2024; 6.1(2g) Dec. 13, 2024 [30]),
+the configuration mode **and the `show running-config`
+command** of the APIC NX-OS-style CLI are no longer supported; EXEC mode and the
+UNIX CLI remain [29]. A configuration-gathering plan for a fabric on 6.1(2) or later
+cannot rely on `show running-config` output from the APIC; on earlier releases it is
+still available. Ask for the APIC version before choosing the collection method.
+
+The replacement is a **configuration export policy**: Admin > Import/Export > Export
+Policies > Create Configuration Export Policy, written to a remote location
+(FTP/SCP/SFTP) or kept as a snapshot on the controller, in JSON or XML [31]. Since
+4.1(1) a read-only user can trigger it. Secure properties follow the fabric-wide AES
+setting: with AES on they are exported encrypted, and with AES off they are left out of
+the file entirely [31]. A file sent to a third party for design work therefore needs no
+passphrase and no change to the AES setting.
+
+**What the export contains**: the **user-configurable managed-object trees** from all
+32 shards, one file per shard, packed as a tar.gz. An empty **Target DN** exports
+everything; a target narrows it to `infra`, `fabric`, or one tenant [31]. So a full
+export carries the tenant policy (VRFs, BDs and their settings, subnets, EPGs, uSeg
+EPGs and ESGs, contracts, L3Outs with their peers and protocols), access policies, and
+fabric policies. It does not carry anything the fabric learns or measures at run time
+(endpoints, learned routes, neighbor tables, running versions), nor anything about
+non-ACI devices beyond the ACI-side configuration toward them; those need a separate
+request.
+
+**Endpoint list (host IP/MAC to leaf port)** is run-time data, so it comes from the
+EXEC-mode `show endpoints` command (variants per leaf interface, port-channel, and vPC)
+[33]. The newest command reference that lists it is 6.0(x); no 6.1(2)-or-later
+command reference was found, so its presence after 6.1(2) rests on the statement that
+EXEC mode remains [29] — confirm on the live APIC. The endpoint object class is
+`fvCEp` [34], which the UNIX shell can read with `moquery` when the NX-OS-style command
+is unavailable.
+
 ## iVXLAN encapsulation
 
 iVXLAN is ACI's proprietary VXLAN variant. Its encapsulation and header field
@@ -441,6 +476,36 @@ The 6.2(x) Fundamentals guide confirms current distributed-gateway and FTAG
 architecture; it is not proof that every historical glean detail is unchanged
 [12].
 
+## Multi-Pod: the Inter-Pod Network (IPN)
+
+The IPN is **not a leaf or a spine of the ACI fabric**. It is the routed
+infrastructure that joins the pods: Cisco describes it as "connecting the different
+ACI Pods … an extension of the ACI fabric underlay infrastructure" [14].
+
+- **Any device that meets the requirements can be the IPN.** Cisco recommends
+  standalone Cisco Nexus 9200 or Nexus 9300 second-generation (EX or newer) switches,
+  as those are the platforms most often deployed and validated [14]. IPN devices are
+  configured outside APIC — the white paper explicitly leaves IPN configuration out of
+  scope — so they are not fabric nodes with a leaf/spine role.
+- **Control plane:** each pod's spines establish **OSPF** peerings with the directly
+  connected IPN devices and advertise the local pod's TEP-pool prefix; the IPNs install
+  equal-cost routes for every pod's TEP pool, and the prefixes received for remote pods
+  are redistributed into the pod's IS-IS so leaves can reach them [14]. Only a few
+  spine loopback host routes go into the IPN; leaf loopbacks never do, which keeps the
+  IPN routing table small [14].
+- **Multicast requirement:** the IPN must carry the fabric's GIPo range and the reserved
+  glean group with PIM **bidir** — see the GIPo rules above [25].
+- **It can be a generic L3 service:** as long as the requirements are met, an MPLS
+  network or other routed infrastructure can act as the IPN [14].
+- **From APIC 5.2(3) the IPN can be removed** for small deployments: *Multi-Pod Spines
+  Back-to-Back* connects the spines of two pods directly, with no external devices to
+  configure [14].
+
+For figure work this means the IPN must not be drawn or coloured as a leaf unless the
+platform's own documentation makes it one: in ACI it is a separate routed domain, while
+in Huawei CloudFabric the IPN switches are fabric leaf switches with a special role — see
+[the Digital Map POC record](../pocs/2026-11-digital-map-multivendor-dc.md).
+
 ## Multi-Site: stretched workload with per-site NAT
 
 Instance of the general
@@ -521,6 +586,28 @@ Option 1 (SNAT, sacrificing client-IP visibility), the architectural fix
 platform with cross-site state sync, or — if a stretched active/standby pair
 is genuinely required — reconsidering ACI Multi-Pod instead of Multi-Site for
 this fabric.
+
+## Advertise Host Routes
+
+A per-BD option that makes border leaves advertise endpoint /32 and /128 routes out of
+an L3Out, so traffic enters at the pod where the endpoint lives [32]:
+
+- **Requirements**: the BD is associated with the L3Out (or an explicit route map
+  matches the BD subnets), the BD subnet is **Advertised Externally**, and a contract
+  exists between the BD's EPG and the L3Out's external EPG. Without the contract the
+  border leaf installs neither the subnet nor the host routes. Gen 2 or later leaves
+  (EX/FX/FX2) [32].
+- **Pod scope**: a border leaf advertises only endpoints learned in its own pod, never
+  between pods or sites; on an endpoint move the fabric withdraws the route in the old
+  pod and advertises it in the new one [32]. This is the Multi-Pod ingress-alignment
+  tool referred to in
+  [multi-site-workload-mobility.md](../../scenarios/multi-site-workload-mobility.md#cross-cutting-judgment).
+- **Side effects**: host routes carry the VRF transit route tag, which external routers
+  must preserve; a custom route-map tag can no longer be set on the BD subnet; enabling
+  it marks the BD subnet public, so a rogue endpoint is advertised too [32].
+
+A migration that keeps pod-local ingress must reproduce this on the target fabric, and
+the external routers' policy that depends on the /32s must be carried across.
 
 ## ACI Border Gateway (Heterogeneous Fabric Interconnect)
 
@@ -647,8 +734,10 @@ No specific current software release is stated for these workflows.
 around Figures 35–36 in "Inter-Pods VXLAN Data Plane." [Online]. Available:
 https://www.cisco.com/c/en/us/solutions/collateral/data-center-virtualization/application-centric-infrastructure/white-paper-c11-737855.html
 — independent definition of ACI ARP gleaning as fabric-generated ARP from
-the BD IP to resolve an unknown endpoint. Rechecked Oct. 16, 2026 for
-terminology; not a blanket validation of current-release implementation details.
+the BD IP to resolve an unknown endpoint, and, in "Inter-Pod Connectivity Deployment
+Considerations" and "IPN Control Plane," the definition and control-plane role of the
+Inter-Pod Network (IPN). Rechecked Oct. 16, 2026 for terminology and Nov. 7, 2026 for the
+IPN sections; not a blanket validation of current-release implementation details.
 
 [15] "Bridge Domains and Subnets," Cisco APIC Layer 2 Networking Configuration
 Guide, Release 6.2(x), updated July 7, 2026. [Online]. Available:
@@ -792,3 +881,52 @@ https://www.iana.org/assignments/multicast-addresses/ — lists
 225.0.0.0–231.255.255.255 as RESERVED and 239.0.0.0–239.255.255.255 as a single
 Administratively Scoped block, with no individual entry for
 239.255.255.240/28. Checked 2026-10-19.
+
+[29] "Cisco ACI Releases Changes in Behavior," Cisco, ACI release 6.1(2), Table 15
+"Cisco APIC release 6.1(2) changes in behavior," Deprecated Features row. [Online].
+Available: https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/all/cisco-aci-releases-changes-in-behavior.html
+— verify: "The configuration mode and the show running-config command of the Cisco
+APIC NX-OS-style CLI is no longer supported. Other functionality on the APIC CLI
+such as the EXEC mode and UNIX CLI are still available." The same 6.1(2) cut-off
+is stated in "Using the APIC CLI," Cisco APIC NX-OS Style CLI Configuration Guide,
+Release 4.2(x) and Later. Checked 2026-11-06 (page revision dated Sep. 9, 2026).
+
+[30] "Cisco Application Policy Infrastructure Controller Release Notes, Release 6.1(2),"
+Cisco. [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/release-notes/cisco-apic-release-notes-612.html
+— verify the revision table: "December 4, 2024 — Release 6.1(2f) became available";
+"December 13, 2024 — Release 6.1(2g) became available." Checked 2026-11-06.
+
+[31] "Cisco ACI Configuration Files: Import and Export," Cisco knowledge base article.
+[Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/switches/datacenter/aci/apic/sw/kb/b_KB_Using_Import_Export_to_Recover_Config_States.html
+— verify "Configuring an Export Policy Using the GUI" (Export Policies > Create
+Configuration Export Policy; read-only users can trigger exports, added in 4.1(1)),
+"Configuring a Remote Location" (FTP/SCP/SFTP), the JSON/XML format choice and the
+Snapshot option, "Configuration File Encryption" (secure properties are omitted from
+an export when AES encryption is off), and "Configuration Export to Controller" (exports
+the user-configurable MO trees from all 32 shards as a tar.gz; empty targetDn means
+everything; NX-OS-style `target [infra | fabric | tenant-name]`). Checked 2026-11-06; the article carries no
+per-release scope, so confirm the GUI path on the customer's 6.1(x)+ release.
+
+[32] "Advertise host routes," Cisco APIC Layer 3 Networking Configuration Guide,
+Release 6.2(x), Routed Connectivity to External Networks. [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/l3-configuration/cisco-apic-layer-3-networking-configuration-guide-62x/g_routed_connectivity_to_external_networks/advertise-host-routes.html
+— verify "Host route advertisement requirements," "Supported switches," "Pod and site
+advertisement behavior," and "Shared services and route limitations." Checked
+2026-11-06.
+
+[33] "S Commands," Cisco APIC NX-OS Style CLI Command Reference, Release 6.0(x),
+updated Feb. 10, 2026. [Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/command-reference/601/Cisco-APIC-NXOS-CLI-Command-Reference-60x/m_s_cmds.html
+— verify the "show endpoints," "show endpoints leaf interface ethernet," "show endpoints
+leaf interface port-channel," and "show endpoints vpc" entries (Command Mode: exec).
+Checked 2026-11-06. No 6.1(2)-or-later command reference located; the 6.1(x) PDF
+(first published 2024-10-25) predates 6.1(2).
+
+[34] "Endpoint Security Groups," Cisco APIC Security Configuration Guide, Release 6.1(x).
+[Online]. Available:
+https://www.cisco.com/c/en/us/td/docs/dcn/aci/apic/6x/security-configuration/cisco-apic-security-configuration-guide-61x/endpoint-security-groups-61x.html
+— verify the statement that "the objects representing endpoints (fvCEp, fvIp) are
+dynamically created and deleted based on the endpoint learning status." Checked
+2026-11-06 (search-result excerpt; section not read in full).
