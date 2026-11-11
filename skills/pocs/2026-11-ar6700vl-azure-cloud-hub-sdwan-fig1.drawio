@@ -1,0 +1,149 @@
+<mxfile host="net-architect">
+    <diagram id="ar6700vl-azure-topology" name="Topology">
+        <mxGraphModel dx="1000" dy="660" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="640" math="0" shadow="0" adaptiveColors="auto">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="&lt;b&gt;AR6700V-L as an Azure cloud hub — POC topology&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="4" width="520" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="lbl_hub" value="HUBS" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="106" width="60" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lbl_wan" value="WAN" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="214" width="60" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lbl_spoke" value="SPOKES" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="436" width="60" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="sitehq" value="Head office" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=6;fontStyle=1;fontSize=14;container=1;collapsible=0;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="70" width="200" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="hq" value="&lt;b&gt;HQ USG&lt;/b&gt;&lt;br&gt;Gateway+RR · USG6600F" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="sitehq">
+                    <mxGeometry x="31" y="36" width="138" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="azure" value="Azure North Europe — existing vnet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=6;fontStyle=1;fontSize=14;container=1;collapsible=0;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="60" width="440" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="vcpe" value="&lt;b&gt;AR6700V-L (vCPE)&lt;/b&gt;&lt;br&gt;Gateway · hub · Standard_F8s_v2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=10;" vertex="1" parent="azure">
+                    <mxGeometry x="20" y="46" width="160" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="apps" value="&lt;b&gt;Azure workloads&lt;/b&gt;&lt;br&gt;LAN subnet + other app subnets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="azure">
+                    <mxGeometry x="260" y="46" width="160" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="lan" value="LAN GE0/0/1" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;labelBackgroundColor=default;" edge="1" parent="azure" source="vcpe" target="apps">
+                    <mxGeometry y="-10" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="rt_note" value="route table: every HQ and branch subnet → vCPE LAN IP" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;" vertex="1" parent="azure">
+                    <mxGeometry x="200" y="96" width="230" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="mplsa" value="&lt;b&gt;MPLS-A&lt;/b&gt;" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="245" width="120" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="mplsb" value="&lt;b&gt;MPLS-B&lt;/b&gt;" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="280" y="245" width="120" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="inet" value="&lt;b&gt;Internet&lt;/b&gt;" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="540" y="243" width="130" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="ctrl" value="&lt;b&gt;iMaster NCE-Campus&lt;/b&gt;&lt;br&gt;partner-hosted · MSP mode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+                    <mxGeometry x="770" y="258" width="150" height="44" as="geometry"/>
+                </mxCell>
+                <mxCell id="siteb1" value="Branch 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=bottom;spacingBottom=4;align=left;spacingLeft=6;fontStyle=1;fontSize=14;container=1;collapsible=0;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="400" width="200" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="b1" value="&lt;b&gt;Branch 1 USG&lt;/b&gt;&lt;br&gt;Gateway · USG6500F" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="siteb1">
+                    <mxGeometry x="31" y="16" width="138" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="siteb2" value="Branch 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=bottom;spacingBottom=4;align=left;spacingLeft=6;fontStyle=1;fontSize=14;container=1;collapsible=0;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="400" width="200" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="b2" value="&lt;b&gt;Branch 2 USG&lt;/b&gt;&lt;br&gt;Gateway · USG6500F" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="siteb2">
+                    <mxGeometry x="31" y="16" width="138" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_hq_ma" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="hq" target="mplsa">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_hq_mb" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="hq" target="mplsb">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_hq_in" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="hq" target="inet">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_v_in" value="GE0/0/0 · static public IP" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=9;labelBackgroundColor=default;" edge="1" parent="1" source="vcpe" target="inet">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b1_ma" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b1" target="mplsa">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b1_mb" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b1" target="mplsb">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b1_in" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b1" target="inet">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b2_ma" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b2" target="mplsa">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b2_mb" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b2" target="mplsb">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w_b2_in" style="edgeStyle=none;html=1;endArrow=none;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="b2" target="inet">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_hq" value="GRE over IPsec · DTLS + BGP to the RR" style="edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=1 3;strokeColor=#D79B00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;labelBackgroundColor=default;" edge="1" parent="1" source="hq" target="vcpe">
+                    <mxGeometry y="-10" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="t_b1" style="edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=1 3;strokeColor=#D79B00;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0.1;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="b1" target="vcpe">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_b2" style="edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=1 3;strokeColor=#D79B00;exitX=0.85;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="b2" target="vcpe">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="fallback" value="" style="edgeStyle=none;html=1;dashed=1;endArrow=block;endFill=1;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.2;entryY=1;entryDx=0;entryDy=0;fontSize=9;labelBackgroundColor=default;" edge="1" parent="1" source="b1" target="hq">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="c_south" value="southbound&lt;br&gt;(call-home)" style="edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=1 3;exitX=0;exitY=0.5;exitDx=0;exitDy=0;fontSize=9;labelBackgroundColor=default;" edge="1" parent="1" source="ctrl" target="inet">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#999999;container=1;collapsible=0;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="530" width="880" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_solid" style="edgeStyle=none;html=1;endArrow=none;endFill=0;" edge="1" parent="legend">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="16" y="20" as="sourcePoint"/>
+                        <mxPoint x="66" y="20" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_solid_t" value="WAN link" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+                    <mxGeometry x="72" y="10" width="80" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_dot" style="edgeStyle=none;html=1;endArrow=none;endFill=0;dashed=1;dashPattern=1 3;strokeColor=#D79B00;" edge="1" parent="legend">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="170" y="20" as="sourcePoint"/>
+                        <mxPoint x="220" y="20" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_dot_t" value="Overlay: GRE over IPsec tunnel, or control session (all over the Internet)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+                    <mxGeometry x="226" y="10" width="370" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_dash" style="edgeStyle=none;html=1;dashed=1;endArrow=block;endFill=1;" edge="1" parent="legend">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="610" y="20" as="sourcePoint"/>
+                        <mxPoint x="660" y="20" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_dash_t" value="Fallback to Azure via MPLS + HQ (TC-05)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+                    <mxGeometry x="666" y="10" width="210" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_color_t" value="Red: USG firewall · Orange: AR6700V-L router · Gray: provider network, controller, workloads. Branch 2 has the same fallback path as Branch 1." style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+                    <mxGeometry x="16" y="38" width="850" height="24" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
