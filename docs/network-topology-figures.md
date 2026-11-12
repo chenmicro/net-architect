@@ -33,24 +33,28 @@ Use layer labels such as `SPINE`, `LEAF`, `WAN`, or `SECURITY SERVICES` when
 placement encodes architecture. Omit decoration that adds no topology, role, or
 traffic-flow meaning.
 
-## Canonical visual encoding
+## Visual encoding
 
-Represent a network device with a labeled rectangular **device card**. It is
-compact, vendor-neutral, and can hold relevant interfaces, VRFs, or routing
-domains. Always write the device role; shape and color are secondary cues.
+### Device cards
+
+Represent a network device with a labeled rectangular **device card**. Always write the
+device role; shape and color are secondary cues.
 
 ```text
 ┌────────────────────────┐
 │ Spine 1                │  Role or logical name
-│ DC1-SP01               │  Hostname, when relevant
+│ DC1-SP01               │  Hostname or model, when relevant
 │ ASN 65001 · VRF PROD   │  Relevant context, when needed
 └────────────────────────┘
 ```
 
-Card detail is **minimal** (role), **identified** (role plus hostname), or
-**detailed** (only the interfaces, VRFs, ASNs, addresses, or platform facts the
-figure needs). Put interface names beside their link endpoints and use card
-compartments for multiple VRFs or interface groups; never paste configuration.
+Card detail is **minimal** (role), **identified** (role plus hostname or model), or
+**detailed** (only the interfaces, ASNs, addresses, or platform facts the figure needs).
+Put a model on a second line in a smaller font (see Sizes and spacing). Put interface
+names beside their link endpoints, not in the card. Where tenants and VRFs go depends on
+the layout; see Layout. Never paste configuration.
+
+### Classification and color
 
 Classify a node as `device class → fabric membership (switches only) →
 architectural role → functional qualifier`.
@@ -116,74 +120,100 @@ flowchart LR
 
 Classification notes:
 
-- Color reinforces labels and may be overridden only with a legend. Preserve
-  readable text and borders in light and dark themes.
-- Blue represents the upper tier (spine/core), purple the intermediate tier
-  (aggregation/distribution), and green the attachment tier (leaf/access).
-- A leaf qualifier identifies function: `Server`, `Service`, `Border`, or `DCI`.
-  A controller-managed DCI leaf stays green.
-- Outside the fabric, classify a border or DCI gateway by device: purple for an
-  aggregation switch, orange for a router. Never label either as a `DCI Leaf`.
-- DWDM is yellow optical transport. Keep it separate from the connected packet
-  switch or router.
-- Firewalls, load balancers, APs, and ACs retain their classes regardless of
-  attachment or physical/virtual deployment.
-- A cloud represents an abstract domain, not a router. Put vendor/platform
-  identity in text; vendor icons may decorate but never replace the role label.
-- **A border leaf is still a leaf.** Keep its leaf fill and leaf size preset; draw it
-  in a row of its own above the spine pair only when the figure has to show the
-  north-south boundary explicitly, and place it next to the firewall or external router
-  it faces.
-- **"IPN" is an ACI term; the inter-site pair's card depends on which platform is drawn.**
-  In Cisco ACI the IPN is a separate routed underlay that belongs to no single fabric —
-  draw it as an **aggregation-tier card: purple fill, medium preset (68 × 32), placed
-  outside the fabric's boundary container**, never as a leaf, and keep the label `IPN`
-  (see [skills/vendor-matrix/cisco/aci.md](../skills/vendor-matrix/cisco/aci.md)). Huawei
-  CloudFabric has no IPN: the same function is a **DCI leaf** that belongs to one specific
-  fabric — draw it as a leaf (**green fill, small preset 45 × 32**) inside that fabric's
-  container and label it `DCI leaf`; the solution documentation also calls the node a DCI
-  gateway or fabric gateway, and each one sits in exactly one fabric (see
+- Color reinforces labels and may be overridden only with a legend. Preserve readable
+  text and borders in light and dark themes.
+- Firewalls, load balancers, APs, and ACs keep their classes regardless of attachment
+  or physical/virtual deployment.
+- A cloud represents an abstract domain, not a router. Put vendor/platform identity in
+  text; vendor icons may decorate but never replace the role label.
+- DWDM is optical transport. Keep it separate from the connected packet switch or
+  router.
+- **A border leaf is still a leaf**, and a controller-managed DCI leaf stays a leaf.
+- Outside the fabric, classify a border or DCI gateway by device: an aggregation switch
+  or a router. Never label either as a `DCI Leaf`.
+- **"IPN" is an ACI term; the inter-site card depends on the platform.** In Cisco ACI
+  the IPN is a separate routed underlay that belongs to no single fabric: draw it as an
+  aggregation-tier card outside the fabric's boundary, never as a leaf, and keep the
+  label `IPN` (see [skills/vendor-matrix/cisco/aci.md](../skills/vendor-matrix/cisco/aci.md)).
+  Huawei CloudFabric has no IPN: the same function is a **DCI leaf** that belongs to one
+  specific fabric, so draw it as a leaf inside the boundary that bounds that fabric and
+  label it `DCI leaf`. The solution documentation also calls the node a DCI gateway or
+  fabric gateway (see
   [skills/vendor-matrix/huawei/cloudfabric.md](../skills/vendor-matrix/huawei/cloudfabric.md#dci-gateway-role)).
-  Either way, place the pair facing the other site: two cards **vertically aligned on one
-  axis** at the fabric edge that faces the remote data center, with the inter-site
-  transport (DWDM) centred on the pair's horizontal midline. It must not sit beside the
-  spine row, where it reads as another fabric switch.
 
-### Card sizes and spacing
+### Sizes and spacing
 
-Card size is a house convention, not a draw.io requirement. Two presets cover the
-figures in this library; sizes are in draw.io units.
+Card size is a house convention, not a tool requirement. Two presets cover the figures
+in this library; sizes are in draw.io units.
 
 | Preset | W × H | Label | Applies to |
 |---|---|---|---|
-| Small | 45 × 32 | 10 pt | Leaf switches (server, service, border, DCI), WAN and edge routers, hosts (storage arrays, bare-metal servers, hypervisor hosts) |
-| Medium | 68 × 32 | 11 pt | Spine switches, aggregation and distribution switches, firewalls, DWDM and other optical systems, core routers, load balancers |
+| Small | 45 × 32 | 10 pt; 9 pt with a 7 pt model line | Leaf switches (server, service, border, DCI), WAN and edge routers, hosts (storage arrays, bare-metal servers, hypervisor hosts) |
+| Medium | 68 × 32 | 11 pt; 10 pt with a 7 pt model line | Spine switches, aggregation and distribution switches, firewalls, DWDM and other optical systems, core routers, load balancers, the ACI IPN |
 | Boundary | Container | 14 pt bold, label in the top-left corner | One solid boundary per site, one dashed boundary per fabric or region nested inside it |
 
 Two router roles sit on either side of the line: a WAN or edge router normally carries a
 single ISP uplink and takes the small card, while a core router fans out to many links and
 takes the medium one.
 
+- **Shrink the font, not the card.** When a label or a model line does not fit, step the
+  role font down one point for every card in the figure, as the table shows. Change a
+  preset only when the label still does not fit, and then change it for that role
+  everywhere. Never widen a preset to fit a model name. If a model applies to a whole
+  group rather than one role (for example several fabric switch models), put it on the
+  group's boundary label instead.
 - **One preset per role.** Never mix presets within a row, except where a lone role
-  needs the wider card to hold its label.
+  still needs the wider card after the font has been shrunk.
 - **Spacing:** 6 units between the two switches of a pair, 14 units between pairs, and
   at least 16 units between a container and the cards inside it.
 - **A card alone under a switch pair is centred on the pair's midline**, not under one
   of the two switches — a load balancer under a leaf pair, for example.
-- **Container children set coordinates relative to the container**, and an edge's parent
-  is the innermost container that holds both of its ends, otherwise the layer — see
-  [plugins/drawio-mcp.md](../plugins/drawio-mcp.md) §2.
-- **Link to the facing edge, not the centre line.** Leave the upper card's bottom-centre
-  (`exitX=0.5;exitY=1`) and land on the lower card's top-centre
-  (`entryX=0.5;entryY=0`); for side-by-side cards use right-centre to left-centre the
-  same way. Without an anchor the renderer aims at the target's centre, so a link into
-  a row of cards has already dipped into the row's band before it arrives and crosses
-  the top corners of the cards in between — the reason a spine-leaf fan can look like it
-  attaches to the wrong leaf. This is the standard construction for spine-leaf figures:
-  rows of pairs, links drawn between the facing edges.
 
-Change a preset only when a role's label no longer fits, and then change it for that
-role everywhere.
+### Layout
+
+Rules for every figure come first, then rules for the physical and logical viewpoints
+defined in Purpose, scope, and viewpoint.
+
+- **Link to the facing edge, not the centre line.** Leave the upper card's bottom-centre
+  and land on the lower card's top-centre; for side-by-side cards use right-centre to
+  left-centre the same way. Without an anchor the renderer aims at the target's centre,
+  so a link into a row of cards has already dipped into the row's band before it arrives
+  and crosses the top corners of the cards in between — the reason a spine-leaf fan can
+  look like it attaches to the wrong leaf. Spine-leaf figures are rows of cards with
+  links drawn between the facing edges. The adapter gives the anchor syntax.
+- **Keep links off label text.** No link crosses a boundary's label. Place a card that a
+  link enters from above to the side of its container's label. In a narrow container,
+  wrap the label onto as many lines as it needs. Otherwise indent the container so the
+  label sits clear of the links that pass it.
+- **Border leaves face the north-south boundary.** Draw border leaves in a row of their
+  own above the spines only when the figure has to show the north-south boundary, next
+  to the firewall or external router they face.
+- **The inter-site pair faces the other site.** Whether it is an IPN or a DCI leaf pair,
+  stack its two cards on one vertical axis at the fabric edge that faces the remote data
+  center, with any inter-site transport (DWDM) centred on the pair's horizontal midline.
+  It must not sit beside the spine row, where it reads as another fabric switch.
+- **Controllers have no device links.** A controller that manages a whole fabric or
+  domain gets no link to any one device or container. Its only line is the dotted one to
+  the controller above it. Centre shared management (for example a multi-site controller
+  and the policy managers it reads) between the sites it serves.
+
+#### Physical layout (underlay)
+
+The physical viewpoint; in an SDN figure, the underlay.
+
+- **Logical resources as text, not cards.** A tenant, VRF, or other logical resource is
+  not a device. Show it as small gray text, never as a card, next to the device where it
+  is configured or sits.
+- **Off-path devices beside their attachment.** Place an off-path service device, such as
+  a DC firewall on a border-leaf pair, next to that pair. Link it with straight lines,
+  without bends, even if that means one crossing of a fabric link.
+
+#### Logical layout (overlay)
+
+The logical viewpoint; in an SDN figure, the overlay.
+
+- **Logical resources are the objects.** Draw a tenant, VRF, or other logical resource in
+  card compartments (one per VRF or interface group) or as its own boundary.
 
 ## Link and traffic semantics
 
@@ -201,6 +231,11 @@ matters; double-ended arrows mean bidirectional traffic.
 Place interface names at their physical-link endpoints, shared speed/media/bundle
 properties near the solid-line center, and VRF/tenant/application/policy labels
 on the dashed path.
+
+A VRF or tenant label on a dashed path names the traffic's VRF or tenant, in either
+layout. It does not replace the gray text that shows where the resource is configured in
+a physical layout. In a logical layout, label a path only where it crosses from one VRF
+or tenant boundary to another.
 
 ## Rules by document type
 

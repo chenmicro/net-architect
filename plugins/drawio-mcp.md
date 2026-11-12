@@ -115,6 +115,12 @@ Apply the rules in `xml-reference.md` "CRITICAL: XML well-formedness" and
 For network figures, also apply the labeling, role encoding, link semantics, and
 document-type rules in [`docs/network-topology-figures.md`](../docs/network-topology-figures.md).
 
+Container children set coordinates relative to the container, and an edge's parent is
+the innermost container that holds both of its ends, otherwise the layer. The facing-edge
+anchors that [`docs/network-topology-figures.md`](../docs/network-topology-figures.md)
+asks for are `exitX=0.5;exitY=1` on the upper card and `entryX=0.5;entryY=0` on the lower
+card, or `exitX=1;exitY=0.5` and `entryX=0;entryY=0.5` for side-by-side cards.
+
 A label placed outside its shape needs `labelPerimeter=1` in the style, otherwise a
 connector runs across the text before it reaches the shape; `shared/label-perimeter.js`
 adds the key wherever it is missing [17], and `style-reference.md` §4 documents it [3].
