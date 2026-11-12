@@ -32,43 +32,9 @@
 
 ### Topology
 
-Both data centers have the same topology, shown here for one of them.
+Both data centers have the same topology, so data center 2 is drawn as a mirror of data center 1.
 
-```
- Extranet       Extranet (VPN)     Internet            Branches
-     │               │ site-to-site    │                   │
-┌────┼── Data center ┼─────────────────┼───────────────────┼─────────┐
-│Extranet router  VPN firewall    Internet router     Branch router  │
-│AR6710-L         FPR-2140        AR6710-L               AR8140      │
-│    │               │                 │                   │         │
-│    │               │            Internet firewall        │         │
-│    │               │            Check Point 23500        │         │
-│    └────────┐      │      ┌──────────┘                   │         │
-│             │      │      │                              │         │
-│             Inner firewall                               │         │
-│             FPR4100                                      │         │
-│               │       │                                  │         │
-│Proxy firewall │       │                                  │         │
-│FortiGate ─── Core ────┼──────────────────────────────────┘         │
-│           S67XX-H     │       Core to other DC core: L3 traffic    │
-│              │        │                                            │
-│──────────────┼────────┼────────── Fabric: CE6881H, CE6885, CE9865  │
-│              │        │                                            │
-│ Fabric border         Fabric border                                │
-│  (DC tenant)          (DMZ tenant)                                 │
-│      │   │                │                                        │
-│      │   DC firewall      │                                        │
-│      │   ASA 5525-X       │                                        │
-│      │   (off-path)       │                                        │
-│      └────────┬───────────┘                                        │
-│             Spine ─── IPN leaf                                     │
-│               │            IPN to other DC IPN: L2 traffic         │
-│               │            (L3 underlay, Segment VXLAN overlay)    │
-│          Server leaf                                               │
-│               │                                                    │
-│          Servers, F5                                               │
-└────────────────────────────────────────────────────────────────────┘
-```
+[Figure 1 — POC topology: both data centers' Digital Map regions, the inter-DC links, and the MDC with its domain controllers](2026-11-digital-map-multivendor-dc-fig1.drawio)
 
 The FortiGate has no physical link to the branches. Branch traffic enters through the
 AR8140 and the core. The FortiGate is an HTTP proxy for branch terminals.
