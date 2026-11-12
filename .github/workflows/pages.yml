@@ -61,7 +61,7 @@ jobs:
         run: python -m unittest tools/test_build_pages.py
 
       - name: Validate draw.io sources
-        run: find skills docs -type f -name '*.drawio' -exec python tools/drawio_validate.py '{}' \;
+        run: find skills docs -type f -name '*.drawio' -exec python tools/drawio_validate.py '{}' +
 
       - name: Export draw.io sources to SVG
         uses: rlespinasse/drawio-export-action@ff6ef40f4483301661619822f3aa1f74e3779faf # v2.x
