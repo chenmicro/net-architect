@@ -36,6 +36,11 @@ other product lines.
 - **AI-fabric positioning**: Huawei markets this line directly against
   Nvidia/Mellanox-centric and Arista/Cisco offers for RoCEv2 AI fabrics, which is worth
   surfacing in AI/GPU fabric vendor comparisons rather than only in general DC ones.
+- **BGP/OSPF over M-LAG**: `m-lag ip address` adds a dedicated secondary IPv4 address,
+  in the primary IP's subnet and unique network-wide, for routing sessions over M-LAG.
+  It works in the VLANIF and VBDIF interface views; on a VBDIF only after the BD is
+  bound to a VNI, and unbinding the VNI deletes it. The CE6885 is on the supported
+  list [1].
 
 ## Version line: V300
 
@@ -133,7 +138,9 @@ Configuration** [1], [2]:
 [1] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation,"
 Huawei, V300R026C00, Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611778, login
 required). Verify in:
-the library title and issue metadata. Confirmed Oct. 31, 2026.
+the library title and issue metadata. Confirmed Oct. 31, 2026. For M-LAG IPs: References >
+Command Reference > High Availability > M-LAG Configuration Commands > m-lag ip address.
+Confirmed Nov. 12, 2026.
 
 [2] "CloudEngine 16800 Series Switches Product Documentation," Huawei, V300R026C00,
 Issue 01, September 2026 (HedEx library EDOC1100611763, login required). Cited for the
