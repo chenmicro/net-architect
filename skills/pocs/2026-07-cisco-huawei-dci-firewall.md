@@ -339,8 +339,8 @@ based on the device documentation.
 
 ##### MC-02: Static routes on the FW
 
-- **Where**: FMC: Devices > Device Management > edit the device > Routing > Static Route
-  > Add Routes > IPv4 [4].
+- **Where**: FMC: Devices > Device Management > edit the device > Routing > Static
+  Route > Add Routes > IPv4 [4].
 - **Why it's manual**: the FW is an Unmanaged Firewall VAS; the controller configures
   only the gateway side [1].
 - **Configuration**: the default route needs a network object for `0.0.0.0/0` [4].

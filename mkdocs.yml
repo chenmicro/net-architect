@@ -11,7 +11,8 @@ plugins:
   - search
 
 markdown_extensions:
-  - fenced_code
+  # superfences replaces fenced_code so fences nest inside list items.
+  - pymdownx.superfences
   - tables
   - toc:
       permalink: true

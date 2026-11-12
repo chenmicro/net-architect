@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.build_pages import PagesBuildError, assemble
+from tools.build_pages import PagesBuildError, _normalize_lists, assemble
 
 
 class AssemblePagesTests(unittest.TestCase):
@@ -97,6 +97,54 @@ class AssemblePagesTests(unittest.TestCase):
 
             with self.assertRaisesRegex(PagesBuildError, "missing SVG export"):
                 assemble(root, root / ".pages-build")
+
+
+class NormalizeListsTests(unittest.TestCase):
+    def test_inserts_blank_line_before_list_after_paragraph(self) -> None:
+        self.assertEqual(
+            _normalize_lists("**If it fails**:\n- one\n- two\n"),
+            "**If it fails**:\n\n- one\n- two\n",
+        )
+
+    def test_reindents_github_nesting_to_four_spaces(self) -> None:
+        source = (
+            "- **Configuration**: values\n"
+            "  1. Step one\n"
+            "     wrapped.\n"
+            "\n"
+            "     ```\n"
+            "     bgp 65002\n"
+            "      peer x\n"
+            "     ```\n"
+            "\n"
+            "     After the code.\n"
+            "  2. Step two\n"
+            "- **Verification**: TC-01.\n"
+        )
+        expected = (
+            "- **Configuration**: values\n"
+            "    1. Step one\n"
+            "        wrapped.\n"
+            "\n"
+            "        ```\n"
+            "        bgp 65002\n"
+            "         peer x\n"
+            "        ```\n"
+            "\n"
+            "        After the code.\n"
+            "\n"
+            "    2. Step two\n"
+            "\n"
+            "- **Verification**: TC-01.\n"
+        )
+        self.assertEqual(_normalize_lists(source), expected)
+
+    def test_keeps_tight_lists_tight_and_top_level_code_unchanged(self) -> None:
+        source = "- a\n  wrapped\n- b\n\n```\n  - not a list\n```\n"
+        self.assertEqual(
+            _normalize_lists(source),
+            "- a\n    wrapped\n- b\n\n```\n  - not a list\n```\n",
+        )
 
 
 if __name__ == "__main__":

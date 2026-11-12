@@ -76,6 +76,112 @@ def _inline_code_removed(line: str) -> str:
     return re.sub(r"(`+)(.*?)\1", "", line)
 
 
+LIST_ITEM = re.compile(r"^(?P<indent> *)(?P<marker>[-*+]|[0-9]{1,9}[.)])(?P<gap> {1,4}|$)")
+FENCE_OPEN = re.compile(r"^(?P<indent> *)(?P<marker>`{3,}|~{3,})")
+BLOCK_START = re.compile(r"^ {0,3}(#{1,6}(\s|$)|>|`{3,}|~{3,}|\|)")
+
+
+def _normalize_lists(text: str) -> str:
+    """Re-indent CommonMark (GitHub) lists for Python-Markdown.
+
+    The repository is written for GitHub, where a list may follow a paragraph
+    without a blank line and nested blocks align with the parent item's text
+    (two spaces under ``-``, three under ``1.``).  Python-Markdown needs a blank
+    line before a list and four spaces per nesting level, and otherwise renders
+    nested lists, tables, and code fences as flat text.  This rewrites list
+    structure only; it never changes the content of a code fence.
+    """
+    output: list[str] = []
+    # Each open list item: [source content column, nesting depth, holds a blank line].
+    stack: list[list] = []
+    previous = "blank"  # blank | item | text | other
+    fence: tuple[str, int, int] | None = None  # (character, length, shift)
+
+    for raw in text.split("\n"):
+        line = raw.expandtabs(4)
+        stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
+
+        if fence is not None:
+            character, length, shift = fence
+            if re.match(rf"^ *{re.escape(character)}{{{length},}}[ \t]*$", line):
+                fence = None
+            output.append(_shift(line, shift) if stripped else "")
+            previous = "other"
+            continue
+
+        if not stripped:
+            for entry in stack:
+                entry[2] = True
+            output.append("")
+            previous = "blank"
+            continue
+
+        item = LIST_ITEM.match(line)
+        if item and BLOCK_START.match(line[indent:]):
+            item = None
+
+        if item:
+            open_items = len(stack)
+            loose = False
+            while stack and indent < stack[-1][0]:
+                loose = stack.pop()[2]
+            depth = len(stack)
+            # A new list right after paragraph text, or the next item of a
+            # list whose previous item holds blank-separated blocks.
+            if (previous == "text" and open_items == depth) or (
+                previous != "blank" and loose
+            ):
+                output.append("")
+            gap = item.group("gap")
+            content = indent + len(item.group("marker")) + (len(gap) or 1)
+            stack.append([content, depth, False])
+            output.append(" " * (4 * depth) + line[indent:])
+            previous = "item"
+            continue
+
+        if stack:
+            lazy = previous in ("item", "text") and not BLOCK_START.match(line)
+            while stack and indent < stack[-1][0] and not lazy:
+                stack.pop()
+            if stack:
+                content, depth, _ = stack[-1]
+                shift = 4 * (depth + 1) - content
+                opening = FENCE_OPEN.match(line)
+                if opening:
+                    marker = opening.group("marker")
+                    fence = (marker[0], len(marker), shift)
+                new_line = _shift(line, shift) if indent >= content else (
+                    " " * (4 * (depth + 1)) + stripped
+                )
+                output.append(new_line)
+                previous = "other" if opening or BLOCK_START.match(line) else "text"
+                continue
+
+        opening = FENCE_OPEN.match(line)
+        if opening and indent <= 3:
+            marker = opening.group("marker")
+            fence = (marker[0], len(marker), 0)
+        output.append(raw)
+        previous = "other" if opening or BLOCK_START.match(line) else "text"
+
+    return "\n".join(output)
+
+
+def _shift(line: str, shift: int) -> str:
+    stripped = line.lstrip(" ")
+    indent = len(line) - len(stripped)
+    return " " * max(0, indent + shift) + stripped
+
+
+def _rewrite_lists(markdown: Path) -> bool:
+    original = markdown.read_text(encoding="utf-8")
+    rewritten = _normalize_lists(original)
+    if rewritten != original:
+        markdown.write_text(rewritten, encoding="utf-8")
+    return rewritten != original
+
+
 def _rewrite_figure_links(markdown: Path, docs_root: Path) -> int:
     original = markdown.read_text(encoding="utf-8")
     rewritten_lines: list[str] = []
@@ -280,6 +386,8 @@ def assemble(
         raise PagesBuildError(f"missing SVG export(s):\n  - {rendered}")
 
     directory_indexes = _create_directory_indexes(docs_root)
+    for markdown in sorted(docs_root.rglob("*.md")):
+        _rewrite_lists(markdown)
     rewritten_figures = sum(
         _rewrite_figure_links(markdown, docs_root)
         for markdown in sorted(docs_root.rglob("*.md"))
