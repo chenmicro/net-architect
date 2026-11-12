@@ -7,15 +7,14 @@ net-architect agent does the authoring. Authoring needs no CLI; the desktop CLI 
 only used to export an image from a `.drawio` (§4), and this workspace has draw.io
 Desktop 32.6.10 with the `drawio` wrapper in `PATH`.
 
-This file is the draw.io implementation adapter for the plugin-agnostic content
-contract in [`docs/network-topology-figures.md`](../docs/network-topology-figures.md). Device
-taxonomy, viewpoints, labels, and semantic color choices belong in that shared
-contract. File format, XML mechanics, commands, validation, exports, and
-repository handling for draw.io belong here.
+This file is the draw.io implementation adapter. File format, XML mechanics,
+commands, validation, exports, and repository handling for draw.io belong here.
+Device taxonomy, viewpoints, labels, and semantic color choices do not.
 
 > Convention: one `<plugin-name>.md` per plugin lives directly in `plugins/`
 > (this file documents the `plugins/drawio-mcp` submodule). Future plugins get
-> their own `<plugin-name>.md`; do not add another `README.md` here.
+> their own `<plugin-name>.md`; do not add another `README.md` here. A plugin file never
+> links to the content conventions it implements; `SKILL.md` routes readers to both.
 
 Pinned submodule commit: `639186a5cdaea5a0d47215f5f404ac7b76ccf634` (drawio-mcp
 `main`; tool server 1.11.0, app server 1.7.0) [1] — moved forward from `14b318b`,
@@ -39,7 +38,6 @@ This file is an index — the authoritative content lives in the submodule and i
 | `#create=` browser URL generation | `plugins/claude-code/skills/drawio/SKILL.md` — "Browser URL output" [5] |
 | Vendor/industry icon styles | `shape-search/search-index.json` (10,800 shapes) [6] |
 | Validation schema | `shared/mxfile.xsd` [7] |
-| Network-figure content conventions | [`../docs/network-topology-figures.md`](../docs/network-topology-figures.md) |
 | Parse and topology validation commands | [`../tools/drawio_parse.py`](../tools/drawio_parse.py), [`../tools/drawio_validate.py`](../tools/drawio_validate.py) |
 
 ## 1. Reading a topology diagram
@@ -112,14 +110,18 @@ them on the next save.
 
 Apply the rules in `xml-reference.md` "CRITICAL: XML well-formedness" and
 "Containers and groups" [2]; style changes follow `style-reference.md` §2 [3].
-For network figures, also apply the labeling, role encoding, link semantics, and
-document-type rules in [`docs/network-topology-figures.md`](../docs/network-topology-figures.md).
 
 Container children set coordinates relative to the container, and an edge's parent is
-the innermost container that holds both of its ends, otherwise the layer. The facing-edge
-anchors that [`docs/network-topology-figures.md`](../docs/network-topology-figures.md)
-asks for are `exitX=0.5;exitY=1` on the upper card and `entryX=0.5;entryY=0` on the lower
+the innermost container that holds both of its ends, otherwise the layer. Facing-edge
+anchors are `exitX=0.5;exitY=1` on the upper card and `entryX=0.5;entryY=0` on the lower
 card, or `exitX=1;exitY=0.5` and `entryX=0;entryY=0.5` for side-by-side cards.
+
+Write a figure so that §1.3 recovers its topology: nest each card in its bounding
+container, connect every edge to both of its ends, and give cells IDs that name what
+they stand for (`d1_fab`, `d1_dci1`). Only legend sample lines may float, and only
+inside the container with ID `legend`; the validator reports any other floating edge as
+an error. Do not track generator scripts; to change a figure, edit the `.drawio` or
+write a new script that reads it.
 
 A label placed outside its shape needs `labelPerimeter=1` in the style, otherwise a
 connector runs across the text before it reaches the shape; `shared/label-perimeter.js`
@@ -149,10 +151,6 @@ Run the schema directly when diagnosing XSD-specific failures:
 ```bash
 xmllint --noout --schema plugins/drawio-mcp/shared/mxfile.xsd file.drawio
 ```
-
-Validation is necessary but not sufficient: a human or agent must still confirm
-that device roles, expected links, redundancy, boundaries, and captions match the
-architecture described by the consuming document.
 
 ---
 

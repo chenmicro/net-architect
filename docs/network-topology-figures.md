@@ -13,7 +13,6 @@ State the figure's purpose, abstraction level, and one primary viewpoint:
 | Physical | Devices, ports, cables, bundles, sites, and failure domains |
 | Logical or control plane | Adjacencies, overlays, tunnels, VRFs, and logical boundaries |
 | Service or traffic flow | Service traversal, direction, policy, and ingress/egress paths |
-| POC or test | Tested topology, exercised links, failure actions, and relevant configuration context |
 
 Use `atomic schematic`, `reference architecture`, or `implementation-specific`
 as the abstraction level. A hybrid viewpoint must distinguish its layers with
@@ -172,7 +171,10 @@ takes the medium one.
 ### Layout
 
 Rules for every figure come first, then rules for the physical and logical viewpoints
-defined in Purpose, scope, and viewpoint.
+defined in Purpose, scope, and viewpoint. Only these rules are general. Other layout
+choices, such as switch pairs by default, a balanced leaf row, one boundary per meaning,
+one centre axis, or mirroring a second identical site, are per-figure options: offer
+them, don't impose them.
 
 - **Link to the facing edge, not the centre line.** Leave the upper card's bottom-centre
   and land on the lower card's top-centre; for side-by-side cards use right-centre to
@@ -230,7 +232,8 @@ matters; double-ended arrows mean bidirectional traffic.
 
 Place interface names at their physical-link endpoints, shared speed/media/bundle
 properties near the solid-line center, and VRF/tenant/application/policy labels
-on the dashed path.
+on the dashed path. A dashed path's label may also name the route that decides that hop,
+such as `0.0.0.0/0 static` or `BGP /32`.
 
 A VRF or tenant label on a dashed path names the traffic's VRF or tenant, in either
 layout. It does not replace the gray text that shows where the resource is configured in
@@ -241,7 +244,7 @@ or tenant boundary to another.
 
 | Document | Figure requirements |
 |---|---|
-| POC record | Actual tested topology; relevant names, interfaces, addresses, VLANs, exercised links, and failure paths. Never publish an inferred or unlabeled POC figure. |
+| POC record | The topology under test; relevant names, interfaces, addresses, VLANs, exercised links, failure actions, and failure paths. Never publish an inferred or unlabeled POC figure. |
 | Scenario | Abstract reference architecture with functional roles and boundaries; omit customer-specific details. |
 | Technique | Atomic schematic teaching one structure or mechanism; use generic roles unless the implementation is inherently vendor-specific. |
 
@@ -250,8 +253,19 @@ or tenant boundary to another.
 - Preserve the editable canonical source beside its consuming document unless
   the implementation adapter requires another layout.
 - Name it `<topic>-figN.<native-source-extension>` in lowercase.
-- Give it a numbered caption and publish previews/exports according to the
-  adapter's policy.
+- Publish previews/exports according to the adapter's policy.
+
+### Self-describing source
+
+A generator or script that produced the source is disposable, so the source must carry
+the figure's structure, not just its appearance:
+
+- Regions nest by containment: a card belongs to the fabric or site boundary that
+  contains it, not one that merely overlaps it.
+- Every relationship is a link attached to the two items it connects.
+
+A reader or tool must be able to recover the region tree, the adjacencies, and each
+node's role from the source alone, and regenerate the figure from it.
 
 ### Markdown figure-reference contract
 
@@ -277,21 +291,33 @@ rules so local reading and automated publication remain deterministic:
   for that source; when a multi-page source is necessary, the implementation
   adapter must define how its pages are rendered and labeled.
 - Keep explanatory prose outside the reference line. The short caption states
-  the figure's purpose; surrounding text carries design interpretation.
+  the figure's purpose.
 
 An implementation adapter may replace this marker in a generated publication
 tree with a rendered image and a separate editable-source link. It must not
 rewrite the canonical Markdown document or commit generated presentation assets
 beside it.
 
+### Figure–document correspondence
+
+A figure carries no mapping to its document; the reference is the only binding, so the
+consuming document is the source of truth for every name and value the figure shows.
+
+- Take card names and each site's values (ASNs, addresses, VLANs) from the document's
+  entries for that site. Give each member of a pair its own card and its own name
+  (`Leaf1-1`, `Leaf1-2`).
+- The legend explains the visual encoding only. Design interpretation stays in the
+  document's text.
+
 ## Authoring and validation lifecycle
 
 1. State purpose, viewpoint, and abstraction level.
 2. Read the active implementation adapter and edit its canonical source.
 3. Inspect topology and labels; run format and figure-specific validation.
-4. Verify adjacencies, redundancy, failure domains, traffic direction, and text
-   correspondence.
-5. Publish the reference/caption and revalidate after every topology change.
+4. Verify adjacencies, redundancy, failure domains, traffic direction, and
+   figure–document correspondence.
+5. Publish the reference/caption and revalidate whenever a fact the figure shows
+   changes.
 
 Mechanical checks cannot prove architectural correctness; the author remains
 responsible for the figure's meaning.

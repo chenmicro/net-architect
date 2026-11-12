@@ -37,6 +37,10 @@ except ImportError:  # pragma: no cover - supports ``python -m tools...``
 
 DEFAULT_SCHEMA = Path(__file__).resolve().parents[1] / "plugins" / "drawio-mcp" / "shared" / "mxfile.xsd"
 
+# Legend sample lines illustrate a line style and connect nothing; they are the
+# only edges allowed to float, and only inside the container with this ID.
+LEGEND_ID = "legend"
+
 
 @dataclass
 class Issue:
@@ -157,6 +161,18 @@ def _check_root_and_ids(page: Page, issues: list[Issue]) -> dict[str, Cell]:
     return by_id
 
 
+def _in_legend(cell: Cell, by_id: dict[str, Cell]) -> bool:
+    seen: set[str] = set()
+    current = cell.parent
+    while current and current not in seen:
+        if current == LEGEND_ID:
+            return True
+        seen.add(current)
+        parent = by_id.get(current)
+        current = parent.parent if parent is not None else None
+    return False
+
+
 def _check_edges(page: Page, by_id: dict[str, Cell], issues: list[Issue]) -> None:
     for edge in page.edges:
         edge_name = edge.id or "<missing>"
@@ -167,9 +183,16 @@ def _check_edges(page: Page, by_id: dict[str, Cell], issues: list[Issue]) -> Non
 
         for terminal_name, terminal_id in (("source", edge.source), ("target", edge.target)):
             if not terminal_id:
-                # Floating edges are legal draw.io objects.  They are useful
-                # during editing, but unusual in a finished network topology.
-                _issue(issues, "warning", f"edge {edge_name!r} has no {terminal_name} terminal", page)
+                # Floating edges are legal draw.io objects, but a link that is
+                # not attached to both ends cannot be read back as an
+                # adjacency.  Only legend samples may float.
+                if not _in_legend(edge, by_id):
+                    _issue(
+                        issues,
+                        "error",
+                        f"edge {edge_name!r} has no {terminal_name} terminal (only edges inside the {LEGEND_ID!r} container may float)",
+                        page,
+                    )
                 continue
             terminal = by_id.get(terminal_id)
             if terminal is None:
