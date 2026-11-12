@@ -37,6 +37,10 @@ Sources fall into two categories with different handling:
 Huawei product documentation is an exception to the URL requirement; see
 [huawei.md](../skills/vendor-matrix/huawei/huawei.md#documentation-sources).
 
+Cite only documents a reader can obtain and check. A screenshot or pasted console output
+is not one: state the fact without a numbered citation, and name its source in words if
+needed.
+
 ## Agent and user documentation
 
 The root `README.md` is for users only. Do not reference it from `SKILL.md`. Anything
@@ -101,6 +105,11 @@ renamed, fix it.
   **unverified** until confirmed against the current version's documentation or a
   live CLI. Per-product-line version details (which version is current, which is EOL)
   live in the vendor file's version section, never duplicated in `SKILL.md`.
+- **Solution files hold only the solution's documentation**: a solution file (for
+  example `huawei/cloudfabric.md`) states only what the vendor's documentation for that
+  solution says, with a citation. POC configuration goes in the POC record, device facts
+  in the device file, protocol behavior in technique files, and design reasoning or
+  other vendors' sources nowhere in it.
 
 ## Scenarios
 

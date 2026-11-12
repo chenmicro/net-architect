@@ -15,6 +15,9 @@ and how to resolve it — the type of knowledge that architecture docs miss.
   the content and note it inline, for example `Corrected from live testing, 2026-11`.
   Remove customer names, real addresses, serial numbers, and credentials first
 - Issues predicted from documentation carry a citation, like any other external fact
+- **Values come from the recommended ranges** — take VLANs, VNIs, bridge domains, and
+  interconnection values from the vendor solution guide's recommended or example ranges,
+  and flag any value outside them or one the platform reserves
 - POC records are **not** scenarios — they don't prescribe architecture
 - Add each new record to the [POC index](../skills/pocs/README.md)
 
