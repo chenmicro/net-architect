@@ -9,7 +9,7 @@ and device detail live in the linked files.
 | Campus | S-series | V600 (V600R025C10) | V200 | iMaster NCE-Campus |
 | WAN | NetEngine (NE series) | — | — | iMaster NCE-IP |
 | Security | [HiSecEngine USG6000F / USG6000G firewalls](hisecengine-usg.md) | V600 (V600R026C00) | — | — |
-| Storage network | CloudEngine SAN models (box: CE6885-SAN, CE8855H-SAN, CE8865-SAN; chassis: CE16800-X) | Solution V100R025C10 | — | [Xinghe NoF+](nof-plus.md) with OceanStor Dorado |
+| Storage network | CloudEngine SAN models (box: CE6885-SAN, CE8855H-SAN, CE8865-SAN; chassis: CE16800-X) | Solution V100R026C00 (Stellar AI Fabric, Intelligent Lossless Scenario) | V100R025C10 (titled Xinghe Intelligent Fabric) | [NoF+](nof-plus.md) with OceanStor Dorado |
 
 Version rule: see [SKILL.md](../../../SKILL.md#3-vendors). CloudEngine version
 sources are in [cloudengine.md](cloudengine.md#version-line-v300).

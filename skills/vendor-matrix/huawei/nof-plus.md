@@ -1,4 +1,4 @@
-# Huawei Xinghe Intelligent Lossless Storage Network (NoF+)
+# Huawei Stellar AI Fabric Intelligent Lossless Storage Network (NoF+)
 
 - NoF+ is Huawei's centralized-storage network solution: NVMe over RoCEv2 between hosts
   and OceanStor Dorado arrays on CloudEngine switches, positioned to replace FC SAN,
@@ -15,15 +15,16 @@
   MS5000/MS7000 qualify, NetApp EF is explicitly excluded
   ([Platforms and compatibility](#platforms-and-compatibility))
   [4, Peripheral Product Description]. See [How open is NoF+?](#how-open-is-nof).
-- **Switch scope**: box models CE6885-SAN-56F, CE8855H-SAN-40F, and CE8865-SAN-4C; chassis
-  CE16800-X. Older SAN boxes and other CloudEngine models are out of scope — where a
-  source states a figure only for them, this file says so. Port, card, and compatibility
-  detail is in [Platforms and compatibility](#platforms-and-compatibility).
+- **Switch scope**: Huawei's SAN switches — box models CE6885-SAN-56F, CE8855H-SAN-40F,
+  and CE8865-SAN-4C, and the CE16800-X chassis. Older SAN boxes and other CloudEngine
+  models are out of scope — where a source states a figure only for them, this file says
+  so. Port, card, and compatibility detail is in
+  [Platforms and compatibility](#platforms-and-compatibility).
 - **Versions**: CloudEngine runs V300R026C00 [1], [5]; the solution documentation read
-  here is V100R025C10 [4]. Feature availability has to be checked against both.
+  here is V100R026C00 [4]. Feature availability has to be checked against both.
 - **Sources**: after-sales documentation only, ordered per
   [huawei.md](huawei.md#documentation-sources) — device documentation ([1] for the
-  CloudEngine 9800/8800/6800 SAN models, [5] for the CE16800 family), then FabricInsight
+  CloudEngine 9800/8800/6800 SAN models, [5] for the CE16800-X), then FabricInsight
   and NCE-Fabric ([6], [7]), then the solution deployment guide [4]. A feature and its O&M
   counterpart are separate claims, so each is cited to the document that owns it.
 - Related: [huawei.md](huawei.md) for the product lines, [cloudengine.md](cloudengine.md)
@@ -32,28 +33,38 @@
 ## Fabric design
 
 - **Planes**: a service (TCP) network and a storage network, the storage side split into
-  planes A and B. Storage designs are one-layer, two-layer, or three-layer
+  planes A and B. Storage designs are one-layer, two-layer, or three-layer, plus a
+  three-site design that converges the front- and back-end networks
   [4, Recommended Networking and Device Models].
-- **Roles and models**, as the deployment guide recommends them
-  [4, Recommended Networking and Device Models]:
+- **Roles and models**, as the deployment guide recommends them. "Optional" is the
+  guide's own column; out-of-scope models it also lists (CE6860-SAN, CE8850-SAN) are left
+  out [4, Single-Layer, Two-Layer, and Three-Layer Networking
+  for Centralized Storage], [4, Front- and Back-end Network Convergence at Three Sites]:
 
 | Topology | Role | In-scope models listed |
 |---|---|---|
-| Single-layer, 25GE | Leaf | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H; CE16800-X with J or J2 25GE cards |
-| Two-layer, 25GE access | Leaf and spine | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H; CE16800-X with J or J2 cards as spine |
-| Two-layer, 100GE access | Leaf | CE8865-SAN-4C with CE88-SAN-D16CQ-H |
-| Three-layer, 25GE access | Compute leaf | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H |
-| Three-layer, 25GE access | Storage leaf and spine | CE16800-X with J cards CEX-L24CQJ and CEX-L36CQJ, or J2 card CEX-L48CQJ2; or CE8865-SAN-4C with CE88-SAN-D26F-H |
-| Intra-city, 25GE access | DCI leaf | CE6885-SAN-56F combined with the service leaf; CE8865-SAN-4C; CE16800-X |
-| Intra-city, 100GE access | DCI leaf | CE8865-SAN-4C with CE88-SAN-D16CQ-H; CE16800-X |
+| Single-layer, 25GE | Leaf | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H; CE16800-X with J cards CEX-L48YSAJ or CEX-L48YSJ, or J2 card CEX-L72YS6CQJ2 |
+| Two-layer, 25GE access | Leaf | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H; CE16800-X with J cards (25GE CEX-L48YSAJ, CEX-L48YSJ; 100GE CEX-L24CQJ, CEX-L36CQJ) or J2 card CEX-L48CQJ2 |
+| Two-layer, 25GE access | Spine | the same, plus J2 card CEX-L36DQ2CQJ2 (400GE) on the CE16800-X |
+| Two-layer, 100GE access | Leaf | CE8865-SAN-4C with CE88-SAN-D16CQ-H; CE8855H-SAN-40F optional |
+| Two-layer, 100GE access | Spine | CE8865-SAN-4C with CE88-SAN-D16CQ-H; CE16800-X with J cards CEX-L24CQJ or CEX-L36CQJ, or J2 cards CEX-L48CQJ2 or CEX-L36DQ2CQJ2; CE8855H-SAN-40F optional |
+| Three-layer, 25GE access | Compute leaf and storage leaf | CE6885-SAN-56F; CE8865-SAN-4C with CE88-SAN-D26F-H; CE16800-X with J cards CEX-L24CQJ or CEX-L36CQJ, or J2 cards CEX-L48CQJ2 or CEX-L36DQ2CQJ2 |
+| Three-layer, 25GE access | Spine | CE16800-X with the same J and J2 cards; CE8865-SAN-4C with CE88-SAN-D26F-H |
+| Three-layer, 100GE access | Leaf and spine | CE8855H-SAN-40F, the only model listed |
+| Three-site, 25GE access | Compute leaf and storage leaf; spine | the two-layer 25GE leaf and spine lists, role for role |
+| Three-site, 100GE access | Storage leaf; spine | the two-layer 100GE leaf and spine lists, role for role (compute servers stay on 25GE) |
+| Intra-city, 25GE access | DCI leaf | CE6885-SAN-56F or CE8865-SAN-4C with CE88-SAN-D26F-H, combined with the service leaf or independent; CE16800-X, independent or combined with the spine; CE8865-SAN-4C with CE88-SAN-D16CQ-H in two-layer DCI |
+| Intra-city, 100GE access | DCI leaf | CE8865-SAN-4C with CE88-SAN-D16CQ-H, CE8855H-SAN-40F, or CE16800-X, independent; CE8865-SAN-4C in two-layer DCI; CE16800-X or CE8865-SAN-4C combined with the spine |
 
 - **Features each role must run.** "Required" is the guide's own wording ("must be
   deployed", "must be configured"); "not listed" means that page's must-deploy statement
   omits the feature, not that the device cannot do it
   [4, Single-Layer Networking for Centralized Storage], [4, Two-Layer Networking for
-  Centralized Storage], [4, Three-Layer Networking for Centralized Storage]:
+  Centralized Storage], [4, Three-Layer Networking for Centralized Storage],
+  [4, Front- and Back-end Network Convergence at Three Sites], [4, 25GE Access and 100GE
+  Access > Networking Baselines]:
 
-| Feature | Single-layer leaf | Leaf, two-/three-layer | Spine | Storage leaf | DCI leaf |
+| Feature | Single-layer leaf | Leaf, two-/three-layer and three-site | Spine | Storage leaf | DCI leaf |
 |---|---|---|---|---|---|
 | AI ECN | required | required | required | required | not listed |
 | DCB PFC | required | required | required | required | not listed |
@@ -62,7 +73,7 @@
 | Anti-locking PFC | — | — | — | — | required, on the long-distance interfaces |
 | Long-distance buffer optimisation | — | — | — | — | required |
 | MACsec | — | — | — | — | optional |
-| iNOF | recommended | recommended | recommended | recommended | required, as the plane's reflector |
+| iNOF | recommended | recommended | recommended | recommended | required in intra-city replication, where the DCI leaves are the reflectors; otherwise a client of the spine reflectors ([iNOF](#inof)) |
 | Hard zoning | optional | optional | not listed | not listed | not listed |
 
   - The single-layer fabric is the one topology where PFC deadlock prevention is absent,
@@ -74,15 +85,38 @@
   redundancy and the two planes for the network side.
 - **iNOF is recommended, not required** [4]: the topology pages deploy it when Dorado
   storage is used, and the compatibility list also admits the MacroSAN arrays
-  ([Platforms and compatibility](#platforms-and-compatibility)). Where it is used, the DCI
-  leaves carry it and act as the plane's reflectors ([iNOF](#inof)).
+  ([Platforms and compatibility](#platforms-and-compatibility)); reflector placement is in
+  [iNOF](#inof).
 - **Hard zoning is optional** [4]; what it costs is in [Zoning](#zoning).
 - **AI ECN needs a newer main processing unit on the chassis**: CEX-MPUD or CEX-MPUE on
-  CE16800-X, CE-MPUD-3E or CE-MPUE on the CE16800 [4].
+  the CE16800-X [4].
 - **Scale** [4]: a fixed 25GE box leaf is rated for at most 6:1 oversubscription in the
-  three-layer design (48 × 25GE access against 2 × 100GE uplink), and a server leaf at most
-  6:1 in the two-layer DCI baseline. Where two-layer and three-layer both meet the
-  requirement, the guide prefers two-layer.
+  three-layer design (48 × 25GE access against 2 × 100GE uplink) and in the two-layer
+  design at 25GE or 100GE; a modular leaf at most 9:1 in the two-layer 25GE design (72 ×
+  25GE against 2 × 100GE); a server leaf at most 6:1 in the two-layer DCI baseline. Where
+  two-layer and three-layer both meet the requirement, the guide prefers two-layer
+  [4, Two-Layer Networking for Centralized Storage], [4, Three-Layer Networking for
+  Centralized Storage].
+- **Scenario restrictions on every topology page** [4]: no iNOF under VMware; distributed
+  and centralized storage cannot share the fabric, nor can either expand into the other;
+  25GE and 100GE storage nodes cannot share a leaf; 25GE access cannot be upgraded to 100GE
+  in service; and the "Standard Package for the Centralized Storage Scenarios" or
+  "Enhanced Package for the Centralized Storage Scenarios" licence is required.
+
+### Three-site front- and back-end convergence
+
+Everything in this section is from one page of the deployment guide [4, Front- and
+Back-end Network Convergence at Three Sites for Centralized Storage].
+
+- Compute servers and active-active storage nodes are spread over three sites, and the
+  storage front-end (host I/O) and back-end (array-to-array) traffic share one network.
+- Compute servers attach at 25GE; storage servers at 25GE or 100GE. Models per role are in
+  the table above; the must-deploy list is the two-layer one.
+- **Reflectors and filtering**: the spines are the iNOF reflectors and must run zone
+  information filtering, with only the zones for storage-to-storage communication on the
+  synchronization policy's whitelist ([Zoning](#zoning)).
+- The page states that "the switches need to support the rate of 100GE when the distance
+  between them is 2 km" — the only inter-site distance it gives.
 
 ## iNOF
 
@@ -95,16 +129,25 @@ Everything in this section — discovery, zones, zone isolation and filtering, B
 - **Roles**: one or two switches are reflectors and every other iNOF switch is a client
   that connects to each reflector. Two reflectors must be clients of each other and must
   list the same clients [1, Understanding iNOF], [5].
-- **Where the reflectors go** [4, 25GE Access > Networking Baseline 2]:
-  - **Single-layer storage DC**: none inside the DC. The DCI leaves are the plane's
-    reflectors — DCI Leaf1/Leaf2 for plane A, Leaf3/Leaf4 for plane B — and the DC
-    storage leaves are their clients.
-  - **Two- and three-layer DCs**: the spine nodes, two per fabric, are the reflectors and
-    clients of each other; every server-facing device, leaves and DCI leaves alike, is a
-    client of those two.
-- **Availability**: every in-scope model supports iNOF. The chassis gates some iNOF
-  functions on card type — see the feature table in
-  [Platforms and compatibility](#platforms-and-compatibility). Which standard CloudEngine
+- **Where the reflectors go** [4, Two-Layer and Three-Layer Networking for Centralized
+  Storage], [4, 25GE Access > Networking Baselines 1–4], [4, 100GE Access > Networking
+  Baselines 1–3]:
+  - **Single DC, two- or three-layer**: one or two spines per plane are the reflectors;
+    the leaves facing servers are the clients.
+  - **Intra-city active-active, single-layer storage DC**: none inside the DC. The DCI
+    leaves are the plane's reflectors — DCI Leaf1/Leaf2 for plane A, Leaf3/Leaf4 for
+    plane B — and the DC storage leaves in both DCs are their clients.
+  - **Intra-city active-active, two- or three-layer DC** (including spines combined with
+    DCI leaves): two spines per fabric are the reflectors; every server-facing device,
+    leaves and DCI leaves alike, is a client. Another spine is a client only if it connects
+    to storage nodes, as in a two-layer DC; spines that only join leaves are not.
+  - **Intra-city replication, any DC architecture**: the intra-DC and inter-DC networks
+    are separate routing domains and fabrics. The inter-DC fabric's reflectors are the DCI
+    leaves (Leaf1/Leaf2 for plane A, Leaf3/Leaf4 for plane B), clients of each other; in
+    two-layer DCI networking the server leaves are their clients. The intra-DC fabric
+    follows the single-DC rule.
+- **Availability**: every in-scope model supports iNOF and all its functions
+  ([Platforms and compatibility](#platforms-and-compatibility)). Which standard CloudEngine
   models lack iNOF is in [cloudengine.md](cloudengine.md#model-feature-support).
 - **Packaging**: iNOF ships in the AI Fabric feature package, which is part of the basic
   software.
@@ -118,8 +161,11 @@ Everything in this section — discovery, zones, zone isolation and filtering, B
   connection to each other and only need to be directly connected to hosts
   [1, Understanding iNOF].
 - **What it carries**: TCP with the iNOF information in the **Data field**, destination port
-  10000–57999, default 19516, the same port on every device
-  [1, Understanding iNOF], [1, Configuring the iNOF Reflector and Client]. Four payload
+  10000–57999, default 19516, the same port on every device of one iNOF system — and since
+  each plane is its own system, the solution guide recommends a different port on plane A
+  and plane B (10002 and 10003 in its examples) [1, Understanding iNOF],
+  [1, Configuring the iNOF Reflector and Client], [4, Switch Configuration > Configuring
+  Compute Leaf Nodes]. Four payload
   types:
   - connection establishment, itself "similar to the process of TCP connection
     establishment";
@@ -214,24 +260,10 @@ Everything in this section — discovery, zones, zone isolation and filtering, B
   default a reflector synchronizes every zone to its clients. A `synchronization policy` —
   at most four per device, each holding up to 4000 zones — is applied per client as a
   whitelist or blacklist, so a client sees only the zones it needs.
-
-- **Controller automation** [7, Configuring Zones]: iMaster NCE-Fabric delivers zone
-  configurations in batches from **Resource Pool > Zone**. Create a zone against a
-  fabric, refresh to pick up that fabric's iNOF reflectors, synchronize the devices'
-  default zone into the controller, then import zones from the downloadable template or
-  create them by hand with a name and host list.
-  - A fabric with one device makes that device the reflector automatically; with several,
-    you designate one or two.
-  - The fabric must contain **only** iNOF devices, or the fabric association fails when
-    the zone is created.
-  - **Model gap**: [7] asks for V300R022C00 or later and lists CE6860-SAN, CE8850-SAN,
-    and the CE16800 with SAN cards; the three in-scope SAN boxes are outside that list, so
-    configure zones on the reflector as above and confirm with Huawei before designing the
-    controller into the build.
-  - Separate from zoning, an iNOF runbook package
-    (`iMasterNCE-Fabric_{version}_Runbook_nof.zip`) provisions access-side iNOF
-    configuration through preset workflows, and publishing a workflow generates an API for
-    a third-party platform to call.
+- **No controller zone delivery on the in-scope models.** iMaster NCE-Fabric can deliver
+  iNOF zones in batches, but it needs V300R022C00 or later and none of the CE6885-SAN,
+  CE8855H-SAN, CE8865-SAN, or CE16800-X is on its supported model list
+  [7, Configuring Zones]. Zones are configured on the reflector by CLI, as above.
 
 ### Fault notification and fast recovery
 
@@ -263,8 +295,14 @@ Everything in this section — discovery, zones, zone isolation and filtering, B
   node, and tells the compute nodes to drop the failed connection and switch to the backup
   link [1, (Optional) Configuring RPFR], [4].
   - Configured with `rpfr enable` under `ai-service` → `inof`, and again on the
-    interface [1]. Card and model support is in
-    [Platforms and compatibility](#platforms-and-compatibility).
+    interface [1]. Every in-scope model supports it
+    ([Platforms and compatibility](#platforms-and-compatibility)).
+  - **Version gate** [4, Combined Deployment of Spine Nodes and DCI Leaf Nodes:
+    Configuring Spine Nodes]: RPFR works with OceanStor Dorado V700R001C10 or later and
+    CE V300R025C00 or later.
+  - **Subnet sizing**: keep the VLANIF mask on compute- and storage-facing interfaces at
+    23 bits or longer; /23, /24, and /25 are the recommended values [4, Configuring Spine
+    Nodes (CE8865-SAN)].
   - **Not guaranteed** [1, Configuration Precautions for iNOF], [5]: the proxy fails in
     about 5% of cases, and is very likely to fail if the Layer 3 logical interfaces of the
     access interfaces fail at the same time.
@@ -337,8 +375,6 @@ Everything in this section — discovery, zones, zone isolation and filtering, B
   - The README dates from 2021 and does not list the SAN models; the repository was last
     updated in April 2026 (DSCP support).
 
-  switches but are documented as features rather than as part of a topology
-
 ## Intra-city (cross-DC) lossless network
 
 Configured, in order of the subsections below, with `abs-pfc`, `qos buffer
@@ -354,21 +390,25 @@ headroom-pool` / `dcb pfc buffer` / `long-distance mode`, and MACsec
   - Two storage models ride on it: intra-city active-active (synchronous dual-write) and
     synchronous replication [4, Scenario Description]. Remote, non-metro replication runs
     over lossy TCP and is out of scope.
-- **DCI leaf coverage** [4, 25GE Access > Networking Baseline 2, 100GE Access > Networking
-  Baseline 1]:
-  - 25GE access: CE6885-SAN and CE8865-SAN as DCI leaf nodes, for combined and for
-    independent deployment, with CE6885-SAN also appearing as a two-layer DCI server leaf.
-  - 100GE access: CE8865-SAN as an independent DCI leaf or a two-layer DCI node, and
-    CE16800-X with J or J2 cards.
-  - **DCI oversubscription must not exceed 10:1** [4, 25GE Access > Networking Baseline 2,
-    100GE Access > Networking Baseline 2].
+- **Which DCI baseline fits which DC** [4, DCI Deployment Guide > Recommended Networking
+  and Device Models]: at 25GE access, a single-layer DC takes a DCI leaf combined with the
+  service leaf (baseline 1, small sites) or an independent DCI leaf (baseline 2); two- and
+  three-layer DCs take an independent DCI leaf (baseline 2, medium and large sites) or
+  two-layer DCI networking (baseline 3, ultra-large sites). At 100GE access only a
+  two-layer DC is listed, with an independent DCI leaf (baseline 1) or two-layer DCI
+  (baseline 2). The spine-combined baselines (25GE baseline 4, 100GE baseline 3) are not
+  in that summary table; their pages show a two-layer DC. Models per DCI role are in the
+  [Fabric design](#fabric-design) table.
+- **DCI oversubscription must not exceed 10:1**, and a two-layer DCI server leaf's 6:1
+  [4, 25GE Access > Networking Baselines 2 and 3, 100GE Access > Networking Baselines 1
+  and 2].
 - **Storage-side limits** [4, Scenario Description]: HyperReplication/S needs the sites
   less than 100 km apart, under 3 ms of bidirectional latency, and more bandwidth than the
   peak write I/O rate. A 100 km one-way delay is 0.5 ms, so the 3 ms budget is mostly
   device and WDM latency, not fibre.
 - **Two prerequisites beyond the fabric**: anti-locking PFC on the long-distance
-  interfaces, and the NoF+ long-distance storage scenario package in the CE software
-  [4, Peripheral Product Description]. Sizing follows
+  interfaces, and the "NoF+ storage long-distance enhanced package" in the CE licence
+  [4, Networking Baselines], [4, Peripheral Product Description]. Sizing follows
   [Buffer, ECN, and shaping](#buffer-ecn-and-shaping).
 
 ### Anti-locking PFC
@@ -413,31 +453,32 @@ chip, interface, and queue [1, Understanding Buffer Optimization] — three laye
 right, as [cloudengine.md](cloudengine.md#lossless-and-dcb-feature-set) describes.
 
 The deployment guide's DCI pages are the only Huawei procedure read here that configures
-an in-scope model as a DCI node; the 25GE-access pages (CE6885-SAN, CE8865-SAN) and the
-100GE-access pages (CE8865-SAN, CE16800-X) use the same recipe
+an in-scope model as a DCI node; the 25GE-access pages (CE6885-SAN, CE8865-SAN,
+CE16800-X), the 100GE-access pages (CE8865-SAN, CE8855H-SAN, CE16800-X), and the
+spine-combined pages (CE16800-X, CE8865-SAN) use the same recipe
 [4, Intra-city Long-Distance Deployment Solution]. It sets:
 
 | Item | Value |
 |---|---|
 | Bandwidth-delay product | `BDP = interface bandwidth × RTT`, with RTT ≈ 1 ms per 100 km (10 µs/km) |
 | Static ECN thresholds on the lossless queue | lower drop threshold = 1 BDP, upper = 2 BDP, maximum drop probability 10% (worked example: 10G at 60 km → 750,000 and 1,500,000 bytes) |
-| Chip-level headroom pool | `qos buffer headroom-pool size <n> mbytes slot <n>`, sized from distance × port count × bandwidth: 4 MB for ≤ 100 km × 1 × 100GE on the box pages, 2 MB for ≤ 128 km × 1 × 100GE on the CE16800-X pages |
+| Chip-level headroom pool | `qos buffer headroom-pool size <n> mbytes slot <n>`, sized from distance × port count × bandwidth: boxes 4 MB at ≤ 100 km × 1 × 100GE and 2 MB at 100–150 km; CE16800-X 2 MB at ≤ 128 km on CEX-L24CQJ/L36CQJ/L48CQJ2 and 3 MB at ≤ 80 km on CEX-L72YS6CQJ2, set on every slot |
 | Per-queue headroom | `dcb pfc buffer <q> hdrm <n>`: 512 kB on 25GE–100GE interfaces, 1024 kB on 200GE/400GE (cable ≤ 500 m) |
 | Long-distance mode | `long-distance mode level-100` (the 100 km maximum), then `start long-distance detect` to re-run the check after a link change |
 | Link-down reporting | `carrier down-hold-time 200`, which delays the down event by 200 ms |
 
-**Long-distance specification per port group** [4, 25GE Access > Networking Baselines 1
-and 2, 100GE Access > Networking Baselines 1 and 2]. The guide publishes a budget rather
+**Long-distance specification per port group** [4, 25GE Access > Networking Baselines
+1–4, 100GE Access > Networking Baselines 1–3]. The guide publishes a budget rather
 than a single speed, and shaping is how a link stays inside it:
 
 | Model | Published long-distance specification |
 |---|---|
 | CE16800-X, 100GE cards CEX-L24CQJ, CEX-L36CQJ, CEX-L48CQJ2 | ≤ 64 km × 2 × 100 Gbit/s, ≤ 128 km × 1 × 100 Gbit/s, or ≤ 200 km × 1 × 64 Gbit/s, shaping the 100GE ports |
 | CE16800-X with CEX-L72YS6CQJ2 | the same, or the stricter ≤ 40 km × 2 × 100 Gbit/s / ≤ 80 km × 1 × 100 Gbit/s, which leaves the whole 72 × 25GE + 4 × 100GE group for intra-DC traffic |
-| CE6885-SAN-56F, CE8865-SAN-4C | Specification 1: ≤ 50 km × 2 × 100 Gbit/s, ≤ 100 km × 1 × 100 Gbit/s, or ≤ 200 km × 1 × 50 Gbit/s (100GE shaped to 50GE). Specification 2: ≤ 75 km × 2 × 100 Gbit/s, ≤ 150 km × 1 × 100 Gbit/s, or ≤ 200 km × 1 × 75 Gbit/s (100GE shaped to 75GE) |
+| CE6885-SAN-56F, CE8865-SAN-4C, CE8855H-SAN-40F (100GE access only) | Specification 1: ≤ 50 km × 2 × 100 Gbit/s, ≤ 100 km × 1 × 100 Gbit/s, or ≤ 200 km × 1 × 50 Gbit/s (100GE shaped to 50GE). Specification 2: ≤ 75 km × 2 × 100 Gbit/s, ≤ 150 km × 1 × 100 Gbit/s, or ≤ 200 km × 1 × 75 Gbit/s (100GE shaped to 75GE) |
 
 - Read each line as one fixed budget of distance × bandwidth per port group — 128 km ×
-  100 Gbit/s for CE16800-X, 100 or 150 km × 100 Gbit/s for the two boxes — spent either on
+  100 Gbit/s for CE16800-X, 100 or 150 km × 100 Gbit/s for the boxes — spent either on
   two ports at half the distance or on one port shaped below 100 Gbit/s at the full
   distance. That is where the 64, 75, and 50 Gbit/s figures come from.
 - Every port in the group that does not carry the long link stays available for intra-DC
@@ -446,12 +487,9 @@ than a single speed, and shaping is how a link stays inside it:
   round trips' worth of data before marking, which is the traditional-PFC sizing derived in
   [techniques/nvme-of.md](../../techniques/nvme-of.md#design-considerations).
 - **The headroom pool is smaller than the BDP.** At 100 km and 100GE the BDP is about
-  12.5 MB, while the guide sizes the chip-level headroom pool at 4 MB on the box pages and
-  2 MB on the CE16800-X pages, so the pool is not the whole in-flight budget — the queue's
-  shared buffer, sized by the 2 × BDP ECN thresholds, holds the rest. The published sizes
-  also differ per model for the same 1 × 100GE budget: the boxes scale 4 MB (≤ 100 km) down
-  to 2 MB (100–150 km), the chassis gives 3 MB at ≤ 80 km and 2 MB at ≤ 128 km. Treat them
-  as starting points and raise the pool if packets drop [4].
+  12.5 MB, against the 2–4 MB pools above, so the pool is not the whole in-flight budget —
+  the queue's shared buffer, sized by the 2 × BDP ECN thresholds, holds the rest. Treat the
+  published sizes as starting points and raise the pool if packets drop [4].
 - **Two published distance limits to reconcile.** `long-distance mode` tops out at
   `level-100`, while the per-model specifications above run to 200 km with shaping. How a
   150–200 km link satisfies the headroom check is worth confirming with Huawei before
@@ -460,12 +498,21 @@ than a single speed, and shaping is how a link stays inside it:
 ### Encryption
 
 - **MACsec is optional** on the long-distance link [1, Configuration Precautions for
-  MACsec], with cipher suites GCM-AES-128/256, GCM-AES-XPN-128/256, and SM4
-  (`gcm-sm4-128`, `gcm-sm4-xpn-128`) [1, macsec cipher-suite].
-- **Only some ports qualify**: for example slots 1 and 3 of the CE8865-SAN-4C. On the
-  long-distance side, the guide's MACsec-capable interfaces are 100GE1/1/1–2 and
-  100GE1/3/1–2 on CE88-SAN-D26F-H, and 100GE1/1/1–6, 100GE1/1/13–16, 100GE1/3/1–6, and
-  100GE1/3/13–16 on CE88-SAN-D16CQ-H [4, Intra-city Long-Distance Deployment Solution].
+  MACsec], [4, Networking Baselines], with cipher suites GCM-AES-128/256,
+  GCM-AES-XPN-128/256, and SM4 (`gcm-sm4-128`, `gcm-sm4-xpn-128`) [1, macsec cipher-suite].
+  Land the long-distance links on MACsec-capable ports anyway, so it can be added later.
+- **Only some ports qualify**: for example slots 1 and 3 of the CE8865-SAN-4C (subcard
+  slots 2 and 4 do not support MACsec). On the long-distance side, the guide's
+  MACsec-capable interfaces are [4, Intra-city Long-Distance Deployment Solution]:
+  - CE6885-SAN: 100GE1/0/1–8;
+  - CE8865-SAN: 100GE1/1/1–2 and 100GE1/3/1–2 on CE88-SAN-D26F-H, and 100GE1/1/1–6,
+    100GE1/1/13–16, 100GE1/3/1–6, and 100GE1/3/13–16 on CE88-SAN-D16CQ-H;
+  - CE8855H-SAN: 100GE1/0/9–28;
+  - CE16800-X, per card (slot number varies by chassis): CEX-L24CQJ 100GE1/0/0–7 and
+    12–19; CEX-L36CQJ the same plus 24–31; CEX-L48CQJ2 100GE1/0/0–15, 20–27, 32–35, and
+    40–43; CEX-L72YS6CQJ2 100GE1/0/1–2.
+- **Licensing**: MACsec is not in the basic software package; it needs its own licence
+  and feature package [4, Configuring Spine Nodes (CE8865-SAN)].
 
 ## Operations and monitoring
 
@@ -484,17 +531,28 @@ Overview].
     [6, I/O Visualization].
   - **Delivery**: FabricInsight pushes the task to the CE switches over NETCONF, or the
     task is configured by hand; the switches return the I/O data as telemetry over UDP.
-  - **Availability** [6]: needs the network health value-added package, is not available in
-    the lightweight deployment of the FabricInsight advanced solution, and needs I/O
-    quality visualization configured on both access devices.
+  - **Availability** [6]: needs the network health value-added package and is not
+    available in the lightweight deployment of the FabricInsight advanced solution.
+  - **Where the switch side goes** [4, NoF+ Network O&M > (Optional) Configuring I/O
+    Quality Visualization]: I/O quality visualization runs only on the access devices in a
+    DC — compute-side only for port polling, compute- and storage-side for assured service
+    monitoring. The switch function is licence-controlled.
+- **IFIT analysis in a NoF+ fabric** [4, NoF+ Network O&M > Configuring IFIT Analysis]:
+  the solution guide recommends IFIT for link quality between devices in two- and
+  three-layer DCs, and between the long-distance interfaces of the storage leaves at the
+  two intra-city sites. A compute leaf samples four host IPs (per service card slot on the
+  CE16800-X) towards the storage leaf's whole segment. The FabricInsight task selects the
+  intelligent lossless (NoF+ storage) fabric, protocol UDP, **no delay measurement**, and
+  NETCONF delivery; the prerequisites are basic IFIT pre-configured on the switches and
+  the IFIT and edge-intelligence functions installed on FabricInsight.
 - **rPFC excludes the telemetry view.** rPFC keeps PFC at the network edge by having the
   destination switch tell the source switch to throttle, but it is mutually exclusive with
-  the service telemetry resource mode — and on the SAN models I/O quality visualization
+  the service telemetry resource mode — and on the SAN boxes I/O quality visualization
   runs only in that mode, so the two cannot be enabled together [1]. Choose one per fabric.
-- **Device constraints on the SAN models** [1, Configuration Precautions for Service
+- **Device constraints on the SAN switches** [1, Configuration Precautions for Service
   Telemetry], [5]:
   - IPv4 only, and I/O quality visualization needs NTP or a high-precision soft clock;
-  - on CE6885-SAN, CE8865-SAN, and the CE16800, chip limits mean it does not measure every
+  - on CE6885-SAN and CE8865-SAN, chip limits mean it does not measure every
     I/O and some latency segments are not measured;
   - mutually exclusive with Eth-Trunk DLB, NPCC, and ECMP dynamic load balancing;
   - throughput visualization ignores RDMA transfers smaller than 1 MiB.
@@ -531,7 +589,7 @@ Overview].
 
 ## Platforms and compatibility
 
-- **SAN switches**, from the device documentation's hardware description [1]. None of them
+- **SAN boxes**, from the device documentation's hardware description [1]. None of them
   support stacking.
 
   | Model | Default ports | Higher rates |
@@ -544,35 +602,41 @@ Overview].
 
   - The CE8865-SAN-4C has four subcard slots, and port speeds above the default are
     optional upgrades.
-- **CE16800 family** [5]: chassis CE16800-X4, -X8, and -X16, with J2 series line cards
-  CEX-L40DQJ2 (40 × 400GE), CEX-L48CQJ2 (48 × 100GE), CEX-L72YS6CQJ2 (72 × 25GE + 6 ×
-  100GE), and CEX-L36DQ2CQJ2 (36 × 400GE + 2 × 100GE).
-- **Which model can run which feature** — this is the one place that answers it:
+- **CE16800-X family** [5]: chassis CE16800-X4, -X8, and -X16, with two interface-card
+  series.
 
-  | Feature | SAN boxes | CE16800-X |
-  |---|---|---|
-  | iNOF | all three [1, Configuration Precautions for iNOF] | X4/X8/X16 [5, Configuration Precautions for iNOF] |
-  | RPFR | SAN models only [1, (Optional) Configuring RPFR] | SAN, J, or J2 cards [5, (Optional) Configuring RPFR] |
-  | iNOF host groups | all three [1, Creating an iNOF Customized Zone] | J or J2 cards [5] |
-  | Zone information filtering | all three [1, iNOF Zone Information Filtering] | J or J2 cards [5] |
-  | Zone isolation | all three [1, Configuring iNOF Zone Isolation] | SAN, J, or J2 cards; takes effect before NPCC where they overlap [5] |
-  | Anti-locking PFC | documented [1, Antilocking PFC Configuration] | documented [5, Antilocking PFC Configuration] |
-  | DPFR | documented [1, Data Plane Fault Awareness] | documented [5, Data Plane Fault Awareness] |
-  | Service telemetry | documented, with the chip limits in [Operations and monitoring](#operations-and-monitoring) [1, Configuration Precautions for Service Telemetry] | documented on X4/X8/X16 and on the 16804/8/16 with J cards [5, Service Telemetry] |
+  | Series | 25GE | 40GE | 100GE | 400GE |
+  |---|---|---|---|---|
+  | J (XL-J) | CEX-L48YSAJ (48 × 25GE + 4 × 100GE), CEX-L48YSJ (48 × 25GE) | CEX-L36LQJ (36 × 40GE) | CEX-L24CQJ (24 × 100GE), CEX-L36CQJ (36 × 100GE) | CEX-L18DQJ (18 × 400GE) |
+  | J2 (XL-J2) | CEX-L72YS6CQJ2 (72 × 25GE + 6 × 100GE) | — | CEX-L48CQJ2 (48 × 100GE) | CEX-L36DQ2CQJ2 (36 × 400GE + 2 × 100GE), CEX-L40DQJ2 (40 × 400GE) |
 
-- **CE8855H-SAN-40F**: a documented SAN model [1] that appears in none of the deployment
-  guide's topology or DCI tables, so treat a CE8855H design as one to confirm with Huawei
-  rather than one the guide covers.
-- **Topologies**: one-layer, two-layer, and three-layer designs, with reflector placement
-  and the role-to-model mapping in [Fabric design](#fabric-design).
+  - The deployment guide recommends neither CEX-L36LQJ, CEX-L18DQJ, nor CEX-L40DQJ2 for
+    any NoF+ role ([Fabric design](#fabric-design)).
+- **Feature support is uniform across the in-scope models.** The three SAN boxes and the
+  CE16800-X all run iNOF, RPFR, iNOF host groups, zone information filtering, zone
+  isolation, and service telemetry [1, Configuration Precautions for iNOF],
+  [1, (Optional) Configuring RPFR], [1, Creating an iNOF Customized Zone],
+  [1, iNOF Zone Information Filtering], [1, Configuring iNOF Zone Isolation],
+  [1, Configuration Precautions for Service Telemetry], [5, Configuration Precautions for
+  iNOF], [5, (Optional) Configuring RPFR], [5, Creating an iNOF Customized Zone],
+  [5, iNOF Zone Information Filtering], [5, Configuring iNOF Zone Isolation],
+  [5, Service Telemetry]. On the CE16800-X, zone isolation takes effect before NPCC where
+  the two overlap [5, Configuring iNOF Zone Isolation].
+- **CE8855H-SAN-40F as a DCI leaf** [4, 100GE Access > Networking Baseline 1]: two port
+  groups, 100GE1/0/1–20 + 400GE1/0/1–4 and 100GE1/0/21–32 + 400GE1/0/5–8, the 400GE
+  ports running at 100 Gbit/s. Its roles are in the [Fabric design](#fabric-design) table.
 - **Compatibility**, from the deployment guide's Peripheral Product Description [4]:
   - **Huawei storage**: OceanStor Dorado V6 — 18000 series (18500/18800), 8000 (6800),
-    6000 (5600), 5000 (5500). Dorado 18000 V6 supports iNOF but does not do 100 Gbit/s
-    RoCE, and **Dorado 3000 V6 (5300) does not support iNOF**.
-  - **Dorado version gate**: 6.1.0 associates SNSD with CE iNOF; 6.1.2 adds intra-city
-    HyperMetro; 6.1.3 adds HyperReplication; 6.1.5 adds NoF+ IPv6 with CE V300R022C00 and
-    later. Both intra-city steps also need the NoF+ long-distance storage scenario package
-    on the CE side. 6.1.0 and earlier are single-DC only.
+    6000 (5600), 5000 (5500). The page opens by naming Dorado 5000 V6 and 6000 V6 as the
+    versions currently used with the solution. Dorado 18000 V6 supports iNOF but does not
+    do 100 Gbit/s RoCE, and **Dorado 3000 V6 (5300) does not support iNOF**.
+  - **Dorado and CE version gate**: 6.1.0 associates SNSD with CE iNOF, with CE
+    V300R020C00, V300R020C10, V300R021C00, or later; 6.1.2 adds intra-city HyperMetro and
+    6.1.3 adds HyperReplication, each with CE V300R021C10 or later; 6.1.5 adds NoF+ IPv6
+    with CE V300R022C00 or later, single-DC and intra-city. Both intra-city steps also need
+    the long-distance package on the CE side
+    ([Intra-city](#intra-city-cross-dc-lossless-network)). 6.1.0 and earlier are single-DC
+    only.
   - **Third-party storage**: MacroSAN MS5000 series (MS5520G2/MS5580G2/MS5500G2-Mach) and
     MS7000 series (MS7000/MS7000G2/MS7000G2-Mach/MS7000G2-HG) at V1.5.12 — listed with **no
     iNOF restriction**, so they can run plug-and-play and fault-driven switchover; NetApp
@@ -631,7 +695,7 @@ silence is the finding.
   [techniques/nvme-of.md](../../techniques/nvme-of.md#how-open-are-fc-and-roce). NoF+ adds
   a tie only through iNOF and RPFR.
 - **Who supports iNOF today** — one switch vendor and a short list either side:
-  - **Switches**: Huawei SAN models and the CE16800-X, licence-gated
+  - **Switches**: Huawei SAN switches (the three boxes and the CE16800-X), licence-gated
     ([cloudengine.md](cloudengine.md#model-feature-support)).
   - **Arrays**: Dorado V6 (5300 excepted) and MacroSAN MS5000/MS7000; NetApp EF is excluded
     ([Platforms and compatibility](#platforms-and-compatibility)).
@@ -695,13 +759,12 @@ silence is the finding.
   guest-OS switchover time are what the sources quantify
   ([Fault notification and fast recovery](#fault-notification-and-fast-recovery)), and the
   array's own keepalive check and RPFR's failure rate both override a clean handover.
-- **Priority on a CE16800 spine**: the chassis maps priority from the DSCP only. Its
+- **Priority on a CE16800-X spine**: the chassis maps priority from the DSCP only. Its
   compute-network collaboration function pushes the switch's lossless-service, queue, and
   DSCP mapping to Ascend servers, which then mark packets to match — but that needs Ascend
   servers with the function enabled, so with any other NIC the host must set the DSCP
-  itself [5, Compute-Network Collaboration]. It is supported on the X4/X8/X16 and on
-  CE16804/8/16 with J cards [5, Configuration Precautions for Compute-Network
-  Collaboration].
+  itself [5, Compute-Network Collaboration]. It is supported on every CE16800-X
+  [5, Configuration Precautions for Compute-Network Collaboration].
 
 ## Relationship to other techniques
 
@@ -718,9 +781,10 @@ silence is the finding.
   toolkit aimed at compute traffic; a storage SAN uses dual independent planes rather than
   a rail-optimized topology.
 - [cloudengine.md](cloudengine.md): the switch platforms, and which of them carry the SAN
-  feature set as opposed to the standard data-centre one.
-- [cloudfabric.md](cloudfabric.md) and [huawei.md](huawei.md): the controller that delivers
-  zones (NCE-Fabric) and the Huawei documentation sources.
+  feature set (the `-SAN` boxes and the CE16800-X) as opposed to the standard data-centre
+  one.
+- [cloudfabric.md](cloudfabric.md) and [huawei.md](huawei.md): the controller
+  (NCE-Fabric) and the Huawei documentation sources.
 
 ## References
 
@@ -738,33 +802,32 @@ Last confirmed 2026-11-02.
 
 [3] Huawei, *OceanStor NOF Enabler 1.2.0* software package (OceanStor_NOF_Enabler_1.2.0.zip), published on the Huawei enterprise support site under product OceanStor NOF Enabler (PID 251608654), software download. Inspected: install.sh; packages/OceanStor NOF Director/nvme-snsd-1.02.010-linux.{x86_64,aarch64}.rpm; packages/OceanStor NOF INI/nvme-ini-1.02.010-*.rpm (module metadata and depmod.d overrides). Last confirmed 2026-11-02.
 
-[4] Huawei, *Xinghe Intelligent Fabric DCN Solution Product Documentation (Intelligent Lossless Scenario)*, V100R025C10, Library Version 01, 2026-03-31, HedEx library EDOC1100559388 (verify at support.huawei.com HedEx, `docid=EDOC1100559388`). Sections:
-- Deployment Guide for the Centralized Storage Scenario > Intra-DC Network Deployment Guide: Scenario Description (basic concepts, traffic model, failover paths and the default BFD for iNOF timers); Recommended Networking and Device Models: Single-Layer, Two-Layer, and Three-Layer Networking for Centralized Storage (per-role must-deploy features, recommended and optional models, deployment mode, oversubscription); Peripheral Product Description (storage arrays, third-party arrays, servers, NICs, host OS, host software).
-- Deployment Guide for the Centralized Storage Scenario > DCI Deployment Guide (Intra-city Long Distance Transmission): Scenario Description (link types, traffic models); Recommended Networking and Device Models > Intra-city Long-Distance Deployment Solution (25GE Access): Networking Baseline 1 Combined Deployment of DCI Leaf Nodes and Service Leaf Nodes, Baseline 2 Independent Deployment of DCI Leaf Nodes, Baseline 3 Two-Layer DCI Networking, Baseline 4 Combined Deployment of Spine Nodes and DCI Leaf Nodes; and (100GE Access): Networking Baseline 1 Independent Deployment of DCI Leaf Nodes, Baseline 2 Two-Layer DCI Networking — per-model distance × ports × rate budgets, port groups, oversubscription, reflector placement. The baseline numbering is not the same in the two access-speed solutions.
-- Deployment Guide for the Centralized Storage Scenario > DCI Deployment Guide (Intra-city Long Distance Transmission) > Switch Configuration: Intra-city Long-Distance Deployment Solution (25GE Access) (IPv4) > Independent Deployment of DCI Nodes: Configuring DCI Leaf Nodes (CE6885-SAN or CE8865-SAN); Intra-city Long-Distance Deployment Solution (100GE Access) (IPv4) > Two-Layer DCI Networking: Configuring DCI Leaf Nodes (CE8865-SAN); Configuring DCI Leaf Nodes (CE16800-X Equipped with J or J2 Series Cards).
+[4] Huawei, *Stellar AI Fabric Data Center Network Solution Product Documentation (Intelligent Lossless Scenario)*, V100R026C00, Library Version 01, 2026-10-30, HedEx library EDOC1100624728 (verify at support.huawei.com HedEx, `docid=EDOC1100624728`). Supersedes the V100R025C10 library *Xinghe Intelligent Fabric DCN Solution Product Documentation (Intelligent Lossless Scenario)*, EDOC1100559388. Sections:
+- About This Document (scope: distributed storage, centralized storage, AI training, AI inference, and HPC scenarios; Change History, issue 01 dated 2026-10-30); Introduction to the Intelligent and Lossless Network Solution > Application Scenario > Centralized Storage Scenario.
+- Deployment Guide for the Centralized Storage Scenario > Intra-DC Network Deployment Guide: Scenario Description (basic concepts, traffic model, failover paths and the default BFD for iNOF timers); Recommended Networking and Device Models (topology classes); Single-Layer, Two-Layer, and Three-Layer Networking for Centralized Storage, and Front- and Back-end Network Convergence at Three Sites for Centralized Storage (per-role must-deploy features, recommended and optional models, deployment mode, oversubscription, reflector placement, scenario restrictions and licences); Peripheral Product Description (storage arrays and CE version mapping, third-party arrays, servers, NICs, host OS, host software); Switch Configuration > Three-Layer and Two-Layer Networking of Centralized Storage (IPv4): Configuring Compute Leaf Nodes, Storage Leaf Nodes, and Spine Nodes per model, and Front- and Back-end Network Convergence at Three Sites (IPv4) > Configuring Spine Nodes (CE6885-SAN/CE8865-SAN/CE8855H-SAN) — iNOF reflector/client peering per plane, per-plane iNOF port, CE8855H-SAN pages.
+- Deployment Guide for the Centralized Storage Scenario > DCI Deployment Guide (Intra-city Long Distance Transmission): Scenario Description (link types, traffic models, HyperReplication/S limits); Recommended Networking and Device Models (baseline-per-architecture table) > Intra-city Long-Distance Deployment Solution (25GE Access): Networking Baseline 1 Combined Deployment of DCI Leaf Nodes and Service Leaf Nodes, Baseline 2 Independent Deployment of DCI Leaf Nodes, Baseline 3 Two-Layer DCI Networking, Baseline 4 Combined Deployment of Spine Nodes and DCI Leaf Nodes; and (100GE Access): Networking Baseline 1 Independent Deployment of DCI Leaf Nodes, Baseline 2 Two-Layer DCI Networking, Baseline 3 Combined Deployment of Spine Nodes and DCI Leaf Nodes — per-model distance × ports × rate budgets, port groups, oversubscription, reflector placement, function configurations. The baseline numbering is not the same in the two access-speed solutions.
+- Deployment Guide for the Centralized Storage Scenario > DCI Deployment Guide (Intra-city Long Distance Transmission) > Switch Configuration: (25GE Access) (IPv4) > Independent Deployment of DCI Nodes: Configuring DCI Leaf Nodes (CE6885-SAN or CE8865-SAN); (100GE Access) (IPv4) > Independent Deployment of DCI Nodes: Configuring DCI Leaf Nodes (CE8865-SAN/CE8855H-SAN), Configuring DCI Leaf Nodes (CE16800-X Equipped with J or J2 Series Cards); Two-Layer DCI Networking: Configuring DCI Leaf Nodes (CE8865-SAN); Combined Deployment of Spine Nodes and DCI Leaf Nodes: Configuring Spine Nodes (CE16800-X Switches Equipped with J/J2 Series Cards), Configuring Spine Nodes (CE8865-SAN) — headroom pool sizing, per-queue headroom, ECN/BDP thresholds, long-distance mode, MACsec-capable interfaces and the MACsec licence note.
+- Deployment Guide for the Centralized Storage Scenario > NoF+ Network O&M: (Optional) Configuring I/O Quality Visualization; Configuring IFIT Analysis.
 
-Last confirmed 2026-11-02.
+Last confirmed 2026-11-13.
 
 [5] Huawei, *CloudEngine 16800 Series Switches Product Documentation*, V300R026C00, Issue 01, 2026-09-30, HedEx library EDOC1100611763 (verify at support.huawei.com HedEx, `docid=EDOC1100611763`). Sections:
-- Get to Know the Product > Hardware Description: Chassis (CE16800-X4, CE16800-X8, CE16800-X16); Cards (CEL48CQ-SAN, CEL72XS-SAN, CEX-L40DQJ2, CEX-L48CQJ2, CEX-L72YS6CQJ2, CEX-L36DQ2CQJ2).
+- Get to Know the Product > Hardware Description: Chassis (CE16800-X4, CE16800-X8, CE16800-X16); Cards (CE16800-X: CEX-L48YSAJ, CEX-L48YSJ, CEX-L36LQJ, CEX-L24CQJ, CEX-L36CQJ, CEX-L18DQJ, CEX-L72YS6CQJ2, CEX-L48CQJ2, CEX-L36DQ2CQJ2, CEX-L40DQJ2).
 - Configuration > Configuration Guide > Intelligent Lossless Network Configuration: iNOF Configuration (Configuration Precautions for iNOF, Configuring an iNOF Zone > Creating an iNOF Customized Zone, Configuring an iNOF Zone > (Optional) Configuring the iNOF Zone Information Filtering Function, Configuring an iNOF Zone > (Optional) Configuring iNOF Zone Isolation, (Optional) Configuring RPFR); Compute-Network Collaboration Configuration (Understanding Compute-Network Collaboration, Configuration Precautions for Compute-Network Collaboration); Antilocking PFC Configuration (Understanding Antilocking PFC, Configuration Precautions for Antilocking PFC); Buffer Optimization Configuration > Configuration Precautions for Buffer Optimization.
-- Configuration > Configuration Guide > High Availability Configuration > Data Plane Fault Awareness Configuration (Understanding, Application Scenarios of DPFR and DPCF, Configuration Precautions, Configuring DPCF, (Optional) Configuring Co-Deployment of IFIT and DPCF).
 - Configuration > Configuration Guide > System Monitoring Configuration > Service Telemetry Configuration > Configuration Precautions for Service Telemetry.
 
 Last confirmed 2026-11-02.
 
-[6] Huawei, *iMaster NCE-FabricInsight Product Documentation*, V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100609401 (verify at support.huawei.com HedEx, `docid=EDOC1100609401`). The V100R025C00 library was also read, for the What's New statements that date the two NoF features. Sections:
+[6] Huawei, *iMaster NCE-FabricInsight Product Documentation*, V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100609401 (verify at support.huawei.com HedEx, `docid=EDOC1100609401`). The V100R025C00 library was also read, for the What's New statement that dates the zone consistency comparison. Sections:
 - Product Description > Features > Application Assurance > NoF Network O&M: NoF Network O&M; NoF Network O&M > I/O Visualization; NoF Network O&M > Zone Consistency Comparison.
 - Product Description > Features > Network Resource > Telemetry: RoCE Gain Comparison; Performance KPI > Metric Details; Drop Records.
 - Operation Guide > Application Assurance > NoF Network O&M: NoF Network O&M Overview; Configuring I/O Measurement Tasks for NoF Services.
-- Document Package Information: About This Document (deployment solutions and the value-added packages each includes); What's New in both releases (V100R025C00 introduces the zone consistency comparison; V100R026C00 introduces DPCF path-switching telemetry).
+- Document Package Information: About This Document (deployment solutions and the value-added packages each includes); What's New (V100R025C00 introduces the zone consistency comparison).
 
 Last confirmed 2026-11-02.
 
 [7] Huawei, *iMaster NCE-Fabric Product Documentation*, V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100609197 (verify at support.huawei.com HedEx, `docid=EDOC1100609197`; this is the NCE-Fabric library, not *iMaster NCE-Fabric MDC Product Documentation*). The same Configuring Zones page, with the same model list, is also in the V100R025C00 library. Sections:
-- Configuration Guide > Commissioning > Resource Pool Management > Configuring Zones (automatic batch delivery of iNOF zone configurations; prerequisites and supported models; Resource Pool > Zone procedure).
-- Runbook > Preset Workflows > Preset Workflow Software Package Usage Guide > Preset Workflows > iNOF Workflows (Bringing a Server/Application Online and Offline, in Batches, Migrating a Server, Querying, Deleting VLANs Allowed by an Eth-Trunk Interface).
-- Runbook > Preset Workflows > Preset Workflow Software Package Usage Guide > Configuration Delivery Through a Preset Workflow > iNOF Workflow Usage Guide.
+- Configuration Guide > Commissioning > Resource Pool Management > Configuring Zones (prerequisites and supported models).
 
 Last confirmed 2026-11-02.
 

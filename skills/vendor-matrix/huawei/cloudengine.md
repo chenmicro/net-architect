@@ -67,8 +67,10 @@ other product lines.
 ## Model feature support
 
 Huawei sells the same box switch twice: a standard model for the general DC fabric and a
-`-SAN` model positioned for the NVMe over RoCE storage network (its Xinghe NoF+ solution).
-Port counts match line for line. Across the 163 features that V300R026C00 documents with a
+`-SAN` model positioned for the NVMe over RoCE storage network (its NoF+ solution,
+documented as Stellar AI Fabric, Intelligent Lossless Scenario). Port counts match line for
+line. SAN capability is a feature set, not a name: the CE16800-X has no `-SAN` variant and
+carries the full SAN feature set itself, as the CE16800-X4 column below shows. Across the 163 features that V300R026C00 documents with a
 "Configuration Precautions" hardware table [1], [2], exactly two differ:
 
 | Feature | CE8865-4C | CE8865-SAN-4C | CE16800-X4 | Licence |
@@ -103,9 +105,9 @@ Where the chassis leads:
 
 ### Lossless and DCB feature set
 
-The lossless toolkit is CloudEngine platform machinery, not a SAN-model feature: standard
-models run it too, and the SAN models add iNOF and anti-locking PFC on top (previous
-section). All of it is documented as chapters of **Intelligent Lossless Network
+The lossless toolkit is CloudEngine platform machinery, not a SAN-only feature: standard
+models run it too, and the SAN switches (the `-SAN` boxes and the CE16800-X) add iNOF and
+anti-locking PFC on top (previous section). All of it is documented as chapters of **Intelligent Lossless Network
 Configuration** [1], [2]:
 
 | Feature | What it does |

@@ -131,7 +131,7 @@ fee to run the protocol. Neither specification is free to read.
 
   - **What the comparison means**: over the same distance and rate, lossless Ethernet
     needs about twice the buffer of an FC SAN, and a vendor's credit-style pacing brings
-    it back to about parity. Huawei's Xinghe NoF+ implements the third row; the detail
+    it back to about parity. Huawei's NoF+ (Stellar AI Fabric) implements the third row; the detail
     belongs in the Huawei vendor file, not here.
   - **The failure mode matters more than the multiplier**: FC degrades to slower,
     lossless Ethernet degrades to loss. A link that is over-distance for its credits

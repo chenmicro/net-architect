@@ -45,7 +45,7 @@
   plane**, four × CE16800-X4 in total. A site with a single shared spine pair runs one iNOF
   control plane for both planes: record that as a deviation before build, and expect the
   reflector-failure case (TC-13) to hit both planes at once.
-- **Product versions**: CloudEngine V300R026C00 [1]; solution documentation V100R025C10 [2].
+- **Product versions**: CloudEngine V300R026C00 [1]; solution documentation V100R026C00 [2].
 - **Prerequisites beyond the hardware**: `CE-LIC-iNOF` on every iNOF device (both leaves and
   all spines), `CE-LIC-AFRD` for AI ECN, and the scenario package the guide requires, either
   the "Standard Package for the Centralized Storage Scenarios" or the "Enhanced Package" [2].
@@ -594,8 +594,10 @@ V300R026C00, Issue 01, 2026-09-30, HedEx library EDOC1100611778. Sections:
 
 Last confirmed 2026-11-03.
 
-[2] Huawei, *Xinghe Intelligent Fabric DCN Solution Product Documentation (Intelligent Lossless
-Scenario)*, V100R025C10, Library Version 01, 2026-03-31, HedEx library EDOC1100559388. Sections:
+[2] Huawei, *Stellar AI Fabric Data Center Network Solution Product Documentation (Intelligent
+Lossless Scenario)*, V100R026C00, Library Version 01, 2026-10-30, HedEx library EDOC1100624728
+(supersedes the V100R025C10 library *Xinghe Intelligent Fabric DCN Solution Product
+Documentation (Intelligent Lossless Scenario)*, EDOC1100559388). Sections:
 - Deployment Guide for the Centralized Storage Scenario > Intra-DC Network Deployment Guide >
   Recommended Networking and Device Models > Three-Layer Networking for Centralized Storage:
   must-deploy list (AI ECN, PFC, PFC deadlock detection and prevention), "iNOF is recommended …
@@ -605,7 +607,7 @@ Scenario)*, V100R025C10, Library Version 01, 2026-03-31, HedEx library EDOC11005
   dual planes, single-homed servers, and the scenario restrictions including the required
   "Standard Package for the Centralized Storage Scenarios" or "Enhanced Package".
 
-Last confirmed 2026-11-03.
+Last confirmed 2026-11-13.
 
 [3] "nvme-snsd," linux-nvme on GitHub, BSD 3-Clause. [Online]. Available:
 https://github.com/linux-nvme/nvme-snsd (README: Linux-only, one IP per physical port, no IPv6 in
