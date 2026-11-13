@@ -187,13 +187,17 @@ them, don't impose them.
   link enters from above to the side of its container's label. In a narrow container,
   wrap the label onto as many lines as it needs. Otherwise indent the container so the
   label sits clear of the links that pass it.
-- **Border leaves face the north-south boundary.** Draw border leaves in a row of their
-  own above the spines only when the figure has to show the north-south boundary, next
-  to the firewall or external router they face.
-- **The inter-site pair faces the other site.** Whether it is an IPN or a DCI leaf pair,
-  stack its two cards on one vertical axis at the fabric edge that faces the remote data
-  center, with any inter-site transport (DWDM) centred on the pair's horizontal midline.
-  It must not sit beside the spine row, where it reads as another fabric switch.
+- **Spines above the leaves; where border leaves go depends on the platform.** Draw the
+  server and service leaves in a single row beneath the spines. In Cisco ACI the border
+  leaves stay in that leaf row, never in a row above the spines. In Huawei CloudFabric
+  the border leaves sit in a row above the spines, facing the firewall or external
+  router they connect to.
+- **Each site has its own inter-site pair, facing the other site.** Whether it is an IPN
+  or a DCI leaf pair, every data center gets its own pair, linked to the other sites'
+  pairs; never draw one pair shared between sites. Stack its two cards on one vertical
+  axis at the fabric edge that faces the remote data center, with any inter-site
+  transport (DWDM) centred on the pair's horizontal midline. It must not sit beside the
+  spine row, where it reads as another fabric switch.
 - **Controllers have no device links.** A controller that manages a whole fabric or
   domain gets no link to any one device or container. Its only line is the dotted one to
   the controller above it. Centre shared management (for example a multi-site controller
