@@ -95,6 +95,12 @@ rather than being a paragraph here.
   See **[aci-vs-nxos-vxlan.md](aci-vs-nxos-vxlan.md)** for the full head-to-head
   comparison, judgment call, and the 2026 Cisco convergence ("Nexus One") update.
 
+## Secure Firewall (Threat Defense clustering)
+
+FTD clustering on the Secure Firewall 3100/4200/6100: cluster sizes, Spanned EtherChannel vs.
+Individual interface mode, inter-site clustering, and site-to-site VPN in a cluster:
+[secure-firewall.md](secure-firewall.md).
+
 ## Nexus hardware (platform models, specs & lifecycle)
 
 Nexus switch hardware across the portfolio — models, port counts, NX-OS trains,

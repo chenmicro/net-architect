@@ -224,7 +224,13 @@ The logical viewpoint; in an SDN figure, the overlay.
 | Solid, no arrowhead | Physical link; bidirectional unless labeled otherwise |
 | Dashed with arrowhead | Traffic path and direction; two paths when forward and return differ |
 | Dotted | Logical adjacency, tunnel, control-plane session, or controller relationship |
-| Original style plus red and a break/cross | Failed, blocked, or rejected connection/path |
+| Original style plus red and a break/cross | Failed, blocked, or rejected connection/path; mark a failed link with a red ✖ on it |
+
+A tunnel that carries traffic drawn on top of it may instead be one wide translucent band
+from endpoint to endpoint. Draw the band over the devices and networks it passes through
+but does not terminate on, and fade those devices, so the band reads as passing over them.
+End the band on the devices that terminate the tunnel. A tunnel that is down keeps its
+route and is drawn faint gray.
 
 Reserve dashed lines for traffic. Express standby, optional, preferred, inferred,
 or out-of-scope status with text or a legend. Use arrows only when direction

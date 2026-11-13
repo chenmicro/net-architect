@@ -8,6 +8,7 @@ and device detail live in the linked files.
 | Data center fabric | [CloudEngine (CE series)](cloudengine.md) | V300 (V300R026C00 for the CE9800/8800/6800 and CE16800 families) | V200 | [CloudFabric](cloudfabric.md) with iMaster NCE-Fabric |
 | Campus | S-series | V600 (V600R025C10) | V200 | iMaster NCE-Campus |
 | WAN | NetEngine (NE series) | — | — | iMaster NCE-IP |
+| Security | [HiSecEngine USG6000F / USG6000G firewalls](hisecengine-usg.md) | V600 (V600R026C00) | — | — |
 | Storage network | CloudEngine SAN models (box: CE6885-SAN, CE8855H-SAN, CE8865-SAN; chassis: CE16800-X) | Solution V100R025C10 | — | [Xinghe NoF+](nof-plus.md) with OceanStor Dorado |
 
 Version rule: see [SKILL.md](../../../SKILL.md#3-vendors). CloudEngine version
