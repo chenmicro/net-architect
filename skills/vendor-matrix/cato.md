@@ -841,7 +841,6 @@ current KB before relying on any version number.
 - [qos.md](../techniques/qos.md): bandwidth management profiles and the
   upstream/downstream QoS asymmetry between Socket and IPsec sites.
 - [mpls.md](../techniques/mpls.md): hybrid-WAN coexistence and MPLS offload.
-- Scenario: [sdwan-sase-rollout.md](../scenarios/sdwan-sase-rollout.md).
 
 ## References
 

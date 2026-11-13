@@ -47,149 +47,6 @@ number of datagrams while performing ARP resolution. This is not an unconditiona
 "MUST ARP every unknown destination IP" rule. A missing destination route and
 an unresolved on-link adjacency are different conditions [13].
 
-### Aging and reachability standards
-
-Address-resolution and forwarding-state aging have different levels of standardization:
-
-- **MAC (FDB) aging.** IEEE 802.1Q-2005 describes expiration of dynamic
-  filtering entries after the configured interval since creation or the
-  last eligible learning update. Its Table 8-3 gives a recommended default
-  of **300 s** and a range of 10–1,000,000 s. Learning uses an individual
-  source MAC and is subject to ingress rules and port state; group source
-  addresses are not learned. Static filtering entries do not expire through
-  dynamic aging [5].
-- **IPv4 ARP aging — no standard value.** RFC 826 suggests but does not
-  require a timeout mechanism [6]. RFC 1122 §2.3.2.1 is normative that
-  implementations MUST provide a mechanism to flush out-of-date ARP cache
-  entries, and that if it is a timeout it SHOULD be configurable — but no
-  value is mandated; for proxy-ARP environments RFC 1122 suggests timeouts
-  "on the order of a minute" [6]. RFC 1122 also requires a mechanism to
-  prevent repeated high-rate requests and recommends a maximum of one
-  request/second per destination; that numerical recommendation is distinct
-  from the mandatory flood-prevention mechanism and from aging [6]. Cache
-  validation and retention depend on implementation and configuration.
-- **IPv6 ND reachability.** RFC 4861 §10 defines protocol constants:
-  REACHABLE_TIME 30,000 ms, RETRANS_TIMER 1,000 ms,
-  DELAY_FIRST_PROBE_TIME 5 s, MAX_MULTICAST_SOLICIT / MAX_UNICAST_SOLICIT 3,
-  with ReachableTime randomized by 0.5–1.5× BaseReachableTime [7]. The
-  Neighbor Unreachability Detection state machine includes REACHABLE,
-  STALE, DELAY, and PROBE. These are reachability states, not a fixed cache
-  deletion schedule. Router Advertisements can supply Reachable Time and
-  Retrans Timer values; §5.3 treats unused-entry garbage collection
-  separately [7].
-
-### ARP and MAC timer reference
-
-The table records timer definitions and documented defaults. Configured
-values can override these defaults.
-
-| Platform / standard | Timer | Documented default | Meaning |
-|---|---|---|---|
-| IEEE 802.1Q | Dynamic MAC aging | 300 s | Time since the filtering entry was last updated [5]. |
-| Cisco Nexus 9000, NX-OS 10.6(x) | ARP timeout | 1500 s (25 min) | Dynamic ARP timeout [9]. |
-| Cisco IOS XE | `arp timeout` | 14400 s (4 h) | Dynamic ARP cache expiration setting [18]. |
-| Arista EOS 4.36.2F | `arp aging timeout` | 14400 s (4 h) | Dynamic ARP cache aging [19]. |
-| Arista EOS 4.36.2F | `mac address-table aging-time` | 300 s (5 min) | Dynamic MAC aging since the last frame received from that MAC on its VLAN [19]. |
-| Junos OS | ARP `aging-timer` | 20 min (1200 s) | Interval between ARP updates [20]. |
-
-The two timer families are independent: address-resolution retention is an L3
-concern, MAC aging is an L2 filtering-database concern, and no standard ties one
-to the other. Where the resolution entry outlives the forwarding entry, a
-sender's cached IP-to-MAC binding keeps naming a MAC the bridge has already aged
-out, and those frames become unknown unicast — normally forwarded on eligible
-VLAN ports [14], but dropped where an overlay's unknown-unicast policy drops
-rather than floods. Cisco documents the non-overlay case in a campus VLAN network
-with asymmetric routing and HSRP, together with the engineering mitigation of
-bringing the two aging times closer so that ARP traffic refreshes MAC learning
-before the forwarding entry expires [16]. That mitigation is an operational
-practice, not a protocol requirement; the consequences for a host that never
-transmits on its own are worked through in
-[silent-host-in-overlays.md](../scenarios/silent-host-in-overlays.md).
-
-#### Linux ARP cache retention
-
-For Linux, `base_reachable_time_ms` is a **neighbor reachability timer, not an
-ARP aging timer**. Its 30-second default (randomized to 15–45 seconds) controls
-how long positive reachability confirmation is used before the neighbor can
-become STALE. Becoming STALE does not delete the ARP entry. When a packet
-needs that STALE entry, Linux enters DELAY and sends the packet using its
-cached MAC address. It does not wait for a new ARP reply before sending that
-packet [26].
-
-After the default `delay_first_probe_time` of 5 s, if no positive feedback
-arrived, Linux sends unicast ARP probes to the cached MAC. The default is up
-to three unicast probes, one second apart; if they fail, broadcast probes
-may follow (up to three by default). A reply restores REACHABLE; exhaustion
-of the configured probes makes the entry FAILED [17], [26].
-
-Entry deletion is a separate process. The upstream `gc_stale_time` default is
-**60 s**; it makes sufficiently unused entries eligible for periodic garbage
-collection, subject to the conditions below. It is not a fixed lifetime
-measured from the initial ARP reply [25], [26].
-
-Periodic GC skips collection when the neighbor table has fewer entries than
-`gc_thresh1` (default **128**). Active references and protected entry flags
-also prevent collection. Consequently, an unused STALE entry may remain
-beyond 60 s. Periodic GC can also reclaim FAILED entries, while
-pressure-triggered GC uses additional removal criteria [25], [26]. Check the
-target interface's settings and kernel version when recording observed
-retention; neither the 30 s reachability base nor the 60 s GC eligibility
-setting guarantees deletion [17], [25].
-
-The packet path below starts when a new packet needs a neighbor entry that is
-already STALE. It shows reachability validation; `gc_stale_time` and entry
-deletion are separate from this path:
-
-```mermaid
-flowchart TD
-    A[New packet needs the neighbor IP] --> B{Neighbor entry is STALE?}
-    B -->|No| X[Follow the applicable cache or resolution path]
-    B -->|Yes: cached MAC is available| C[Set DELAY timer and transmit immediately using cached MAC]
-    C --> D[Wait for positive reachability feedback]
-    D -->|Feedback before delay expires| E[Mark REACHABLE; keep using mapping]
-    D -->|No feedback after default 5 s| F[PROBE: send unicast ARP to cached MAC]
-    F -->|ARP reply / positive confirmation| E
-    F -->|Unicast probes fail| G{More probes configured?}
-    G -->|Yes| H[Try configured broadcast ARP probes]
-    H -->|ARP reply| E
-    H -->|Probe limit exhausted| I[Mark FAILED]
-    G -->|No| I
-```
-
-#### Transport-layer effect: UDP versus TCP
-
-Neighbour resolution itself is protocol-agnostic — the neighbor table is
-per-address-family, and the state machine above runs identically whatever the
-L4 payload is. What differs is whether the upper layer notices the loss or
-recovers from it:
-
-- **Positive feedback is what keeps an entry confirmed.** A successful TCP ACK
-  counts as positive feedback; protocols without one must signal progress
-  explicitly with `MSG_CONFIRM` on `sendmsg`. Ordinary UDP traffic does neither,
-  so it gives the kernel no reason to hold the entry REACHABLE and re-enters the
-  DELAY/PROBE path; `arp(7)` records the same effect for kernel protocols such
-  as NFS over UDP [17].
-- **A datagram sent from a STALE entry is not held back.** Linux transmits it
-  immediately using the cached MAC. If that MAC is still correct the datagram is
-  delivered and a background probe re-confirms the entry; if it is wrong the
-  datagram is lost, and UDP has no retransmission to cover it — a TCP flow
-  instead recovers once probing resolves the correct MAC [17], [26].
-- **With no usable entry, the queue is small and the overflow is silent.**
-  Packets for an unresolved address are queued per destination up to
-  `unres_qlen` (default **3** packets), and resolution requests are sent only
-  while data is queued. A UDP source that outruns resolution (syslog, flow
-  exports) has its overflow dropped with no back-pressure, whereas a TCP
-  connection absorbs the same window in retransmission and socket buffering
-  [17].
-- **Failure is reported asynchronously, if at all.** Linux passes fatal errors
-  to the application even on an unconnected UDP socket, and the error may belong
-  to an earlier datagram sent over that socket; `udp(7)` notes this is required
-  by RFC 1122. A fire-and-forget sender that ignores `sendto()` returns
-  therefore observes nothing [27].
-- **Broadcast and multicast destinations bypass resolution entirely.** They use
-  the `NUD_NOARP` pseudo-state, which performs no address resolution or NUD, so
-  stale ARP state and `unres_qlen` do not apply to them [26].
-
 ## ARP in fabric / overlay contexts
 
 The two cases below assume ordinary IPv4 forwarding: same-subnet hosts share
@@ -307,18 +164,7 @@ distributes the resulting learned bindings [15]. The applicable EVPN IRB
 discovery requirements and subnet-route workflow are described in
 [evpn.md](evpn.md#silent-host-handling--evpn-vs-aci-coop-gleaning).
 
-### Endpoint aging and refresh in overlays
-
-RFC 9161 §3.5 describes optional probes to refresh **known local dynamic
-bindings** before bridge-table and proxy-table aging causes unnecessary
-Type 2 withdrawals. A reply refreshes both entries; failure to reply leads
-to removal and withdrawal [8]. NX-OS also documents an optional ARP refresh
-on MAC deletion [9]. These are maintenance of learned bindings, separate
-from initial discovery of an unknown endpoint.
-
-## Active discovery in legacy VLAN networks
-
-### ARP active detection (Huawei smart-discover)
+## ARP active detection (Huawei smart-discover)
 
 In a legacy VLAN network, ARP active detection proactively probes addresses
 on the VLAN interface's subnet to find silent devices. It runs periodically,
@@ -343,6 +189,213 @@ returned HTTP 403. Everything in this subsection is therefore a historical
 library note, not confirmation against the current V300 release; verify the
 enable syntax, numerical defaults, and VLANIF/VBDIF applicability against the
 release in scope [4].
+
+## Aging and refresh
+
+ARP retention and MAC aging run on independent clocks. This section records the
+standards and defaults, how a Linux host behaves when an entry goes stale, and how
+fabrics keep learned endpoints alive.
+
+### Aging and reachability standards
+
+Address-resolution and forwarding-state aging have different levels of standardization:
+
+- **MAC (FDB) aging.** IEEE 802.1Q-2005 describes expiration of dynamic
+  filtering entries after the configured interval since creation or the
+  last eligible learning update. Its Table 8-3 gives a recommended default
+  of **300 s** and a range of 10–1,000,000 s. Learning uses an individual
+  source MAC and is subject to ingress rules and port state; group source
+  addresses are not learned. Static filtering entries do not expire through
+  dynamic aging [5].
+- **IPv4 ARP aging — no standard value.** RFC 826 suggests but does not
+  require a timeout mechanism [6]. RFC 1122 §2.3.2.1 is normative that
+  implementations MUST provide a mechanism to flush out-of-date ARP cache
+  entries, and that if it is a timeout it SHOULD be configurable — but no
+  value is mandated; for proxy-ARP environments RFC 1122 suggests timeouts
+  "on the order of a minute" [6]. RFC 1122 also requires a mechanism to
+  prevent repeated high-rate requests and recommends a maximum of one
+  request/second per destination; that numerical recommendation is distinct
+  from the mandatory flood-prevention mechanism and from aging [6]. Cache
+  validation and retention depend on implementation and configuration.
+- **IPv6 ND reachability.** RFC 4861 §10 defines protocol constants:
+  REACHABLE_TIME 30,000 ms, RETRANS_TIMER 1,000 ms,
+  DELAY_FIRST_PROBE_TIME 5 s, MAX_MULTICAST_SOLICIT / MAX_UNICAST_SOLICIT 3,
+  with ReachableTime randomized by 0.5–1.5× BaseReachableTime [7]. The
+  Neighbor Unreachability Detection state machine includes REACHABLE,
+  STALE, DELAY, and PROBE. These are reachability states, not a fixed cache
+  deletion schedule. Router Advertisements can supply Reachable Time and
+  Retrans Timer values; §5.3 treats unused-entry garbage collection
+  separately [7].
+
+### ARP and MAC timer reference
+
+The table records timer definitions and documented defaults. Configured
+values can override these defaults.
+
+| Platform / standard | Timer | Documented default | Meaning |
+|---|---|---|---|
+| IEEE 802.1Q | Dynamic MAC aging | 300 s | Time since the filtering entry was last updated [5]. |
+| Cisco Nexus 9000, NX-OS 10.6(x) | ARP timeout | 1500 s (25 min) | Dynamic ARP timeout [9]. |
+| Cisco IOS XE | `arp timeout` | 14400 s (4 h) | Dynamic ARP cache expiration setting [18]. |
+| Arista EOS 4.36.2F | `arp aging timeout` | 14400 s (4 h) | Dynamic ARP cache aging [19]. |
+| Arista EOS 4.36.2F | `mac address-table aging-time` | 300 s (5 min) | Dynamic MAC aging since the last frame received from that MAC on its VLAN [19]. |
+| Junos OS | ARP `aging-timer` | 20 min (1200 s) | Interval between ARP updates [20]. |
+| Huawei CloudEngine V300R026C00 | `arp timeout` | 1200 s (20 min) | Dynamic ARP aging time, set per interface including VBDIF; range 1–86400 s [28]. |
+
+The two timer families are independent: address-resolution retention is an L3
+concern, MAC aging is an L2 filtering-database concern, and no standard ties one
+to the other. Where the resolution entry outlives the forwarding entry, a
+sender's cached IP-to-MAC binding keeps naming a MAC the bridge has already aged
+out, and those frames become unknown unicast — normally forwarded on eligible
+VLAN ports [14], but dropped where an overlay's unknown-unicast policy drops
+rather than floods. Cisco documents the non-overlay case in a campus VLAN network
+with asymmetric routing and HSRP, together with the engineering mitigation of
+bringing the two aging times closer so that ARP traffic refreshes MAC learning
+before the forwarding entry expires [16]. That mitigation is an operational
+practice, not a protocol requirement; for a host that never transmits on its own,
+see [§Keeping a receive-only host learned](#keeping-a-receive-only-host-learned).
+
+### Linux ARP cache retention
+
+For Linux, `base_reachable_time_ms` is a **neighbor reachability timer, not an
+ARP aging timer**. Its 30-second default (randomized to 15–45 seconds) controls
+how long positive reachability confirmation is used before the neighbor can
+become STALE. Becoming STALE does not delete the ARP entry. When a packet
+needs that STALE entry, Linux enters DELAY and sends the packet using its
+cached MAC address. It does not wait for a new ARP reply before sending that
+packet [26].
+
+After the default `delay_first_probe_time` of 5 s, if no positive feedback
+arrived, Linux sends unicast ARP probes to the cached MAC. The default is up
+to three unicast probes, one second apart; if they fail, broadcast probes
+may follow (up to three by default). A reply restores REACHABLE; exhaustion
+of the configured probes makes the entry FAILED [17], [26].
+
+Entry deletion is a separate process. The upstream `gc_stale_time` default is
+**60 s**; it makes sufficiently unused entries eligible for periodic garbage
+collection, subject to the conditions below. It is not a fixed lifetime
+measured from the initial ARP reply [25], [26].
+
+Periodic GC skips collection when the neighbor table has fewer entries than
+`gc_thresh1` (default **128**). Active references and protected entry flags
+also prevent collection. Consequently, an unused STALE entry may remain
+beyond 60 s. Periodic GC can also reclaim FAILED entries, while
+pressure-triggered GC uses additional removal criteria [25], [26]. Check the
+target interface's settings and kernel version when recording observed
+retention; neither the 30 s reachability base nor the 60 s GC eligibility
+setting guarantees deletion [17], [25].
+
+The packet path below starts when a new packet needs a neighbor entry that is
+already STALE. It shows reachability validation; `gc_stale_time` and entry
+deletion are separate from this path:
+
+```mermaid
+flowchart TD
+    A[New packet needs the neighbor IP] --> B{Neighbor entry is STALE?}
+    B -->|No| X[Follow the applicable cache or resolution path]
+    B -->|Yes: cached MAC is available| C[Set DELAY timer and transmit immediately using cached MAC]
+    C --> D[Wait for positive reachability feedback]
+    D -->|Feedback before delay expires| E[Mark REACHABLE; keep using mapping]
+    D -->|No feedback after default 5 s| F[PROBE: send unicast ARP to cached MAC]
+    F -->|ARP reply / positive confirmation| E
+    F -->|Unicast probes fail| G{More probes configured?}
+    G -->|Yes| H[Try configured broadcast ARP probes]
+    H -->|ARP reply| E
+    H -->|Probe limit exhausted| I[Mark FAILED]
+    G -->|No| I
+```
+
+#### Transport-layer effect: UDP versus TCP
+
+Neighbour resolution itself is protocol-agnostic — the neighbor table is
+per-address-family, and the state machine above runs identically whatever the
+L4 payload is. What differs is whether the upper layer notices the loss or
+recovers from it:
+
+- **Positive feedback is what keeps an entry confirmed.** A successful TCP ACK
+  counts as positive feedback; protocols without one must signal progress
+  explicitly with `MSG_CONFIRM` on `sendmsg`. Ordinary UDP traffic does neither,
+  so it gives the kernel no reason to hold the entry REACHABLE and re-enters the
+  DELAY/PROBE path; `arp(7)` records the same effect for kernel protocols such
+  as NFS over UDP [17].
+- **A datagram sent from a STALE entry is not held back.** Linux transmits it
+  immediately using the cached MAC. If that MAC is still correct the datagram is
+  delivered and a background probe re-confirms the entry; if it is wrong the
+  datagram is lost, and UDP has no retransmission to cover it — a TCP flow
+  instead recovers once probing resolves the correct MAC [17], [26].
+- **With no usable entry, the queue is small and the overflow is silent.**
+  Packets for an unresolved address are queued per destination up to
+  `unres_qlen` (default **3** packets), and resolution requests are sent only
+  while data is queued. A UDP source that outruns resolution (syslog, flow
+  exports) has its overflow dropped with no back-pressure, whereas a TCP
+  connection absorbs the same window in retransmission and socket buffering
+  [17].
+- **Failure is reported asynchronously, if at all.** Linux passes fatal errors
+  to the application even on an unconnected UDP socket, and the error may belong
+  to an earlier datagram sent over that socket; `udp(7)` notes this is required
+  by RFC 1122. A fire-and-forget sender that ignores `sendto()` returns
+  therefore observes nothing [27].
+- **Broadcast and multicast destinations bypass resolution entirely.** They use
+  the `NUD_NOARP` pseudo-state, which performs no address resolution or NUD, so
+  stale ARP state and `unres_qlen` do not apply to them [26].
+
+### Endpoint aging and refresh in overlays
+
+RFC 9161 §3.5 describes optional probes to refresh **known local dynamic
+bindings** before bridge-table and proxy-table aging causes unnecessary
+Type 2 withdrawals. A reply refreshes both entries; failure to reply leads
+to removal and withdrawal [8]. NX-OS also documents an optional ARP refresh
+on MAC deletion [9]. These are maintenance of learned bindings, separate
+from initial discovery of an unknown endpoint.
+
+### Keeping a receive-only host learned
+
+A host that only receives, such as a UDP syslog collector, sends nothing that
+refreshes its MAC in the fabric. Where the overlay drops unknown unicast, the timer
+mismatch in [§ARP and MAC timer reference](#arp-and-mac-timer-reference) and the
+Linux STALE behavior in [§Linux ARP cache retention](#linux-arp-cache-retention) turn
+into silent loss: senders keep transmitting to the aged-out MAC, the fabric drops
+those frames, and UDP reports nothing (see [§Transport-layer
+effect](#transport-layer-effect-udp-versus-tcp)).
+
+Check first that the service really is receive-only. A TCP listener answers a SYN
+with SYN,ACK, and that frame teaches the fabric its MAC [29].
+
+**Make the gateway's ARP aging the refresh clock.** If the subnet's gateway (Huawei
+VBDIF, an SVI or an IRB interface) holds a dynamic ARP entry for the host, it probes
+that entry when the entry's aging time expires. A reply updates the entry; if no reply
+arrives after the configured number of probes, the entry is deleted [28]. The host's
+reply is a frame from its own MAC at the attaching leaf, so it also refreshes the FDB
+entry [5] and keeps the EVPN Type 2 binding alive. This is the age-out probing of a
+previously learned host that RFC 9135 §7.3
+describes (see [evpn.md](evpn.md#silent-host-handling--evpn-vs-aci-coop-gleaning)).
+
+- **Timing rule:** set the gateway's ARP aging time well below the MAC aging time,
+  for example 150 s against the 300 s default. On CloudEngine this is `arp timeout`
+  on the VBDIF, whose default of 1200 s is far above the MAC aging time [28]. A
+  unicast probe sent after the FDB entry has expired is itself unknown unicast and is
+  dropped, so the probe must land while the entry still exists.
+- **Probe mode:** the CloudEngine command reference gives the default as unicast
+  probes with only the last one broadcast, and `arp detect mode unicast` makes all of
+  them unicast. The same library's concept page says broadcast is the default.
+  Confirm the mode on the device before relying on it [28].
+- **The gateway must already hold a dynamic entry.** Aging probes fire only for
+  existing entries. Same-subnet traffic never routes through the gateway, so the
+  entry may never be created; a routed admin session creates one only as a side
+  effect. Seed it, or let the gateway discover it (see
+  [§ARP active detection](#arp-active-detection-huawei-smart-discover)).
+- **A static ARP entry can't do this.** Aging probes belong to the dynamic-entry
+  aging mechanism, and a static entry isn't changed by ARP messages [28], so it
+  produces no probe and no reply.
+
+**Other options:**
+
+- **Keep broadcast ARP flooding while dropping unknown unicast.** A Linux sender
+  whose entry fails falls back to broadcast probes, which reach the host, and its
+  reply re-teaches the fabric [17]. Datagrams are lost until then, so treat this as
+  the recovery path, not the design.
+- **Pin the binding** only for a host that can't answer ARP at all (see
+  [§Design considerations](#design-considerations)).
 
 ## Cross-vendor / variants
 
@@ -637,3 +690,20 @@ earlier datagram sent over the same socket (`ECONNREFUSED` "caused by a
 previous packet"), and the page attributes that behavior to RFC 1122.
 Rechecked Oct. 16, 2026 via the Debian rendering; man7.org was unreachable
 from this environment. Re-confirm against the current man-pages release.
+
+[28] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation,"
+Huawei, V300R026C00, Issue 01, Sep. 30, 2026 (HedEx library, login required).
+Verify in: Configuration > Configuration Guide > IP Addresses and Services
+Configuration > ARP Configuration > Configuring Dynamic ARP > Understanding Dynamic
+ARP (aging time, probe mode, number of probes); > Configuring Static ARP >
+Understanding Static ARP; References > Command Reference > IP Addresses and
+Services > ARP Configuration Commands > `arp timeout (interface view)` (default
+1200 s, 1–86400 s, VBDIF view) and `arp detect mode unicast` (default: last probe
+broadcast, the rest unicast). The concept page states broadcast as the default
+probe mode, which contradicts the command page. Confirmed Nov. 13, 2026.
+
+[29] W. Eddy, Ed., "Transmission Control Protocol (TCP)," IETF RFC 9293,
+August 2022, §3.4 and Figure 5. [Online]. Available:
+https://www.rfc-editor.org/rfc/rfc9293.txt — a listener answers a received
+SYN with SYN,ACK; each side sends its initial sequence number and
+acknowledges the peer's. Verified Oct. 16, 2026.

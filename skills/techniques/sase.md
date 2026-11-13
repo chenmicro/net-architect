@@ -107,7 +107,6 @@ which row it belongs to before comparing feature lists.
   Socket/PoP pair, overlay designs measure edge-to-edge.
 - [nac.md](nac.md): RADIUS/802.1X LAN access identity vs. ZTNA remote-access
   identity — different trust models, must be explicitly scoped.
-- Scenario: [sdwan-sase-rollout.md](../scenarios/sdwan-sase-rollout.md).
 
 ## References
 

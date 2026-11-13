@@ -301,7 +301,7 @@ keeping one BD while stopping cross-EPG flooding.
 - In **hardware-proxy** mode an unknown MAC is a **drop**, not a flood: a host
   that never transmits is never learned, so its traffic is discarded
   continuously and silently — the failure mode analyzed in
-  [silent-host-in-overlays.md](../../scenarios/silent-host-in-overlays.md).
+  [arp.md](../../techniques/arp.md#keeping-a-receive-only-host-learned).
   Switching the BD to flood removes the drop-on-miss step; it does not make a
   silent receiver answer.
 - Flooding means the frame is carried on the BD's multicast tree to every leaf

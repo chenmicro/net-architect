@@ -63,7 +63,7 @@ separately covers probing a **previously learned** host after a silent move;
 that is not initial discovery of an arbitrary unknown host [6].
 
 For same-subnet ARP suppression, unknown-MAC forwarding, and the ACI COOP
-workflow, see [arp.md](arp.md#arp-in-fabric-overlay-contexts). Those behaviors
+workflow, see [arp.md](arp.md#arp-in-fabric--overlay-contexts). Those behaviors
 are covered there rather than repeated here.
 
 ## Cross-vendor / variants

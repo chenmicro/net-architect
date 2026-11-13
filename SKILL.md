@@ -40,11 +40,7 @@ match; fall through to step 2.
 
 | Scenario | File | Composes |
 |---|---|---|
-| AI/GPU training cluster buildout | [ai-gpu-training-cluster.md](skills/scenarios/ai-gpu-training-cluster.md) | ai-gpu-fabric.md, spine-leaf-clos.md, vendor-matrix (buffer/ASIC) |
-| Campus refresh with WAN edge modernization | [campus-wan-edge-refresh.md](skills/scenarios/campus-wan-edge-refresh.md) | core-agg-access.md, wireless.md, nac.md, poe.md, mpls.md or overlay-architecture.md |
-| Multi-site SD-WAN + SASE rollout | [sdwan-sase-rollout.md](skills/scenarios/sdwan-sase-rollout.md) | overlay-architecture.md, dia-local-breakout.md, sla-policies.md, sase.md, nac.md, mpls.md/bgp.md, vendor-matrix/cato.md |
 | Multi-site DC with cross-site workload mobility | [multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, cisco/aci.md, cisco/nxos-epbr.md |
-| Silent-host reachability in overlay fabrics (L2/bridged) | [silent-host-in-overlays.md](skills/scenarios/silent-host-in-overlays.md) | arp.md, evpn.md, vxlan.md, cisco/aci.md |
 | Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | cisco/aci.md or cisco/nxos-vxlan.md, huawei/cloudfabric.md, evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
 
 ### 2. Techniques

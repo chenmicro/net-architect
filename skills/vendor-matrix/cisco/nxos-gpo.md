@@ -99,7 +99,7 @@ N9300-FX2/GX2A and Nexus 9408 [1].
   `suppress-arp` on the L2VNI so the reply's binding is captured and
   originated as EVPN Type 2; the suppression and learning mechanics
   themselves are covered in
-  [arp.md](../../techniques/arp.md#arp-in-fabric-overlay-contexts). This
+  [arp.md](../../techniques/arp.md#arp-in-fabric--overlay-contexts). This
   implementation description is scoped through **10.5(3)** [1]; "glean" here
   means **inspection of a received reply**, not an NX-OS-generated ARP probe.
 
