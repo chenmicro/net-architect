@@ -33,15 +33,17 @@ main risk. See the [POC index](skills/pocs/README.md).
 
 ### 1. Scenarios (optional shortcut)
 
-Check whether the request matches a known deployment scenario before reading
-technique files piecemeal. A scenario file names which files a request draws on, in
-what order, plus judgment that only exists where they intersect. Most requests won't
+Check whether the request matches a known scenario before reading technique files
+piecemeal. A scenario holds guidance for a kind of engagement that has no POC record yet,
+or needs none, such as how to design a migration questionnaire. It names the files the
+work draws on and the judgment that only exists where they meet. Most requests won't
 match; fall through to step 2.
 
 | Scenario | File | Composes |
 |---|---|---|
 | Multi-site DC with cross-site workload mobility | [multi-site-workload-mobility.md](skills/scenarios/multi-site-workload-mobility.md) | spine-leaf-clos.md, evpn.md, multi-tenancy.md, cisco/aci.md, cisco/nxos-epbr.md |
 | Cross-vendor DCI: Cisco ↔ Huawei CloudFabric | [cross-vendor-dci-interconnect.md](skills/scenarios/cross-vendor-dci-interconnect.md) | cisco/aci.md or cisco/nxos-vxlan.md, huawei/cloudfabric.md, evpn.md, vxlan.md, bgp.md, multi-tenancy.md |
+| ACI → Huawei CloudFabric migration: pre-design questionnaire | [aci-to-cloudfabric-migration.md](skills/scenarios/aci-to-cloudfabric-migration.md) | cisco/aci.md, huawei/cloudfabric.md |
 
 ### 2. Techniques
 

@@ -39,7 +39,7 @@ then tell the agent where the output is.
 
 | Path | Contents |
 |---|---|
-| [skills/scenarios/](skills/scenarios/) | End-to-end requests: which files to read, and the judgment between them |
+| [skills/scenarios/](skills/scenarios/) | Guidance for engagements with no POC record, such as designing a migration questionnaire |
 | [skills/techniques/](skills/techniques/) | One file per technique, such as VXLAN, EVPN, or BGP |
 | [skills/vendor-matrix/](skills/vendor-matrix/) | Vendor platforms, operating systems, and solutions |
 | [skills/pocs/](skills/pocs/) | How a pattern is tested, what can go wrong, and how to fix it |

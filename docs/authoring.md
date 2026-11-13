@@ -113,7 +113,12 @@ renamed, fix it.
 
 ## Scenarios
 
-Don't pre-create scenario files. Add a scenario only after a real cross-technique
-request has been confirmed solved and confirmed network-related (double-check with the
-user). Keep scenario files thin — composition plus cross-cutting judgment, never a copy
-of technique content.
+A scenario holds guidance for a kind of engagement that has no POC record yet, or
+doesn't need one: how to run an assessment, design a questionnaire, or combine
+techniques for a recurring request.
+
+- Don't pre-create scenario files. Add one only after the user confirms the guidance is
+  agreed practice.
+- Keep customer facts out. They belong in the engagement's own documents.
+- Link technique and vendor facts instead of copying them. A design and test plan for a
+  specific deployment is a POC record, not a scenario.
