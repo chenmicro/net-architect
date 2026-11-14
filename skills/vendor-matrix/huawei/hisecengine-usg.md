@@ -85,6 +85,12 @@ expiry [1].
 - **Configuration:** apply the IPsec policy or profile on the active device so it's backed up
   to the standby. With `alone`, a policy or profile isn't backed up [1].
 
+## IPsec and GRE routing
+
+IPsec routing, route injection, GRE over IPsec and the routing-protocol security-policy rule
+are in the technique files [ipsec.md](../../techniques/ipsec.md) and
+[gre.md](../../techniques/gre.md).
+
 ## Inter-DC cluster
 
 The inter-DC cluster links firewall pairs in different data centers so that a pair can process

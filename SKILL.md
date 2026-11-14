@@ -69,6 +69,8 @@ apply. Each file is a single atomic technique.
 | DIA / Local Breakout | [dia-local-breakout.md](skills/techniques/dia-local-breakout.md) | Local internet egress, security tradeoff, traffic steering |
 | SLA Policies | [sla-policies.md](skills/techniques/sla-policies.md) | App-aware routing, SLA classes, BFD, circuit diversity |
 | SASE | [sase.md](skills/techniques/sase.md) | SSE convergence, ZTNA, single-vendor vs. best-of-breed |
+| IPsec | [ipsec.md](skills/techniques/ipsec.md) | SA/SPD, transport vs. tunnel mode, IKEv2, NAT-T, policy- vs. route-based, tunnel state vs. routes, route injection |
+| GRE | [gre.md](skills/techniques/gre.md) | Encapsulation (RFC 2784/2890), GRE over IPsec, keepalive, tunnel interface state, recursive routing |
 | MPLS | [mpls.md](skills/techniques/mpls.md) | LDP/RSVP-TE, L3VPN (RFC 4364), L2VPN (VPWS/VPLS) |
 | Segment Routing | [segment-routing.md](skills/techniques/segment-routing.md) | SR-MPLS/SRv6, SR-TE policies, flex-algo |
 | BGP | [bgp.md](skills/techniques/bgp.md) | eBGP/iBGP, route reflectors, confederations, communities, peering hygiene |
