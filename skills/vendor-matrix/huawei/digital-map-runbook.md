@@ -349,7 +349,7 @@ and Precautions > Runbook Constraints and Precautions. Confirmed Nov. 18, 2026.
 `docid=EDOC1100609192`). Verify in: RESTful API Development Guide > Interface Reference >
 Runbook (Device Mapping Query Using Runbook, Runbook Incremental Configuration, Runbook
 Python Script API, Runbook Work Order Northbound Interface); … > Interface Reference > VPC >
-Logical Switch Management > Query Logical Switches and Query a Logical Switch by ID; … > VPC
-> Logical Topology Management > Query the Device Mapping Information of All Logical
+Logical Switch Management > Query Logical Switches and Query a Logical Switch by ID; … >
+VPC > Logical Topology Management > Query the Device Mapping Information of All Logical
 Switches; … > VPC > Logical Router Management > Add Static Route Information to a Logical
 Router. Confirmed Nov. 17, 2026.

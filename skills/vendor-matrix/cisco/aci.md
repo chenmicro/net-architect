@@ -504,7 +504,7 @@ ACI Pods … an extension of the ACI fabric underlay infrastructure" [14].
 For figure work this means the IPN must not be drawn or coloured as a leaf unless the
 platform's own documentation makes it one: in ACI it is a separate routed domain, while
 in Huawei CloudFabric the IPN switches are fabric leaf switches with a special role — see
-[the Digital Map POC record](../pocs/2026-11-digital-map-multivendor-dc.md).
+[the Digital Map POC record](../../pocs/2026-11-digital-map-multivendor-dc.md).
 
 ## Multi-Site: stretched workload with per-site NAT
 

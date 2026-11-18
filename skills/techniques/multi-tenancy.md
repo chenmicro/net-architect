@@ -81,6 +81,6 @@ MPLS/MPLS-SR if it's already an MPLS/SR PE.
 [1] "CloudEngine 9800, 8800, and 6800 Series Switches Product Documentation," Huawei,
 V300R026C00, Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611778, login required).
 Verify in: References > Command Reference > VXLAN > VXLAN Configuration Commands >
-vpn-target evpn (VPN instance IPv4 address family view) and import route-policy evpn; and
-> IP Routing > Routing Policy Configuration Commands > route-policy, ip extcommunity-filter
+vpn-target evpn (VPN instance IPv4 address family view) and import route-policy evpn;
+and > IP Routing > Routing Policy Configuration Commands > route-policy, ip extcommunity-filter
 basic, and if-match extcommunity-filter. Confirmed Nov. 12, 2026.
