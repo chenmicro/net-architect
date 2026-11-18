@@ -4,7 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.build_pages import PagesBuildError, _normalize_lists, assemble
+from tools.build_pages import (
+    PagesBuildError,
+    _accidental_quotes,
+    _normalize_lists,
+    assemble,
+)
 
 
 class AssemblePagesTests(unittest.TestCase):
@@ -56,6 +61,47 @@ class AssemblePagesTests(unittest.TestCase):
             self.assertIn("![_", published.replace("Figure 1 — Fabric", "_"))
             self.assertIn("_figures/fabric.svg", published)
             self.assertIn("[Editable draw.io source](fabric.drawio)", published)
+
+    def test_rewrites_same_page_anchor_to_site_slug(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            self.make_repository(root)
+            (root / "skills" / "techniques" / "anchors.md").write_text(
+                "# Anchors\n\nSee [variants](#cross-vendor--variants).\n\n"
+                "## Cross-vendor / variants\n",
+                encoding="utf-8",
+            )
+
+            assemble(root, root / ".pages-build")
+
+            published = (
+                root / ".pages-build" / "docs" / "skills" / "techniques" / "anchors.md"
+            ).read_text()
+            self.assertIn("[variants](#cross-vendor-variants)", published)
+
+    def test_rejects_wrapped_line_that_starts_a_quote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            self.make_repository(root)
+            (root / "skills" / "techniques" / "refs.md").write_text(
+                "# Refs\n\n[1] Verify in: Interface Reference > VPC\n"
+                "> Logical Topology Management.\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                PagesBuildError, r"skills/techniques/refs\.md:4"
+            ):
+                assemble(root, root / ".pages-build")
+
+    def test_allows_intended_quotes_and_quotes_in_code(self) -> None:
+        text = (
+            "Paragraph.\n\n> An intended quote\n> continues here.\n\n"
+            "```text\nprompt\n> not a quote\n```\n"
+        )
+        self.assertEqual(_accidental_quotes(text), [])
 
     def test_ignores_drawio_examples_inside_code(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

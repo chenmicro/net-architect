@@ -4,21 +4,46 @@ site_description: Network architecture scenarios, techniques, POC records, and v
 docs_dir: .pages-build/docs
 site_dir: .pages-site
 
+# Built with Zensical, which reads this mkdocs.yml directly.
 theme:
-  name: readthedocs
+  variant: modern
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: lucide/sun
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: lucide/moon
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - content.code.copy
+    - search.highlight
 
-plugins:
-  - search
+# Copied into the site with the rest of docs/ by tools/build_pages.py.
+extra_css:
+  - docs/stylesheets/extra.css
 
 markdown_extensions:
   # superfences replaces fenced_code so fences nest inside list items.
-  - pymdownx.superfences
+  # The mermaid custom fence lets Zensical render diagrams natively,
+  # following the light/dark scheme.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - tables
   - toc:
       permalink: true
 
-# Deliberately omit `nav`. MkDocs discovers every Markdown file copied from
-# skills/ and docs/, including files added in future subdirectories.
+# Deliberately omit `nav`. Navigation is generated from every Markdown file
+# copied from skills/ and docs/, including files added in future subdirectories.
 validation:
   links:
     not_found: warn

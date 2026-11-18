@@ -1,0 +1,9 @@
+/* Published-site styling for Zensical (see mkdocs.yml extra_css).
+   The theme caps the page at 61rem; on wide screens, let it grow with the
+   viewport so wide comparison tables and diagrams get room, up to a cap
+   that keeps prose lines readable. Below 76.25em the theme is full width. */
+@media screen and (min-width: 76.25em) {
+  .md-grid {
+    max-width: min(92vw, 120rem);
+  }
+}

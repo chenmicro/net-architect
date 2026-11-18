@@ -80,7 +80,7 @@ jobs:
         run: python tools/build_pages.py --repository-url "https://github.com/${GITHUB_REPOSITORY}"
 
       - name: Build static documentation
-        run: mkdocs build --clean
+        run: zensical build --clean --strict
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

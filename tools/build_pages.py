@@ -231,6 +231,56 @@ def _rewrite_figure_links(markdown: Path, docs_root: Path) -> int:
     return count
 
 
+QUOTE_START = re.compile(r"^ *>")
+
+
+def _accidental_quotes(text: str) -> list[int]:
+    """Return line numbers where a wrapped line accidentally starts a quote.
+
+    A line beginning with ``>`` right after paragraph text interrupts the
+    paragraph and opens a blockquote, which is how hard-wrapped paths such as
+    ``Menu > Submenu`` break a reference entry.  An intended quote is preceded
+    by a blank line or by another quoted line.  Code fences are skipped.
+    """
+    found: list[int] = []
+    previous = ""
+    fence: tuple[str, int] | None = None
+    for number, line in enumerate(text.splitlines(), start=1):
+        if fence is not None:
+            character, length = fence
+            if re.match(rf"^ *{re.escape(character)}{{{length},}}[ \t]*$", line):
+                fence = None
+            previous = ""
+            continue
+        opening = FENCE_OPEN.match(line)
+        if opening:
+            marker = opening.group("marker")
+            fence = (marker[0], len(marker))
+            previous = ""
+            continue
+        if QUOTE_START.match(line) and previous.strip() and not QUOTE_START.match(previous):
+            found.append(number)
+        previous = line
+    return found
+
+
+def _check_accidental_quotes(docs_root: Path) -> None:
+    sources = {"index.md": "SKILL.md", "about.md": "README.md"}
+    problems = []
+    for markdown in sorted(docs_root.rglob("*.md")):
+        relative = markdown.relative_to(docs_root).as_posix()
+        source = sources.get(relative, relative)
+        for number in _accidental_quotes(markdown.read_text(encoding="utf-8")):
+            problems.append(f"{source}:{number}")
+    if problems:
+        listed = "\n  - ".join(problems)
+        raise PagesBuildError(
+            "line(s) start with '>' right after paragraph text, which opens an "
+            "unintended blockquote; re-wrap so '>' is not the first character, or "
+            f"put a blank line before an intended quote:\n  - {listed}"
+        )
+
+
 def _page_title(markdown: Path) -> str:
     for line in markdown.read_text(encoding="utf-8").splitlines():
         if line.startswith("# "):
@@ -304,7 +354,11 @@ def _rewrite_local_links(
     def replacement(match: re.Match[str]) -> str:
         label = match.group("label")
         target = match.group("target")
-        if target.startswith(("#", "/", "http://", "https://", "mailto:")):
+        if target.startswith("#"):
+            # Same-page anchors use GitHub's slug ("a--b" for "A / B"); the
+            # site uses the Python-Markdown slug, as for cross-file anchors.
+            return f"[{label}](#{_mkdocs_slug(target[1:])})"
+        if target.startswith(("/", "http://", "https://", "mailto:")):
             return match.group(0)
 
         path_part, separator, fragment = target.partition("#")
@@ -385,6 +439,8 @@ def assemble(
         rendered = "\n  - ".join(missing_exports)
         raise PagesBuildError(f"missing SVG export(s):\n  - {rendered}")
 
+    # Checked on the unmodified copies so line numbers match the sources.
+    _check_accidental_quotes(docs_root)
     directory_indexes = _create_directory_indexes(docs_root)
     for markdown in sorted(docs_root.rglob("*.md")):
         _rewrite_lists(markdown)
