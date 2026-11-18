@@ -19,7 +19,9 @@ An iMaster NCE-Fabric O&M feature that builds topology views and path navigation
 collected network data [1]. Digital Map runs in the MDC scenario: only the MDC solution
 documentation covers it, and the fabric-scenario solution documentation carries no Digital Map
 topics at all [2]. Data sources, device coverage, and limits are in
-[digital-map.md](digital-map.md).
+[digital-map.md](digital-map.md). The MDC documentation also files Runbook workflow
+orchestration under Digital Map (Job View > iMaster NCE-Fabric MDC Runbook) [1]; it is
+covered in [digital-map-runbook.md](digital-map-runbook.md).
 
 ## Logical networks (VPC)
 
@@ -169,7 +171,8 @@ Private Clouds > Examples of Service Provisioning > Single PoD in the Private Cl
 Multi-Site Scenario > East-West Inter-DC Layer 2 Communication; and Solution Overview > Encyclopedia > Private Cloud Interconnection > Transit
 VPC and Transit Router. Confirmed Nov. 12, 2026. For global transit VNIs: Multi-Cloud
 Orchestration > Multi-Cloud Access > Private Cloud Access > Configuring Global Transit
-VNIs. Confirmed Nov. 12, 2026.
+VNIs. Confirmed Nov. 12, 2026. For Runbook under Digital Map: Digital Map > Job View >
+iMaster NCE-Fabric MDC Runbook. Confirmed Nov. 17, 2026.
 
 [2] "Stellar AI Fabric Data Center Network Solution Product Documentation," Huawei,
 V100R026C00, Library Version 01, 2026-09-30, HedEx library EDOC1100612448 (verify at
