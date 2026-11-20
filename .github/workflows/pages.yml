@@ -12,6 +12,7 @@ on:
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - "tools/build_pages.py"
+      - "tools/social_card_background.py"
       - "tools/test_build_pages.py"
       - "tools/drawio_parse.py"
       - "tools/drawio_validate.py"
@@ -25,6 +26,7 @@ on:
       - "mkdocs.yml"
       - "requirements-docs.txt"
       - "tools/build_pages.py"
+      - "tools/social_card_background.py"
       - "tools/test_build_pages.py"
       - "tools/drawio_parse.py"
       - "tools/drawio_validate.py"
@@ -78,6 +80,10 @@ jobs:
 
       - name: Assemble Markdown sources
         run: python tools/build_pages.py --repository-url "https://github.com/${GITHUB_REPOSITORY}"
+
+      # After assembly, which recreates .pages-build/. mkdocs.yml reads it from there.
+      - name: Generate social card background
+        run: python tools/social_card_background.py .pages-build/social-card-background.svg
 
       - name: Build static documentation
         run: zensical build --clean --strict

@@ -1,5 +1,8 @@
 site_name: Net Architect
-site_description: Network architecture scenarios, techniques, POC records, and vendor guidance
+# site_description is the home page's description and its link-preview text.
+# site_url makes canonical and og:image URLs absolute.
+site_description: An open library of network architecture patterns, proof-of-concept lessons, and vendor guidance for designing real-world networks.
+site_url: https://chenmicro.github.io/net-architect/
 
 docs_dir: .pages-build/docs
 site_dir: .pages-site
@@ -41,6 +44,40 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+
+# Publishes /llms.txt, a plain-text index that AI assistants and other
+# automated readers can fetch, plus a Markdown copy of each page.
+# The social plugin generates a link-preview card for each page and adds the
+# Open Graph/Twitter tags LinkedIn, Slack, and others read.
+# Search stays enabled by default when `plugins` is set.
+plugins:
+  - social:
+      # Light card to match the site; Inter also covers arrows such as ↔.
+      # The background is generated into the build directory by
+      # tools/social_card_background.py (a CI step); it is not committed.
+      # background_color must be transparent, or it is painted over the image.
+      cards_layout_options:
+        background_image: .pages-build/social-card-background.svg
+        background_color: transparent
+        color: "#0f172a"
+        font_family: Inter
+  - llmstxt:
+      markdown_description: >-
+        A reference library for network architecture and solution design:
+        scenarios, single-technique guides, proof-of-concept records, and
+        vendor guidance across data center, campus, WAN, and SD-WAN/SASE.
+      sections:
+        Overview:
+          - index.md: How the library is organized and how to use it
+          - about.md: Repository overview
+        Scenarios:
+          - skills/scenarios/*.md
+        Techniques:
+          - skills/techniques/*.md
+        Vendors:
+          - skills/vendor-matrix/*.md
+        POC records:
+          - skills/pocs/*.md
 
 # Deliberately omit `nav`. Navigation is generated from every Markdown file
 # copied from skills/ and docs/, including files added in future subdirectories.

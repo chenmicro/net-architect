@@ -281,6 +281,60 @@ def _check_accidental_quotes(docs_root: Path) -> None:
         )
 
 
+FRONT_MATTER = re.compile(r"\A---\n(?P<body>.*?\n)---\n", re.DOTALL)
+
+
+def _drop_front_matter_keys(markdown: Path, keys: set[str]) -> bool:
+    """Remove top-level YAML front-matter keys (and their indented continuations).
+
+    SKILL.md's ``description`` is written to trigger the agent skill.  On the
+    home page it would become the meta description and link-preview text, so
+    it is dropped there and the site falls back to ``site_description``.
+    """
+    original = markdown.read_text(encoding="utf-8")
+    match = FRONT_MATTER.match(original)
+    if not match:
+        return False
+    kept: list[str] = []
+    dropping = False
+    for line in match.group("body").splitlines(keepends=True):
+        key = re.match(r"^([A-Za-z0-9_-]+)\s*:", line)
+        if key:
+            dropping = key.group(1) in keys
+        elif not line.startswith((" ", "\t")) and line.strip():
+            dropping = False
+        if not dropping:
+            kept.append(line)
+    rewritten = f"---\n{''.join(kept)}---\n" + original[match.end():]
+    if rewritten != original:
+        markdown.write_text(rewritten, encoding="utf-8")
+    return rewritten != original
+
+
+def _site_name(repository_root: Path) -> str | None:
+    config = repository_root / "mkdocs.yml"
+    if not config.is_file():
+        return None
+    match = re.search(r"^site_name:\s*(.+?)\s*$", config.read_text(encoding="utf-8"), re.MULTILINE)
+    return match.group(1).strip("\"'") if match else None
+
+
+def _set_home_card_title(markdown: Path, title: str) -> None:
+    """Title the home page's social card with the site name.
+
+    The card otherwise shows the page's H1, which on the home page is the
+    skill's name (``net-architect``).  The browser title is left unchanged.
+    """
+    original = markdown.read_text(encoding="utf-8")
+    block = f"social:\n  cards_layout_options:\n    title: {title}\n"
+    match = FRONT_MATTER.match(original)
+    if match:
+        rewritten = f"---\n{match.group('body')}{block}---\n" + original[match.end():]
+    else:
+        rewritten = f"---\n{block}---\n\n" + original
+    markdown.write_text(rewritten, encoding="utf-8")
+
+
 def _page_title(markdown: Path) -> str:
     for line in markdown.read_text(encoding="utf-8").splitlines():
         if line.startswith("# "):
@@ -429,6 +483,10 @@ def assemble(
     docs_root.mkdir(parents=True)
 
     shutil.copy2(repository_root / "SKILL.md", docs_root / "index.md")
+    _drop_front_matter_keys(docs_root / "index.md", {"description"})
+    site_name = _site_name(repository_root)
+    if site_name:
+        _set_home_card_title(docs_root / "index.md", site_name)
     shutil.copy2(repository_root / "README.md", docs_root / "about.md")
     shutil.copytree(repository_root / "skills", docs_root / "skills")
     shutil.copytree(repository_root / "docs", docs_root / "docs")

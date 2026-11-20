@@ -80,6 +80,43 @@ class AssemblePagesTests(unittest.TestCase):
             ).read_text()
             self.assertIn("[variants](#cross-vendor-variants)", published)
 
+    def test_home_page_drops_skill_trigger_description(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            self.make_repository(root)
+            source = (
+                "---\nname: skill\ndescription: Use for X —\n  continued.\n"
+                "other: kept\n---\n\n# Skill home\n"
+            )
+            (root / "SKILL.md").write_text(source, encoding="utf-8")
+
+            assemble(root, root / ".pages-build")
+
+            home = (root / ".pages-build" / "docs" / "index.md").read_text()
+            self.assertEqual(home, "---\nname: skill\nother: kept\n---\n\n# Skill home\n")
+            self.assertEqual((root / "SKILL.md").read_text(), source)
+
+    def test_home_card_title_uses_site_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            self.make_repository(root)
+            (root / "mkdocs.yml").write_text("site_name: Example Site\n", encoding="utf-8")
+            (root / "SKILL.md").write_text(
+                "---\nname: skill\ndescription: trigger\n---\n\n# Skill home\n",
+                encoding="utf-8",
+            )
+
+            assemble(root, root / ".pages-build")
+
+            home = (root / ".pages-build" / "docs" / "index.md").read_text()
+            self.assertEqual(
+                home,
+                "---\nname: skill\nsocial:\n  cards_layout_options:\n"
+                "    title: Example Site\n---\n\n# Skill home\n",
+            )
+
     def test_rejects_wrapped_line_that_starts_a_quote(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
