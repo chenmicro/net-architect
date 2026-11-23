@@ -69,6 +69,41 @@ GRE over IPsec, tunnel mode (extra outer IP header)
 A policy-based selector sees the middle layer: GRE from GW-A to GW-B. A route-based tunnel
 needs no selector, because the route into the GRE tunnel interface chooses the traffic.
 
+## mGRE (multipoint GRE)
+
+mGRE is not a new encapsulation. It changes the tunnel interface model, not the packet:
+
+- **On the wire:** each packet is ordinary GRE, a delivery header with protocol 47 and the
+  GRE header above, addressed to one remote endpoint. A capture can't tell an mGRE packet
+  from a point-to-point one.
+- **Interface model:** one tunnel interface has a source but **no configured destination**,
+  and reaches many remote endpoints [4], [5]. The tunnel subnet behaves like a
+  non-broadcast multi-access (NBMA) network [5].
+- **Destination per packet:** the route's next hop is a tunnel address. A protocol-to-NBMA
+  mapping turns it into the remote public address that becomes the delivery header's
+  destination. NHRP provides that mapping, which is why Cisco and Huawei both require NHRP on
+  an mGRE interface [4], [5]. See [nhrp.md](nhrp.md).
+- **Multicast:** a multicast or broadcast packet, such as an OSPF hello, is copied as unicast
+  to every endpoint in a multicast mapping list (Cisco `ip nhrp map multicast`, Huawei
+  `nhrp entry multicast dynamic`) [4], [5], [6].
+- **Key:** an mGRE interface uses the RFC 2890 Key field like any GRE tunnel. Cisco carries the
+  key in every GRE packet but in no NHRP message [5]. Both vendors need a unique key when two
+  tunnels share a source [4], [5]. Cisco requires the same key on every hub and spoke of one
+  DMVPN [6]. Huawei drops a packet whose key doesn't match, and keys must be set on both ends
+  or on neither [4].
+
+mGRE is covered here rather than in its own file because, as a protocol, it is GRE. Its
+control plane, packet exchanges and vendor solutions (Cisco DMVPN, Huawei DSVPN) live in
+[nhrp.md](nhrp.md).
+
+| Item | Cisco IOS XE | Huawei AR (V600R026C00) |
+|---|---|---|
+| Mode | `tunnel mode gre multipoint` [5] | `tunnel-protocol gre p2mp`. Changing the mode deletes the source and NHRP settings [4] |
+| Source | `tunnel source`; front-door VRF with `tunnel vrf` [6] | `source [ vpn-instance <name> ] <ip>` or `source <interface>`. No secondary address. Changing the source deletes the interface's IPsec configuration [4] |
+| Key | `tunnel key` [5] | `gre key { simple \| cipher }`, off by default [4] |
+| Keepalive | Not used on mGRE in the sources read | mGRE interfaces don't support GRE keepalive [4] |
+| IPsec | `tunnel protection ipsec profile` [6] | `ipsec profile <name> [ shared ]`. `shared` is mGRE-only and needed when several mGRE interfaces share one physical interface [4] |
+
 ## Cross-vendor / variants
 
 ### Huawei (USG firewalls and NetEngine AR routers, V600R026C00)
@@ -144,6 +179,8 @@ For AR's `ipsec tunnel-state-dynamic` and its restrictions, see
 - [ipsec.md](ipsec.md): GRE over IPsec, route-based IPsec, and Huawei tunnel-state options.
 - [ospf-isis.md](ospf-isis.md), [bgp.md](bgp.md): routing protocols run over GRE tunnels.
 - [management-plane.md](management-plane.md): ERSPAN uses GRE encapsulation.
+- [nhrp.md](nhrp.md): NHRP, the control plane of mGRE, and the Cisco DMVPN and Huawei DSVPN
+  solutions built on it.
 - [overlay-architecture.md](overlay-architecture.md): on the AR, a `gre p2mp` (mGRE) tunnel
   interface with an IPsec profile implements DSVPN [4].
 
@@ -152,31 +189,47 @@ For AR's `ipsec tunnel-state-dynamic` and its restrictions, see
 [1] D. Farinacci, T. Li, S. Hanks, D. Meyer, and P. Traina, "Generic Routing Encapsulation
     (GRE)," RFC 2784, Mar. 2000. [Online]. Available: https://www.rfc-editor.org/rfc/rfc2784
 
-[2] G. Dommety, "Key and Sequence Number Extensions to GRE," RFC 2890, Sep. 2000.
-    [Online]. Available: https://www.rfc-editor.org/rfc/rfc2890
+[2] G. Dommety, "Key and Sequence Number Extensions to GRE," RFC 2890, Sep. 2000. [Online].
+    Available: https://www.rfc-editor.org/rfc/rfc2890
 
 [3] "HiSecEngine USG6000F, USG6000G Product Documentation," Huawei, V600R026C00, Issue 01,
-    Sep. 30, 2026 (HedEx library EDOC1100605493, login required). Verify in:
-    - Configuration > Configuration Guide > VPN Configuration > IPsec Configuration >
-      Understanding IPsec > IPsec Enhancements > Understanding GRE over IPsec;
-      Configuration Examples for IPsec > CLI: Example for Establishing a GRE over IPsec
-      Tunnel Using an IPsec Profile; Using ISAKMP;
-    - VPN Configuration > GRE Configuration > Understanding GRE > Keepalive Detection;
-      Configuring GRE - CLI > Configuring a GRE Tunnel > Configuring a Tunnel Interface,
-      (Optional) Enabling the Keepalive Function;
-    - Command Reference > VPN > GRE Configuration Commands > keepalive (Tunnel interface
-      view); Command Reference > Security Protection > Security Policy Configuration
-      Commands > firewall packet-filter basic-protocol enable.
-
+    Sep. 30, 2026 (HedEx library EDOC1100605493, login required). Verify in: Configuration >
+    Configuration Guide > VPN Configuration > IPsec Configuration > Understanding IPsec >
+    IPsec Enhancements > Understanding GRE over IPsec; Configuration Examples for IPsec >
+    CLI: Example for Establishing a GRE over IPsec Tunnel Using an IPsec Profile; Using
+    ISAKMP; VPN Configuration > GRE Configuration > Understanding GRE > Keepalive Detection;
+    Configuring GRE - CLI > Configuring a GRE Tunnel > Configuring a Tunnel Interface,
+    (Optional) Enabling the Keepalive Function; Command Reference > VPN > GRE Configuration
+    Commands > keepalive (Tunnel interface view); Command Reference > Security Protection >
+    Security Policy Configuration Commands > firewall packet-filter basic-protocol enable.
     Confirmed Nov. 14, 2026.
 
-[4] "NetEngine AR5700, AR6700, and AR8000 Product Documentation," Huawei, V600R026C00,
-    Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611044, login required). Verify in:
-    - Configuration > CLI Configuration Guide > VPN Configuration > IPsec Configuration >
-      Configuring IPsec Using an IPsec Profile > Configuring a Tunnel Interface and Applying
-      an IPsec Profile; Configuring IPsec Using an IPsec Policy > Applying an IPsec Policy
-      Group;
-    - References > Command Reference > VPN > GRE Configuration Commands > keepalive (Tunnel
-      interface view).
+[4] "NetEngine AR5700, AR6700, and AR8000 Product Documentation," Huawei, V600R026C00, Issue
+    01, Sep. 30, 2026 (HedEx library EDOC1100611044, login required). Verify in:
+    Configuration > CLI Configuration Guide > VPN Configuration > IPsec Configuration >
+    Configuring IPsec Using an IPsec Profile > Configuring a Tunnel Interface and Applying
+    an IPsec Profile; Configuring IPsec Using an IPsec Policy > Applying an IPsec Policy
+    Group; References > Command Reference > VPN > GRE Configuration Commands > keepalive
+    (Tunnel interface view); Configuration > CLI Configuration Guide > VPN Configuration >
+    DSVPN Configuration > Understanding DSVPN > Basic Concepts of DSVPN (mGRE attributes, no
+    keepalive); Configuring Basic DSVPN Functions > Configuring mGRE; Configuring DSVPN over
+    IPsec; References > Command Reference > VPN > GRE Configuration Commands > source (MGRE
+    Tunnel interface view), gre key; IPsec Configuration Commands > ipsec profile (Tunnel
+    interface view); DSVPN Configuration Commands > nhrp entry multicast dynamic. Confirmed
+    Nov. 14, 2026; DSVPN and mGRE sections Nov. 23, 2026.
 
-    Confirmed Nov. 14, 2026.
+[5] "IP Addressing Configuration Guide, Cisco IOS XE 17.x," Cisco, chapter "Configuring
+    NHRP" (sections How NHRP and NBMA Networks Interact; Configuring a GRE Tunnel for
+    Multipoint Operation; Configuring a Static IP-to-NBMA Address Mapping on a Station).
+    [Online]. Available:
+    https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_config-nhrp-0.html
+    Read Nov. 23, 2026.
+
+[6] "Security and VPN Configuration Guide, Cisco IOS XE 17.x," Cisco, chapters "Dynamic
+    Multipoint VPN" (Configuring the Hub/Spoke for DMVPN: `tunnel key`, `ip nhrp map
+    multicast`) and "DMVPN Support for IWAN" (`tunnel vrf`, `tunnel protection ipsec
+    profile`), both updated Jan. 11, 2021. [Online]. Available:
+    https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/sec-vpn/b-security-vpn/m_sec-conn-dmvpn-dmvpn-0.html
+    and
+    https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/sec-vpn/b-security-vpn/m-sec-conn-dmvpn-mtt.html
+    Read Nov. 23, 2026.

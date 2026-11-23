@@ -52,7 +52,7 @@
 | Large DC fabric (hundreds of nodes) | IS-IS | TLV extensibility for SR, no IP-layer attack surface, simpler flooding domain management at scale |
 | Campus or WAN aggregation | OSPF | Broader operator familiarity, multi-area maps naturally to geographic boundaries |
 | Segment Routing deployment | IS-IS | De facto IGP for SR; most vendor SR implementations and documentation assume IS-IS |
-| Cross-vendor (Cisco ↔ Huawei) | Either | Both vendors implement both protocols; no interop gap specific to either |
+| Cross-vendor (Cisco ↔ Huawei) | Either | Both vendors implement both protocols. For OSPF, align the Huawei DD-packet MTU and P2MP/NBMA timer defaults (see below) |
 | Extreme Networks (Fabric Engine) | IS-IS | Fabric Engine (VOSS/SPBm) uses IS-IS as its native control plane [1] |
 
 ## Cross-vendor / variants
@@ -61,6 +61,18 @@
   SPF-throttle timers — a mismatch doesn't prevent adjacency, but it can cause
   flapping adjacency if one side declares the neighbor dead before the other
   sends its next hello.
+  - Huawei AR defaults: hello 10 s / dead 40 s on P2P and broadcast interfaces, and 30 s /
+    120 s on P2MP and NBMA interfaces [2].
+  - Huawei advises a larger hello interval when OSPF runs inside GRE, because hellos are
+    ordinary low-priority GRE data packets [2].
+  - Set hello/dead explicitly on both ends of an mGRE (P2MP) link rather than relying on
+    either vendor's defaults.
+- **Network type (Huawei)**:
+  - The network types must match. A P2P or P2MP interface discards hellos whose DR and
+    Router Priority fields are both non-zero [2].
+  - With a mismatched type the adjacency can still form, but routes are calculated
+    incorrectly [2].
+  - A star network, such as a hub and spokes over mGRE, can't use P2P; use P2MP [2].
 - **Area/Level IDs**: consistent numbering across vendors — Cisco uses
   dotted-decimal for OSPF areas (`area 0.0.0.0`) while Huawei accepts both
   dotted and integer (`area 0`); IS-IS area addresses are hex strings on both.
@@ -72,6 +84,13 @@
   neighbors (unless `mtu-ignore` is set) — this is a common first-connect
   failure in cross-vendor links. IS-IS doesn't have this problem since it
   rides on L2.
+  - Huawei is the exception by default. It writes MTU 0 into the DD packets it sends and
+    doesn't check received ones, so the adjacency reaches Full despite a mismatch [2].
+  - A non-Huawei neighbour may then discard Huawei packets larger than its own MTU. If the
+    dropped packet is an LSU, the adjacency stays up but its routes are never learned [2].
+  - `ospf mtu-enable` on the Huawei interface sends the real MTU and checks it, making a
+    mismatch visible as an adjacency that never reaches Full [2]. iMaster NCE-Campus
+    exposes the same switch as "Filling MTU" and recommends it for non-Huawei peers [3].
 
 ## Design considerations
 
@@ -107,3 +126,13 @@
     See [skills/vendor-matrix/extreme-networks.md](../vendor-matrix/extreme-networks.md)
     for full Extreme Fabric details.
     Last confirmed: not fetched — written from architecture knowledge.
+
+[2] "NetEngine AR5700, AR6700, and AR8000 Product Documentation," Huawei, V600R026C00,
+    Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611044, login required). Verify in
+    References > Command Reference > IP Routing > OSPF Configuration Commands: ospf
+    network-type, ospf timer hello, ospf timer dead, ospf mtu-enable. Confirmed Nov. 23, 2026.
+
+[3] "SD-WAN Solution & iMaster NCE-Campus Product Documentation," Huawei, V100R026C00,
+    Issue 01, Sep. 30, 2026 (HedEx library EDOC1100613380, login required). Verify in
+    Configuring Overlay LAN-side Routes (OSPF or OSPFv3) > Parameter Description (Filling
+    MTU). Confirmed Nov. 23, 2026.

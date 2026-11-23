@@ -290,8 +290,8 @@ Platform differences:
 
 ## References
 
-[1] S. Kent and K. Seo, "Security Architecture for the Internet Protocol," RFC 4301,
-    Dec. 2005. [Online]. Available: https://www.rfc-editor.org/rfc/rfc4301
+[1] S. Kent and K. Seo, "Security Architecture for the Internet Protocol," RFC 4301, Dec.
+    2005. [Online]. Available: https://www.rfc-editor.org/rfc/rfc4301
 
 [2] S. Kent, "IP Encapsulating Security Payload (ESP)," RFC 4303, Dec. 2005. [Online].
     Available: https://www.rfc-editor.org/rfc/rfc4303
@@ -306,27 +306,21 @@ Platform differences:
 
 [5] "HiSecEngine USG6000F, USG6000G Product Documentation," Huawei, V600R026C00, Issue 01,
     Sep. 30, 2026 (HedEx library EDOC1100605493, login required). Verify in Configuration >
-    Configuration Guide > VPN Configuration > IPsec Configuration:
-    - Configuring IPsec - CLI > Configuring IPsec Using an IPsec Policy > Configuring an
-      IPsec Policy > Configuring an ISAKMP IPsec Policy;
-    - Configuring IPsec - CLI > Configuring IPsec Using an IPsec Profile > Configuring a
-      Tunnel Interface and Applying an IPsec Profile;
-    - Configuring IPsec - CLI > Enhanced IPsec Configuration > IPsec Reliability >
-      Configuring IPsec Route Injection; Configuring IPsec Route Verification;
-    - Configuration Examples for IPsec > CLI: Example for Establishing an IPsec Tunnel in
-      ISAKMP Mode (Using PSK Authentication); Using an IPsec Profile (Through PSK
-      Authentication); Using an IPsec Policy Template (Branches Use the Same PSK for
-      Authentication and Reverse Route Injection).
+    Configuration Guide > VPN Configuration > IPsec Configuration: Configuring IPsec - CLI >
+    Configuring IPsec Using an IPsec Policy > Configuring an IPsec Policy > Configuring an
+    ISAKMP IPsec Policy; Configuring IPsec - CLI > Configuring IPsec Using an IPsec Profile >
+    Configuring a Tunnel Interface and Applying an IPsec Profile; Configuring IPsec - CLI >
+    Enhanced IPsec Configuration > IPsec Reliability > Configuring IPsec Route Injection;
+    Configuring IPsec Route Verification; Configuration Examples for IPsec > CLI: Example
+    for Establishing an IPsec Tunnel in ISAKMP Mode (Using PSK Authentication); Using an
+    IPsec Profile (Through PSK Authentication); Using an IPsec Policy Template (Branches Use
+    the Same PSK for Authentication and Reverse Route Injection). Confirmed Nov. 14, 2026.
 
-    Confirmed Nov. 14, 2026.
-
-[6] "NetEngine AR5700, AR6700, and AR8000 Product Documentation," Huawei, V600R026C00,
-    Issue 01, Sep. 30, 2026 (HedEx library EDOC1100611044, login required). Verify in
+[6] "NetEngine AR5700, AR6700, and AR8000 Product Documentation," Huawei, V600R026C00, Issue
+    01, Sep. 30, 2026 (HedEx library EDOC1100611044, login required). Verify in
     Configuration > CLI Configuration Guide > VPN Configuration > IPsec Configuration:
-    - Configuring IPsec Using an IPsec Policy > Applying an IPsec Policy Group;
-    - Configuring IPsec Using an IPsec Profile > Configuring a Tunnel Interface and Applying
-      an IPsec Profile;
-    - References > Command Reference > VPN > IPsec Configuration Commands > ipsec
-      tunnel-state-dynamic enable; ipsec profile (Tunnel interface view); sa trigger-mode.
-
+    Configuring IPsec Using an IPsec Policy > Applying an IPsec Policy Group; Configuring
+    IPsec Using an IPsec Profile > Configuring a Tunnel Interface and Applying an IPsec
+    Profile; References > Command Reference > VPN > IPsec Configuration Commands > ipsec
+    tunnel-state-dynamic enable; ipsec profile (Tunnel interface view); sa trigger-mode.
     Confirmed Nov. 14, 2026.
