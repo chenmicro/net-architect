@@ -918,8 +918,8 @@ entry (MC-03) and the core's static route (MC-01 step 2).
    | W1 | Read the new switch | `l2l3app-logic-switchs` / `queryLogicSwitch` | `id` ← `DCx.HW-switch` | — | Always | Run |
    | W2 | Read its subnet | `l2l3app-subnets` / `querySubnetList` | `logicSwitchId` ← `DCx.HW-switch` | — | Always | Run |
    | W3 | Read the EXT router | `l2l3app-logic-routers` / `getLogicRouter` | `id` ← `DCx.HW-router` | — | Always | Run |
-   | W4 | Look for the route | `l2l3app-logic-routers` / `getRouteSets` | `logicRouterId` ← `DCx.HW-router`; `destinations` ← [W2 CIDR] | W2 | Always | Run |
-   | W5 | Add the EXT route | `l2l3app-logic-routers` / `addroute` | `id` ← `DCx.HW-router`; destination ← W2 CIDR; next hop ← `DCx.nexthop-ip`; condition ← W4 (table below) | W4 | W4 found no route set | Run, without the condition |
+   | W4 | Read EXT's routes | `l2l3app-logic-routers` / `getRouteSets` | `logicRouterId` ← `DCx.HW-router` only; `destinations` stays Unassigned (ISSUE-07) | W2 | Always | Run |
+   | W5 | Add the EXT route | `l2l3app-logic-routers` / `addroute` | `id` ← `DCx.HW-router`; destination ← W2 CIDR; next hop ← `DCx.nexthop-ip`; condition ← W4 and W2 (below) | W4 | No route in W4 has W2's CIDR as its destination | Run |
    | W6 | Check the prefix entry, per leaf | `gnd-ip-prefix-filter` / `query_…:ip-prefix-filter-nodes` | `ne-id` ← `DCx.blN-ne-id`; `node-sequence` ← W1 VNI | W1, W2 | Always | Run |
    | W7 | Add the prefix entry, per leaf | `gnd-ip-prefix-filter` / `create_…:ip-prefix-filter-nodes` | `ne-id` ← `DCx.blN-ne-id`; `node-sequence` ← W1 VNI; address and mask ← W2 CIDR; condition ← W6 | W6 | Outside `10.0.0.0/8` and W6 returned nothing | Run, without the 10/8 check |
    | W8 | Check the filter entry, per leaf | `VPC_Subnet` / `showVpcLsRt` | `neResId` ← `DCx.blN-ne-id`; `lsVni` ← W1 VNI; `rtPrefix` ← `DCx.rt-prefix` | W1 | Always | Not run |
@@ -1057,10 +1057,52 @@ entry (MC-03) and the core's static route (MC-01 step 2).
      (W4 → W5, W6 → W7, W8 → W9, W10 → W11). Hover over the line and click the edit (hammer) icon to
      open Edit Branch Condition
      ([digital-map-runbook.md](../vendor-matrix/huawei/digital-map-runbook.md#workflow-components)).
-     W7's condition, `is empty` on W6's `body`, worked in the lab. The rest are untested:
-     - **W5:** `is empty` on W4's route-set list, assumed at
-       `logicRouterRoutesListWrapper.routes`. An empty W4 result succeeded in the lab, and
-       reading a field from it gave null rather than an error.
+     W7's condition, `is empty` on W6's `body`, and W5's condition below worked in the
+     lab:
+     - **W5:** **not** on a **list filter** of a **json query**. The query collects every
+       route destination on EXT, and the filter keeps the ones **==** W2's CIDR:
+
+       ```json
+       {
+         "function": "not",
+         "condition": {
+           "function": "list_filter",
+           "array_input": {
+             "function": "json_query",
+             "data": {
+               "function": "get_attribute",
+               "nick_name": "getRouteSets",
+               "path": "logicRouterRoutesListWrapper.routes",
+               "primary_key": null
+             },
+             "path": "$[*].routes[*].destination"
+           },
+           "check_item": "iterator",
+           "operator": "==",
+           "check_value": {
+             "function": "get_attribute",
+             "nick_name": "querySubnetList",
+             "path": "subnetPagedDtoWrapper.subnet[0].cidr",
+             "primary_key": null
+           }
+         }
+       }
+       ```
+
+       - `logicRouterRoutesListWrapper.routes` has one entry per route set, and each W5 run
+         adds a new set. Checking only the first set (`routes[0]`) misses the route
+         on a rerun for any subnet but the first, and W5 adds it again.
+       - The JSON query path `$[*].routes[*].destination` flattens the destinations of every
+         set into one list of strings. Its flag stays `none`.
+       - On the canvas the list filter uses **item**, not **item path**, because each
+         element is the destination string itself.
+       - An empty list counts as false, so **not** is true when EXT has no route for the
+         subnet.
+
+       In the lab the condition ran with the comparison value taken from a process input.
+       In TC-16 it comes from W2.
+
+     The rest are untested:
      - **W7, 10/8 check:** MC-01's `VPC-HOST32 index 10` already matches every host route
        in `10.0.0.0/8`, so only a subnet outside it needs its own entry. The condition
        is an **and** of two parts: "first octet of the address" (**split** on `.`, then
@@ -1121,6 +1163,7 @@ Observed in the lab, 2026-11:
 | Steps | Result |
 |---|---|
 | W1–W5 | Succeeded in both DC branches in parallel once W5's attributes were set as above (ISSUE-04, ISSUE-05) |
+| W4, W5 condition | With `logicRouterId` only, W4 returned all of EXT's route sets. The W5 condition above was true when the CIDR wasn't among their destinations and false when it was (ISSUE-07) |
 | W6, W7 | A leaf that already had the sequence: W6 returned the entry, W7 showed 0%, and the workflow reached End |
 | W6, W7 | A leaf without the filter: W6 succeeded with no output, and W7 created the filter and its entry in one step |
 | Rollback | Removed the prefix entry and the filter that run had created |
@@ -1140,6 +1183,8 @@ untested. Hand-entered configuration on the same VRF would be at greater risk.
 - **A step fails with "require string, but null":** an attribute is mapped to an output
   that is empty (ISSUE-04).
 - **`addroute` rejects the destination:** it is in gateway form (ISSUE-05).
+- **W4 returns an empty list although EXT has the route:** `destinations` is set
+  (ISSUE-07).
 - **W9 always runs, or never runs:** open W8's Output tab and check the output path and
   its text.
 - **Host routes stop arriving in EXT after a rollback:** check that `VPC-LS-RT` still
@@ -1249,6 +1294,23 @@ no device group, so the border leaves can't be derived from it.
 DC data type). They stay the same from run to run, so they live in the exported input.
 
 **Verification**: The GND steps reach both border leaves of each DC.
+
+### ISSUE-07: `getRouteSets` returns an empty list when `destinations` is set
+
+**Found in**: TC-16 (lab, W4)
+
+**Symptom**: With `logicRouterId` and `destinations` (the subnet's CIDR as a list),
+`getRouteSets` returns an empty array, even though EXT has a route to that CIDR. With
+`logicRouterId` alone, it returns all of EXT's routes.
+
+**Root cause**: The workflow doesn't pass the list to the API as separate values, so no
+route's destination matches it.
+
+**Fix**: Query by `logicRouterId` only, and check the destination in W5's branch
+condition.
+
+**Verification**: W4 returns EXT's route sets, and the W5 condition finds the subnet's
+route among them.
 
 ## Conclusion
 
